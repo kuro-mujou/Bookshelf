@@ -18,13 +18,11 @@ import androidx.compose.ui.graphics.Color
 sealed class RequestState<out T> {
     data object Idle : RequestState<Nothing>()
     data object Loading : RequestState<Nothing>()
-    data object Done : RequestState<Nothing>()
     data class Success<out T>(val data: T) : RequestState<T>()
     data class Error(val message: String) : RequestState<Nothing>()
 
     fun isLoading(): Boolean = this is Loading
     fun isIdle(): Boolean = this is Idle
-    fun isDone(): Boolean = this is Done
     fun isError(): Boolean = this is Error
     fun isSuccess(): Boolean = this is Success
 
@@ -38,7 +36,6 @@ fun <T> RequestState<T>.DisplayResult(
     onIdle: (@Composable () -> Unit)? = null,
     onLoading: (@Composable () -> Unit)? = null,
     onError: (@Composable (String) -> Unit)? = null,
-    onDone: (@Composable () -> Unit)? = null,
     onSuccess: @Composable (T) -> Unit,
     transitionSpec: ContentTransform = fadeIn(tween(durationMillis = 800))
             togetherWith fadeOut(
@@ -69,9 +66,6 @@ fun <T> RequestState<T>.DisplayResult(
 
                 is RequestState.Error -> {
                     onError?.invoke(state.getErrorMessage())
-                }
-                is RequestState.Done -> {
-                    onDone?.invoke()
                 }
                 is RequestState.Success -> {
                     onSuccess(state.getSuccessData())

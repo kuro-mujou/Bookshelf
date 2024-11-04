@@ -8,6 +8,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.capstone.bookshelf.feature.readbook.presentation.BookContent
+import com.capstone.bookshelf.feature.readbook.presentation.BookContentViewModel
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun SetupNavGraph(navController: NavHostController) {
@@ -40,12 +43,19 @@ fun SetupNavGraph(navController: NavHostController) {
             )
         ) {
             BackHandler(true) {}
-            val id = it.arguments?.getInt(BOOK_ID_ARG) ?: 0
+            val bookId = it.arguments?.getInt(BOOK_ID_ARG) ?: 0
             val currentChapter = it.arguments?.getInt(CURRENT_CHAPTER) ?: 0
+            val bookContentViewModel = koinViewModel<BookContentViewModel>(
+                parameters = { parametersOf(bookId) }
+            )
+            bookContentViewModel.updateCurrentBookIndex(bookId)
+            bookContentViewModel.updateCurrentChapterIndex(currentChapter)
             BookContent(
-                navController = navController,
-                bookId = id,
-                previousChapterIndex = currentChapter
+                bookId = bookId,
+                onBackIconClick = { currentChapterIndex->
+                    navController.navigateUp()
+                    bookContentViewModel.saveBookInfo(bookId,currentChapterIndex)
+                }
             )
         }
     }

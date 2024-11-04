@@ -15,7 +15,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -29,14 +28,13 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import com.capstone.bookshelf.feature.readbook.presentation.BookContentViewModel
+import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 
 @Composable
 fun TableOfContents(
     bookContentViewModel: BookContentViewModel,
-    bookId: Int,
-    currentChapterIndex: MutableIntState,
+    uiState : ContentUIState,
     drawerLazyColumnState: LazyListState,
-    toggleDrawerState: Boolean,
     onDrawerItemClick: (Int) -> Unit,
 ) {
     var searchInput by remember { mutableStateOf("") }
@@ -45,8 +43,8 @@ fun TableOfContents(
     var flag by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
-    LaunchedEffect(bookId, currentChapterIndex) {
-        bookContentViewModel.getTableOfContents(bookId)
+    LaunchedEffect(uiState.currentBookIndex, uiState.currentChapterIndex) {
+        bookContentViewModel.getTableOfContents(uiState.currentBookIndex)
     }
     LaunchedEffect(flag) {
         if(flag){
@@ -54,12 +52,14 @@ fun TableOfContents(
             flag = false
         }
     }
-    LaunchedEffect(toggleDrawerState) {
-        searchInput = ""
-        targetDatabaseIndex = -1
-        flag = false
-        keyboardController?.hide()
-        focusManager.clearFocus()
+    LaunchedEffect(uiState.drawerState) {
+        if (!uiState.drawerState) {
+            searchInput = ""
+            targetDatabaseIndex = -1
+            flag = false
+            keyboardController?.hide()
+            focusManager.clearFocus()
+        }
     }
     ModalDrawerSheet {
         OutlinedTextField(
@@ -103,7 +103,7 @@ fun TableOfContents(
                             )
                         )
                     },
-                    selected = tableOfContents.indexOf(tocItem) == currentChapterIndex.intValue,
+                    selected = tableOfContents.indexOf(tocItem) == uiState.currentChapterIndex,
                     onClick = {
                         onDrawerItemClick(tableOfContents.indexOf(tocItem))
                     },

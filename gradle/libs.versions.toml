@@ -1,5 +1,5 @@
 [versions]
-agp = "8.7.1"
+agp = "8.7.2"
 koinAndroid = "4.0.0"
 koinAndroidxCompose = "4.0.0"
 kotlin = "2.0.10"
@@ -23,6 +23,7 @@ roomPaging = "2.7.0-alpha10"
 pagingCompose = "3.3.2"
 pagingRuntimeKtx = "3.3.2"
 kotlinxSerializationJson = "1.7.3"
+lifecycleViewmodelCompose = "2.9.0-alpha06"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -56,6 +57,7 @@ androidx-room-paging = { group = "androidx.room", name = "room-paging", version.
 androidx-paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "pagingCompose" }
 androidx-paging-runtime-ktx = { group = "androidx.paging", name = "paging-runtime-ktx", version.ref = "pagingRuntimeKtx" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

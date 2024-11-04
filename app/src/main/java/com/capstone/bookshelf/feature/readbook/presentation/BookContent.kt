@@ -22,6 +22,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,7 +30,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -42,8 +43,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalTextToolbar
@@ -55,7 +55,6 @@ import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.capstone.bookshelf.core.domain.ChapterContentEntity
 import com.capstone.bookshelf.core.presentation.component.ErrorView
 import com.capstone.bookshelf.core.presentation.component.LoadingAnimation
@@ -64,6 +63,7 @@ import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.
 import com.capstone.bookshelf.feature.readbook.presentation.component.drawer.NavigationDrawer
 import com.capstone.bookshelf.feature.readbook.presentation.component.textToolBar.CustomTextToolbar
 import com.capstone.bookshelf.feature.readbook.presentation.component.topBar.TopBar
+import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -73,37 +73,32 @@ import org.koin.core.parameter.parametersOf
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun BookContent(
-    navController: NavController,
     bookId: Int,
-    previousChapterIndex: Int,
+    onBackIconClick: (Int) -> Unit
 ){
-
     val bookContentViewModel = koinViewModel<BookContentViewModel>(
         parameters = { parametersOf(bookId) }
     )
     val book by bookContentViewModel.book
-    val currentChapterIndex = rememberSaveable { mutableIntStateOf(-1) }
-    val bottomBarState = rememberSaveable { (mutableStateOf(false)) }
-    val topBarState = rememberSaveable { (mutableStateOf(false)) }
+    val uiState by bookContentViewModel.contentUIState.collectAsState()
+
     val isSpeaking by rememberSaveable { mutableStateOf(false) }
     var isFocused by rememberSaveable { mutableStateOf(false) }
     var isPaused by rememberSaveable { mutableStateOf(false) }
-    var toggleDrawerState by rememberSaveable { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val enableScaffoldBar = rememberSaveable { mutableStateOf(true) }
-    val drawerLazyColumnState = rememberLazyListState()
-    val lazyListStates = remember { mutableStateMapOf<Int, LazyListState>() }
+    var scrollTimes by remember {mutableIntStateOf(0) }
     val currentReadingItemIndex = remember { mutableIntStateOf(0) }
-    var pagerState by remember { mutableStateOf<PagerState?>(null) }
+
+    var flagTriggerScrolling by remember { mutableStateOf(false) }
+
 //    val tts = rememberTextToSpeech()
 //    val textMeasurer = rememberTextMeasurer()
-//    val maxWidth = with(LocalDensity.current) { (LocalConfiguration.current.screenWidthDp.dp).toPx() }.toInt()
-    val maxHeight = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp.dp-16.dp-20.dp).toPx() }.toInt()
-    var scrollTimes by remember {mutableIntStateOf(0) }
 //    var currentPosition by remember { mutableIntStateOf(0) }
-    var flagTriggerScrolling by remember { mutableStateOf(false) }
+
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var pagerState by remember { mutableStateOf<PagerState?>(null) }
+    val lazyListStates = remember { mutableStateMapOf<Int, LazyListState>() }
     var currentLazyColumnState by remember { mutableStateOf<LazyListState?>(null) }
+    val drawerLazyColumnState = rememberLazyListState()
 
     val textStyle = TextStyle(
         textIndent = TextIndent(firstLine = 40.sp),
@@ -112,28 +107,19 @@ fun BookContent(
         background = Color(0x80e2e873),
         lineBreak = LineBreak.Paragraph,
     )
-    LaunchedEffect(Unit) {
-        currentChapterIndex.intValue = previousChapterIndex
-    }
     book.DisplayResult(
         onLoading = { LoadingAnimation() },
         onError = { ErrorView(it) },
         onSuccess = {data->
             NavigationDrawer(
                 bookContentViewModel = bookContentViewModel,
+                uiState = uiState,
                 book = data,
-                bookId = bookId,
-                currentChapterIndex = currentChapterIndex,
                 drawerState = drawerState,
                 drawerLazyColumnState = drawerLazyColumnState,
-                toggleDrawerState = toggleDrawerState,
                 onDrawerItemClick = { chapterIndex ->
-                    currentChapterIndex.intValue = chapterIndex
-                    scope.launch {
-                        drawerState.close()
-                        drawerLazyColumnState.animateScrollToItem(chapterIndex)
-                        pagerState?.animateScrollToPage(chapterIndex)
-                    }
+                    bookContentViewModel.updateCurrentChapterIndex(chapterIndex)
+                    bookContentViewModel.updateDrawerState(false)
                 }
             ){
                 LaunchedEffect(isSpeaking) {
@@ -144,44 +130,44 @@ fun BookContent(
                 }
                 LaunchedEffect(drawerState.currentValue) {
                     if(drawerState.currentValue == DrawerValue.Closed) {
-                        toggleDrawerState = !toggleDrawerState
-                        drawerLazyColumnState.scrollToItem(currentChapterIndex.intValue)
-                        topBarState.value = false
-                        bottomBarState.value = false
+                        bookContentViewModel.updateDrawerState(false)
+                        bookContentViewModel.updateTopBarState(false)
+                        bookContentViewModel.updateBottomBarState(false)
+                        drawerLazyColumnState.scrollToItem(uiState.currentChapterIndex)
                     }
                 }
-                LaunchedEffect(currentChapterIndex.intValue) {
-                    drawerLazyColumnState.scrollToItem(currentChapterIndex.intValue)
-                    pagerState?.animateScrollToPage(currentChapterIndex.intValue)
-
+                LaunchedEffect(uiState.currentChapterIndex) {
+                    drawerLazyColumnState.scrollToItem(uiState.currentChapterIndex)
+                    pagerState?.animateScrollToPage(uiState.currentChapterIndex)
                 }
-
+                LaunchedEffect(uiState.drawerState){
+                    if(uiState.drawerState){
+                        drawerState.open()
+                    }else{
+                        drawerState.close()
+                        drawerLazyColumnState.animateScrollToItem(uiState.currentChapterIndex)
+                        pagerState?.animateScrollToPage(uiState.currentChapterIndex)
+                    }
+                }
                 Scaffold(
                     topBar = {
                         TopBar(
-                            topBarState = topBarState,
+                            topBarState = uiState.topBarState,
                             onMenuIconClick ={
-                                scope.launch {
-                                    drawerState.open()
-                                }
+                                bookContentViewModel.updateDrawerState(true)
                             },
                             onBackIconClick = {
-                                navController.navigateUp()
-                                bookContentViewModel.saveBookInfo(bookId,currentChapterIndex.intValue+1)
+                                onBackIconClick(uiState.currentChapterIndex+1)
                             }
                         )
                     },
                     bottomBar = {
                         BottomBar(
-                            bottomBarState= bottomBarState,
+                            bottomBarState = uiState.bottomBarState,
                             isSpeaking = isSpeaking
                         )
                     }
                 ){
-//                    pagerState = rememberPagerState(
-//                        initialPage = currentChapterIndex.intValue,
-//                        pageCount = { data.totalChapter }
-//                    )
                     pagerState = rememberPagerState{
                         data.totalChapter
                     }
@@ -189,19 +175,18 @@ fun BookContent(
                         modifier = Modifier
                             .fillMaxSize()
                             .then(
-                                if (enableScaffoldBar.value)
+                                if (uiState.enableScaffoldBar)
                                     Modifier.clickable(
                                         indication = null,
                                         interactionSource = remember { MutableInteractionSource() },
                                     ) {
-                                        bottomBarState.value = !bottomBarState.value
-                                        topBarState.value = !topBarState.value
+                                        bookContentViewModel.updateBottomBarState(!uiState.bottomBarState)
+                                        bookContentViewModel.updateTopBarState(!uiState.topBarState)
                                     }
                                 else
                                     Modifier
                             ),
                     ) {
-                        val userScrollPager = rememberSaveable { mutableStateOf(true) }
                         var trigger by remember { mutableStateOf(false) }
                         var callback by remember { mutableStateOf(false) }
                         LaunchedEffect(pagerState!!.currentPage) {
@@ -230,20 +215,19 @@ fun BookContent(
                             modifier = Modifier
                                 .fillMaxSize(),
                             beyondViewportPageCount = 1,
-                            userScrollEnabled = userScrollPager.value
                         ) { page ->
                             val lazyListState = lazyListStates.getOrPut(page) { LazyListState() }
 
-                            LaunchedEffect(currentChapterIndex.intValue) {
-                                currentLazyColumnState = lazyListStates[currentChapterIndex.intValue]
+                            LaunchedEffect(uiState.currentChapterIndex) {
+                                currentLazyColumnState = lazyListStates[uiState.currentChapterIndex]
                             }
                             Chapter(
                                 bookContentViewModel = bookContentViewModel,
+                                uiState = uiState,
                                 totalChapter = data.totalChapter,
                                 trigger = trigger,
                                 textStyle = textStyle,
                                 page = page,
-                                maxHeight = maxHeight,
                                 scrollTimes = scrollTimes,
                                 flagTriggerScrolling = flagTriggerScrolling,
                                 isFocused = isFocused,
@@ -253,10 +237,8 @@ fun BookContent(
                                 currentReadingItemIndex = currentReadingItemIndex.intValue,
                                 currentLazyColumnState = currentLazyColumnState,
                                 contentLazyColumnState = lazyListState,
-                                userScrollPager = userScrollPager,
-                                enableScaffoldBar = enableScaffoldBar,
                                 currentChapter = { chapterIndex, readingIndex ->
-                                    currentChapterIndex.intValue = chapterIndex
+                                    bookContentViewModel.updateCurrentChapterIndex(chapterIndex)
                                     currentReadingItemIndex.intValue = readingIndex
                                 },
                                 callback = {
@@ -274,10 +256,10 @@ fun BookContent(
 @Composable
 fun Chapter(
     bookContentViewModel: BookContentViewModel,
+    uiState: ContentUIState,
     totalChapter: Int,
     trigger: Boolean,
     textStyle: TextStyle,
-    maxHeight: Int,
     page: Int,
     scrollTimes: Int,
     flagTriggerScrolling: Boolean,
@@ -288,12 +270,12 @@ fun Chapter(
     currentReadingItemIndex: Int,
     currentLazyColumnState: LazyListState?,
     contentLazyColumnState: LazyListState,
-    userScrollPager : MutableState<Boolean>,
-    enableScaffoldBar : MutableState<Boolean>,
-    currentChapter: (Int,Int) -> Unit,
-    callback : (Boolean) -> Unit
+    currentChapter: (Int, Int) -> Unit,
+    callback: (Boolean) -> Unit
 ) {
-    val contentList = remember { mutableStateOf<List<@Composable (Boolean, Boolean) -> Unit>>(emptyList()) }
+    val contentList = remember {
+        mutableStateOf(listOf<@Composable (Boolean, Boolean) -> Unit>())
+    }
     var firstVisibleItemIndex by remember { mutableIntStateOf(0) }
     var lastVisibleItemIndex by remember {mutableIntStateOf(0) }
     var flagStartScrolling by remember { mutableStateOf(false) }
@@ -354,7 +336,6 @@ fun Chapter(
             if(isSpeaking)
             {
                 currentLazyColumnState?.animateScrollToItem(currentReadingItemIndex)
-                Log.d("test","test")
                 flagTriggerAdjustScroll = false
             }
         }
@@ -369,12 +350,10 @@ fun Chapter(
         if(flagStartScrolling){
             if(currentReadingItemIndex != firstVisibleItemIndex){
                 currentLazyColumnState?.animateScrollToItem(currentReadingItemIndex)
-                Log.d("test","test1")
                 flagTriggerAdjustScroll = false
                 flagScrollAdjusted = true
             }else if(!flagTriggerAdjustScroll){
-                currentLazyColumnState?.animateScrollBy(value = maxHeight.toFloat())
-                Log.d("test","test2")
+                currentLazyColumnState?.animateScrollBy(value = uiState.screenHeight.toFloat())
                 flagTriggerAdjustScroll = false
                 flagStartScrolling = false
             }else{
@@ -386,7 +365,6 @@ fun Chapter(
     LaunchedEffect(flagStartAdjustScroll){
         if (flagStartAdjustScroll) {
             currentLazyColumnState?.animateScrollToItem(currentReadingItemIndex)
-            Log.d("test","test3")
             flagTriggerAdjustScroll = false
             flagStartAdjustScroll = false
             flagScrollAdjusted = true
@@ -395,8 +373,7 @@ fun Chapter(
 
     LaunchedEffect(flagScrollAdjusted){
         if (flagScrollAdjusted) {
-            currentLazyColumnState?.animateScrollBy(value = maxHeight.toFloat() * scrollTimes)
-            Log.d("test","test4")
+            currentLazyColumnState?.animateScrollBy(value = uiState.screenHeight.toFloat() * scrollTimes)
             flagTriggerAdjustScroll = false
             flagScrollAdjusted = false
             flagStartScrolling = false
@@ -420,15 +397,15 @@ fun Chapter(
             )
             Text(
                 modifier = Modifier.weight(0.3f),
-                text = (pagerState.currentPage+1).toString() + "/" + totalChapter.toString(),
+                text = "${pagerState.currentPage+1} / $totalChapter",
                 textAlign = TextAlign.End
             )
         }
         ChapterContents(
+            bookContentViewModel = bookContentViewModel,
+            uiState = uiState,
             isFocused = isFocused,
             currentReadingItemIndex = currentReadingItemIndex,
-            userScrollPager = userScrollPager,
-            enableScaffoldBar = enableScaffoldBar,
             contentLazyColumnState = contentLazyColumnState,
             contentList = contentList.value,
         )
@@ -436,18 +413,36 @@ fun Chapter(
 }
 @Composable
 fun ChapterContents(
+    bookContentViewModel: BookContentViewModel,
+    uiState: ContentUIState,
     isFocused: Boolean,
     currentReadingItemIndex: Int,
-    userScrollPager: MutableState<Boolean>,
-    enableScaffoldBar: MutableState<Boolean>,
     contentLazyColumnState: LazyListState,
     contentList: List<@Composable (Boolean, Boolean) -> Unit>,
 ){
     val view = LocalView.current
-    CompositionLocalProvider(LocalTextToolbar provides CustomTextToolbar(view,userScrollPager,enableScaffoldBar)) {
+    CompositionLocalProvider(
+        value = LocalTextToolbar provides
+            CustomTextToolbar(
+                view = view,
+                scrollingPager = uiState.enablePagerScroll,
+                enableScaffoldBar = uiState.enableScaffoldBar,
+                output = { test->
+                    Log.d("test",test)
+                },
+                updateState = {pager,scaffold->
+                    bookContentViewModel.updateEnableScaffoldBar(pager)
+                    bookContentViewModel.updateEnablePagerScroll(scaffold)
+                }
+            )
+    ) {
         SelectionContainer{
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize()
+                    .onGloballyPositioned { coordinates ->
+                        bookContentViewModel.updateScreenHeight(coordinates.size.height)
+                        bookContentViewModel.updateScreenWidth(coordinates.size.width)
+                    },
                 state = contentLazyColumnState,
             ) {
                 itemsIndexed(contentList) { index, composable ->
@@ -457,3 +452,7 @@ fun ChapterContents(
         }
     }
 }
+
+//val state = rememberLazyListState()  LazyRow(     modifier = Modifier. fillMaxSize(),     verticalAlignment = Alignment. CenterVertically,     state = state,     flingBehavior = rememberSnapFlingBehavior(lazyListState = state) ) {     items(200) {         Box(             modifier = Modifier                 .height(400.dp)                 .width(200.dp)                 .padding(8.dp)                 .background(Color. Gray),             contentAlignment = Alignment. Center         ) {             Text(it. toString(), fontSize = 32.sp)         }     } }
+//androidx. compose. foundation. samples. SnapFlingBehaviorCustomizedSample
+//val state = rememberLazyListState()  // If you'd like to customize either the snap behavior or the layout provider val snappingLayout = remember(state) { SnapLayoutInfoProvider(state) } val flingBehavior = rememberSnapFlingBehavior(snappingLayout)  LazyRow(     modifier = Modifier. fillMaxSize(),     verticalAlignment = Alignment. CenterVertically,     state = state,     flingBehavior = flingBehavior ) {     items(200) {         Box(             modifier = Modifier                 .height(400.dp)                 .width(200.dp)                 .padding(8.dp)                 .background(Color. Gray),             contentAlignment = Alignment. Center         ) {             Text(it. toString(), fontSize = 32.sp)         }     } }

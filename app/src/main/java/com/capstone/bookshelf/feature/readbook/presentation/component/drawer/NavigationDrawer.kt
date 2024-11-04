@@ -39,17 +39,16 @@ import com.capstone.bookshelf.R
 import com.capstone.bookshelf.core.domain.BookEntity
 import com.capstone.bookshelf.feature.readbook.presentation.BookContentViewModel
 import com.capstone.bookshelf.feature.readbook.presentation.component.drawer.toc.TableOfContents
+import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationDrawer(
     bookContentViewModel: BookContentViewModel,
+    uiState : ContentUIState,
     book: BookEntity?,
-    bookId: Int,
-    currentChapterIndex: MutableIntState,
     drawerState: DrawerState,
     drawerLazyColumnState: LazyListState,
-    toggleDrawerState: Boolean,
     onDrawerItemClick: (Int) -> Unit,
     content: @Composable () -> Unit
 ){
@@ -79,8 +78,9 @@ fun NavigationDrawer(
             pagerState.settledPage
         }
     }
-    LaunchedEffect(toggleDrawerState) {
-        pagerState.scrollToPage(0)
+    LaunchedEffect(uiState.drawerState) {
+        if(!uiState.drawerState)
+            pagerState.scrollToPage(0)
     }
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -162,10 +162,8 @@ fun NavigationDrawer(
                             0 -> {
                                 TableOfContents(
                                     bookContentViewModel = bookContentViewModel,
-                                    bookId = bookId,
-                                    currentChapterIndex = currentChapterIndex,
+                                    uiState = uiState,
                                     drawerLazyColumnState = drawerLazyColumnState,
-                                    toggleDrawerState = toggleDrawerState,
                                     onDrawerItemClick = {contentPageIndex->
                                         onDrawerItemClick(contentPageIndex)
                                     },

@@ -13,9 +13,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
@@ -23,7 +21,7 @@ import com.capstone.bookshelf.R
 @ExperimentalAnimationApi
 @Composable
 fun BottomBar(
-    bottomBarState: MutableState<Boolean>,
+    bottomBarState: Boolean,
 //    drawerLazyColumnState: LazyListState,
 //    tts: MutableState<TextToSpeech?>,
     isSpeaking: Boolean,
@@ -50,7 +48,7 @@ fun BottomBar(
         R.drawable.ic_stop,
     )
     AnimatedVisibility(
-        visible = bottomBarState.value,
+        visible = bottomBarState,
         enter = slideInVertically(initialOffsetY = { it }),
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {

@@ -23,7 +23,12 @@ import com.capstone.bookshelf.feature.readbook.presentation.component.content.He
 import com.capstone.bookshelf.feature.readbook.presentation.component.content.ImageComponent
 import com.capstone.bookshelf.feature.readbook.presentation.component.content.ParagraphText
 import com.capstone.bookshelf.feature.readbook.presentation.component.content.ZoomableImage
+import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class BookContentViewModel(
@@ -41,6 +46,8 @@ class BookContentViewModel(
     private val _chapterContent: MutableState<ChapterContentEntity?> = mutableStateOf(null)
     val chapterContent: State<ChapterContentEntity?> = _chapterContent
 
+    private val _contentUIState = MutableStateFlow(ContentUIState())
+    val contentUIState : StateFlow<ContentUIState> = _contentUIState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -49,7 +56,81 @@ class BookContentViewModel(
                     data = data
                 )
             }
+        }
+    }
 
+    fun updateCurrentBookIndex(currentBookIndex: Int) {
+        _contentUIState.update {currentState->
+            currentState.copy(
+                currentBookIndex = currentBookIndex
+            )
+        }
+    }
+
+    fun updateCurrentChapterIndex(currentChapterIndex: Int) {
+        _contentUIState.update {currentState->
+            currentState.copy(
+                currentChapterIndex = currentChapterIndex
+            )
+        }
+    }
+
+    fun updateCurrentParagraphIndex(currentParagraphIndex: Int) {
+        _contentUIState.update {currentState->
+            currentState.copy(
+                currentParagraphIndex = currentParagraphIndex
+            )
+        }
+    }
+
+    fun updateTopBarState(topBarState: Boolean) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                topBarState = topBarState
+            )
+        }
+    }
+    fun updateBottomBarState(bottomBarState: Boolean) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                bottomBarState = bottomBarState
+            )
+        }
+    }
+    fun updateDrawerState(drawerState: Boolean) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                drawerState = drawerState
+            )
+        }
+    }
+    fun updateEnablePagerScroll(enablePagerScroll: Boolean) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                enablePagerScroll = enablePagerScroll
+            )
+        }
+    }
+
+    fun updateEnableScaffoldBar(enableScaffoldBar: Boolean) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                enableScaffoldBar = enableScaffoldBar
+            )
+        }
+    }
+    fun updateScreenHeight(screenHeight: Int) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                screenHeight = screenHeight
+            )
+        }
+    }
+    fun updateScreenWidth(screenWidth: Int) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                screenWidth = screenWidth
+            )
         }
     }
     fun getTableOfContents(bookId: Int) {
@@ -57,14 +138,17 @@ class BookContentViewModel(
             _tableOfContents.value = repository.getTableOfContents(bookId)
         }
     }
+
     suspend fun getChapterContent(tocId: Int){
         _chapterContent.value = repository.getChapterContent(bookId,tocId)
     }
+
     fun saveBookInfo(bookId: Int,chapterId: Int){
         viewModelScope.launch {
             repository.saveBookInfo(bookId,chapterId)
         }
     }
+
     @SuppressLint("SdCardPath")
     fun parseListToComposableList(
         textStyle: TextStyle,
