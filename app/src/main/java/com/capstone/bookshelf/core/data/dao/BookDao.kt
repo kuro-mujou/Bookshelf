@@ -23,7 +23,7 @@ interface BookDao {
 
     @Transaction
     @Query("SELECT * FROM books WHERE bookId = :id")
-    fun getBookById(id: Int): Flow<BookEntity>
+    suspend fun getBookById(id: Int): BookEntity
 
     @Transaction
     @Query("SELECT * FROM table_of_contents WHERE bookId = :bookId")

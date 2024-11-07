@@ -7,7 +7,7 @@ import com.capstone.bookshelf.core.domain.TableOfContentEntity
 import kotlinx.coroutines.flow.Flow
 
 class BookRepository(
-    val bookDao: BookDao,
+    private val bookDao: BookDao,
 ) {
     suspend fun saveBook(book: BookEntity): Long {
         return bookDao.insertBook(book)
@@ -24,13 +24,14 @@ class BookRepository(
         return bookDao.getBookByTitleAndAuthor(title) != null
     }
 
-    fun getBookById(id: Int): Flow<BookEntity> {
+    suspend fun getBookById(id: Int): BookEntity {
         return bookDao.getBookById(id)
     }
 
     suspend fun getChapterContent(bookId: Int, tocId: Int): ChapterContentEntity? {
         return bookDao.getChapterContent(bookId, tocId)
     }
+
     fun readAllBooksSortByFavorite(): Flow<List<BookEntity>> {
         return bookDao.readAllBooksSortByFavorite()
     }

@@ -5,23 +5,36 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
+import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 
 @ExperimentalAnimationApi
 @Composable
 fun BottomBar(
     bottomBarState: Boolean,
+
 //    drawerLazyColumnState: LazyListState,
 //    tts: MutableState<TextToSpeech?>,
     isSpeaking: Boolean,
@@ -218,6 +231,112 @@ fun BottomBar(
                 }
             }
 
+        }
+    }
+}
+@Composable
+fun BottomBarDefault(
+    uiState : ContentUIState
+){
+    val iconList = listOf(
+        R.drawable.ic_previous_chapter,
+        R.drawable.ic_headphone,
+        R.drawable.ic_next_chapter,
+        R.drawable.ic_setting
+    )
+    AnimatedVisibility(
+        visible = uiState.bottomBarState,
+        enter = slideInVertically(initialOffsetY = { it }),
+        exit = slideOutVertically(targetOffsetY = { it }),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .background(MaterialTheme.colorScheme.surfaceContainer),
+            horizontalAlignment = Alignment.CenterHorizontally,
+
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
+            uiState.currentChapterHeader?.let {
+                Text(
+                    modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+                    text = it,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                IconButton(
+                    modifier = Modifier.size(50.dp),
+                    onClick = {
+                    }
+                ) {
+                    Icon(
+                        modifier = Modifier.size(30.dp),
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Stop"
+                    )
+                }
+                IconButton(
+                    modifier = Modifier.size(50.dp),
+                    onClick = {
+                    }
+                ) {
+                    Icon(
+                        modifier = Modifier.size(30.dp),
+                        painter = painterResource(id = iconList[0]),
+                        contentDescription = "Stop"
+                    )
+                }
+                IconButton(
+                    modifier = Modifier.size(50.dp),
+                    onClick = {
+
+                    }
+                ) {
+                    Icon(
+                        modifier = Modifier.size(30.dp),
+                        painter = painterResource(id = iconList[1]),
+                        contentDescription = "Stop"
+                    )
+                }
+
+                IconButton(
+                    modifier = Modifier.size(50.dp),
+                    onClick = {
+
+                    }
+                ) {
+                    Icon(
+                        modifier = Modifier.size(30.dp),
+                        painter = painterResource(id = iconList[2]),
+                        contentDescription = "Stop"
+                    )
+                }
+
+                IconButton(
+                    modifier = Modifier.size(50.dp),
+                    onClick = {
+
+                    }
+                ) {
+                    Icon(
+                        modifier = Modifier.size(30.dp),
+                        painter = painterResource(id = iconList[3]),
+                        contentDescription = "Stop"
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }

@@ -82,28 +82,23 @@ fun LoadingAnimation() {
     val composition by rememberLottieComposition(
         LottieCompositionSpec.Asset("loading_animation.json")
     )
-    Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .zIndex(1f)
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            awaitPointerEvent()
-                        }
+    Column(
+        modifier = Modifier.fillMaxSize()
+            .zIndex(1f)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent()
                     }
-                },
+                }
+            },
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            LottieAnimation(
-                composition = composition,
-                iterations = LottieConstants.IterateForever,
-            )
-            Text(text = "Loading...")
-        }
+        LottieAnimation(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
+        )
+        Text(text = "Loading...")
     }
 }

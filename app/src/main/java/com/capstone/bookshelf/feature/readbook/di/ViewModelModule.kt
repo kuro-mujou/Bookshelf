@@ -5,5 +5,5 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val BookContentViewModelModule = module {
-    viewModel { BookContentViewModel(get(), get()) }
+    viewModel { BookContentViewModel(get(), get(), get()) }
 }

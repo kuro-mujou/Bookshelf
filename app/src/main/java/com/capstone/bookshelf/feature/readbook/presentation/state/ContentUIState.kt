@@ -4,6 +4,8 @@ data class ContentUIState(
     val currentBookIndex : Int = 0,
     val currentChapterIndex: Int = 0,
     val currentParagraphIndex: Int = 0,
+    val currentChapterHeader : String? = null,
+    val totalChapter : Int = 0,
     val topBarState : Boolean = false,
     val bottomBarState: Boolean = false,
     val drawerState : Boolean = false,

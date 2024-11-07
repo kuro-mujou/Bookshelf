@@ -46,12 +46,18 @@ fun SetupNavGraph(navController: NavHostController) {
             val bookId = it.arguments?.getInt(BOOK_ID_ARG) ?: 0
             val currentChapter = it.arguments?.getInt(CURRENT_CHAPTER) ?: 0
             val bookContentViewModel = koinViewModel<BookContentViewModel>(
-                parameters = { parametersOf(bookId) }
+                parameters = {
+                    parametersOf(
+                        bookId,
+                        currentChapter
+                    )
+                }
             )
             bookContentViewModel.updateCurrentBookIndex(bookId)
             bookContentViewModel.updateCurrentChapterIndex(currentChapter)
+            bookContentViewModel.getBookInfo()
             BookContent(
-                bookId = bookId,
+                bookContentViewModel = bookContentViewModel,
                 onBackIconClick = { currentChapterIndex->
                     navController.navigateUp()
                     bookContentViewModel.saveBookInfo(bookId,currentChapterIndex)

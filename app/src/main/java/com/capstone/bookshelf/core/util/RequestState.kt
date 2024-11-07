@@ -32,6 +32,31 @@ sealed class RequestState<out T> {
 
 @Composable
 fun <T> RequestState<T>.DisplayResult(
+    onIdle: (@Composable () -> Unit)? = null,
+    onLoading: (@Composable () -> Unit)? = null,
+    onError: (@Composable (String) -> Unit)? = null,
+    onSuccess: @Composable (T) -> Unit,
+){
+    when(this){
+        is RequestState.Idle -> {
+            onIdle?.invoke()
+        }
+        is RequestState.Loading -> {
+            onLoading?.invoke()
+        }
+        is RequestState.Error -> {
+            onError?.invoke(this.getErrorMessage())
+        }
+        is RequestState.Success -> {
+            onSuccess(this.getSuccessData())
+        }
+    }
+}
+
+
+
+@Composable
+fun <T> RequestState<T>.DisplayResult(
     modifier: Modifier = Modifier,
     onIdle: (@Composable () -> Unit)? = null,
     onLoading: (@Composable () -> Unit)? = null,
@@ -59,11 +84,9 @@ fun <T> RequestState<T>.DisplayResult(
                 is RequestState.Idle -> {
                     onIdle?.invoke()
                 }
-
                 is RequestState.Loading -> {
                     onLoading?.invoke()
                 }
-
                 is RequestState.Error -> {
                     onError?.invoke(state.getErrorMessage())
                 }
