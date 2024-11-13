@@ -2,7 +2,9 @@ package com.capstone.bookshelf.core.data
 
 import com.capstone.bookshelf.core.data.dao.BookDao
 import com.capstone.bookshelf.core.domain.BookEntity
+import com.capstone.bookshelf.core.domain.BookSettingEntity
 import com.capstone.bookshelf.core.domain.ChapterContentEntity
+import com.capstone.bookshelf.core.domain.MainSettingEntity
 import com.capstone.bookshelf.core.domain.TableOfContentEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -48,5 +50,33 @@ class BookRepository(
 
     suspend fun saveBookInfo(bookId: Int, chapterIndex: Int) {
         bookDao.saveBookInfo(bookId,chapterIndex)
+    }
+
+    suspend fun saveSetting(setting: MainSettingEntity): Long{
+        return bookDao.saveSetting(setting)
+    }
+
+    suspend fun getSetting(settingId : Int): MainSettingEntity?{
+        return bookDao.getSetting(settingId)
+    }
+
+    suspend fun updateSetting(settingId: Int, toggleFavourite: Boolean){
+        bookDao.updateSetting(settingId, toggleFavourite)
+    }
+
+    suspend fun saveBookSetting(setting: BookSettingEntity): Long{
+        return bookDao.saveBookSetting(setting)
+    }
+
+    suspend fun getBookSetting(settingId : Int): BookSettingEntity?{
+        return bookDao.getBookSetting(settingId)
+    }
+
+    suspend fun updateBookSettingVoice(settingId: Int, voice: String){
+        bookDao.updateBookSettingVoice(settingId, voice)
+    }
+
+    suspend fun updateBookSettingLocale(settingId: Int, locale: String){
+        bookDao.updateBookSettingLocale(settingId, locale)
     }
 }

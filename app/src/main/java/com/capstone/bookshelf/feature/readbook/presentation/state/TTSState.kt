@@ -1,10 +1,13 @@
 package com.capstone.bookshelf.feature.readbook.presentation.state
 
+import android.speech.tts.Voice
+import java.util.Locale
+
 data class TTSState(
+    val readingContent : List<String> = emptyList(),
     val isSpeaking : Boolean = false,
     val isPaused : Boolean = false,
     val isFocused : Boolean = false,
-    val isStop : Boolean = true,
     val scrollTime : Int = 0,
     val currentReadingParagraph : Int = 0,
     val firstVisibleItemIndex : Int = 0,
@@ -14,4 +17,7 @@ data class TTSState(
     val flagScrollAdjusted : Boolean = false,
     val flagTriggerAdjustScroll : Boolean = false,
     val flagStartAdjustScroll : Boolean = false,
+    val currentSpeed : Float = 1.34f,
+    val currentLanguage : Locale? = null,
+    val currentVoice : Voice? = null,
 )

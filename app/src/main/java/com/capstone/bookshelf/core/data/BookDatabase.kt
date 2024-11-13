@@ -6,7 +6,9 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.capstone.bookshelf.core.data.dao.BookDao
 import com.capstone.bookshelf.core.domain.BookEntity
+import com.capstone.bookshelf.core.domain.BookSettingEntity
 import com.capstone.bookshelf.core.domain.ChapterContentEntity
+import com.capstone.bookshelf.core.domain.MainSettingEntity
 import com.capstone.bookshelf.core.domain.TableOfContentEntity
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -17,8 +19,10 @@ import kotlinx.serialization.json.Json
         BookEntity::class,
         TableOfContentEntity::class,
         ChapterContentEntity::class,
+        MainSettingEntity::class,
+        BookSettingEntity::class
     ],
-    version = 4
+    version = 1
 )
 @TypeConverters(StringListTypeConverter::class)
 abstract class BookDatabase : RoomDatabase() {

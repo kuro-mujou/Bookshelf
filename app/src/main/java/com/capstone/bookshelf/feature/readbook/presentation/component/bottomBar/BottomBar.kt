@@ -1,9 +1,6 @@
 package com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,12 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,314 +26,339 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
+import com.capstone.bookshelf.feature.readbook.presentation.state.TTSState
 
 @ExperimentalAnimationApi
 @Composable
-fun BottomBar(
-    bottomBarState: Boolean,
+fun BottomBarTheme(
+    uiState : ContentUIState,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+                text = "Theme",
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        }
+    }
+}
 
-//    drawerLazyColumnState: LazyListState,
-//    tts: MutableState<TextToSpeech?>,
-    isSpeaking: Boolean,
-//    isPaused: Boolean,
-//    contentLazyColumnState: LazyListState?,
-//    currentChapterIndex: Int,
-//    currentReadingItemIndex: Int,
-//    currentPosition: Int,
-//    contentParagraphList: Array<List<String>?>,
-//    maxWidth: Int,
-//    maxHeight: Int,
-//    textStyle: TextStyle,
-//    textMeasurer: TextMeasurer,
-//    shouldScroll: Boolean,
-//    readingState: (Boolean, Boolean, Int, Int, Int, Boolean, Int) -> Unit
+@ExperimentalAnimationApi
+@Composable
+fun BottomBarSetting(
+    uiState : ContentUIState,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+                text = "Setting",
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@ExperimentalAnimationApi
+@Composable
+fun BottomBarTTS(
+    uiState : ContentUIState,
+    ttsState : TTSState,
+    onPreviousChapterIconClick: () -> Unit,
+    onPreviousParagraphIconClick: () -> Unit,
+    onPlayPauseIconClick: () -> Unit,
+    onNextParagraphIconClick: () -> Unit,
+    onNextChapterIconClick: () -> Unit,
+    onTimerIconClick: () -> Unit,
+    onSpeedIconClick: () -> Unit,
+    onStopIconClick: () -> Unit,
+    onBackgroundMusicIconClick: () -> Unit,
+    onTTSSettingIconClick: () -> Unit,
 ) {
     val iconList = listOf(
         R.drawable.ic_previous_chapter,
         R.drawable.ic_previous,
-        R.drawable.ic_next,
-        R.drawable.ic_next_chapter,
         R.drawable.ic_play,
         R.drawable.ic_pause,
+        R.drawable.ic_next,
+        R.drawable.ic_next_chapter,
+        R.drawable.ic_timer,
         R.drawable.ic_stop,
     )
-    AnimatedVisibility(
-        visible = bottomBarState,
-        enter = slideInVertically(initialOffsetY = { it }),
-        exit = slideOutVertically(targetOffsetY = { it }),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainer)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onPreviousChapterIconClick()
+                }
             ) {
-                IconButton(
-                    onClick = {
-//                        if (isSpeaking) {
-//                            stopReading(tts)
-//                            readingState(false,false, 0, maxOf(currentChapterIndex - 1,0), 0, shouldScroll, 0)
-//                        }else
-//                            readingState(false,false, 0, maxOf(currentChapterIndex - 1,0), 0, shouldScroll, 0)
-                    }
-                ) {
-                    Icon(
-                        painter = painterResource(id = iconList[0]),
-                        contentDescription = "previous chapter"
-                    )
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[0]),
+                    contentDescription = "previous chapter"
+                )
+            }
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onPreviousParagraphIconClick()
                 }
-                IconButton(
-                    onClick = {
-//                        if (isSpeaking) {
-//                            readNextParagraph(
-//                                tts = tts,
-//                                contentParagraphList = contentParagraphList,
-//                                targetParagraphIndex = maxOf(currentReadingItemIndex - 1,0),
-//                                currentChapterIndex = currentChapterIndex,
-//                                currentPosition = 0,
-//                                isReading = true,
-//                                maxWidth = maxWidth,
-//                                maxHeight = maxHeight,
-//                                textStyle = textStyle,
-//                                textMeasurer = textMeasurer,
-//                                shouldScroll = shouldScroll
-//                            ) { index, chapterIndex, currentPos,scroll,times,stopReading ->
-//                                readingState(false, stopReading, index, chapterIndex, currentPos, scroll, times)
-//                            }
-//                        } else if(isPaused){
-//                            readingState(true,false, maxOf(currentReadingItemIndex - 1,0), currentChapterIndex, 0, shouldScroll, 0)
-//                        }
-                    }
-                ) {
-                    Icon(
-                        painter = painterResource(id = iconList[1]),
-                        contentDescription = "previous paragraph"
-                    )
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[1]),
+                    contentDescription = "previous paragraph"
+                )
+            }
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onPlayPauseIconClick()
                 }
-                IconButton(
-                    onClick = {
-//                        if (isSpeaking){
-//                            stopReading(tts = tts)
-//                            readingState(true,false, currentReadingItemIndex,currentChapterIndex,currentPosition, shouldScroll, 0)
-//                        } else if(isPaused){
-//                            readNextParagraph(
-//                                tts = tts,
-//                                contentParagraphList = contentParagraphList,
-//                                targetParagraphIndex = currentReadingItemIndex,
-//                                currentChapterIndex = currentChapterIndex,
-//                                currentPosition = currentPosition,
-//                                isReading = true,
-//                                maxWidth = maxWidth,
-//                                maxHeight = maxHeight,
-//                                textStyle = textStyle,
-//                                textMeasurer = textMeasurer,
-//                                shouldScroll = shouldScroll
-//                            ) { index,chapterIndex,currentPos, scroll,times,stopReading ->
-//                                readingState(false,stopReading, index, chapterIndex, currentPos, scroll,times)
-//                            }
-//                        }else{
-//                            if (contentLazyColumnState != null) {
-//                                readNextParagraph(
-//                                    tts = tts,
-//                                    contentParagraphList = contentParagraphList,
-//                                    targetParagraphIndex = contentLazyColumnState.firstVisibleItemIndex,
-//                                    currentChapterIndex = currentChapterIndex,
-//                                    currentPosition = 0,
-//                                    isReading = true,
-//                                    maxWidth = maxWidth,
-//                                    maxHeight = maxHeight,
-//                                    textStyle = textStyle,
-//                                    textMeasurer = textMeasurer,
-//                                    shouldScroll = shouldScroll
-//                                ) { index,chapterIndex,currentPos,scroll,times,stopReading ->
-//                                    readingState(false,stopReading, index, chapterIndex, currentPos, scroll,times)
-//                                }
-//                            }
-//                        }
-                    }
-                ) {
-                    if(isSpeaking)
-                        Icon(
-                            painter = painterResource(id = iconList[5]),
-                            contentDescription = "Play/Pause"
-                        )
-                    else
-                        Icon(
-                            painter = painterResource(id = iconList[4]),
-                            contentDescription = "Play/Pause"
-                        )
-                }
-                IconButton(
-                    onClick = {
-//                        if (isSpeaking) {
-//                            if (contentLazyColumnState != null) {
-//                                readNextParagraph(
-//                                    tts = tts,
-//                                    contentParagraphList = contentParagraphList,
-//                                    targetParagraphIndex = minOf(currentReadingItemIndex + 1,contentLazyColumnState.layoutInfo.totalItemsCount-1),
-//                                    currentChapterIndex = currentChapterIndex,
-//                                    currentPosition = 0,
-//                                    isReading = true,
-//                                    maxWidth = maxWidth,
-//                                    maxHeight = maxHeight,
-//                                    textStyle = textStyle,
-//                                    textMeasurer = textMeasurer,
-//                                    shouldScroll = shouldScroll
-//                                ) { index, chapterIndex, currentPos,scroll,times,stopReading ->
-//                                    readingState(false, stopReading, index, chapterIndex, currentPos, scroll,times)
-//                                }
-//                            }
-//                        }else if (isPaused){
-//                            if (contentLazyColumnState != null) {
-//                                readingState(true,false, minOf(currentReadingItemIndex + 1,contentLazyColumnState.layoutInfo.totalItemsCount-1), currentChapterIndex, 0, shouldScroll, 0)
-//                            }
-//                        }
-                    }
-                ) {
+            ) {
+                if(ttsState.isSpeaking) {
                     Icon(
-                        painter = painterResource(id = iconList[2]),
-                        contentDescription = "next paragraph"
-                    )
-                }
-                IconButton(
-                    onClick = {
-//                        if (isSpeaking) {
-//                            stopReading(tts)
-//                            readingState(false,false, 0, minOf(currentChapterIndex + 1,drawerLazyColumnState.layoutInfo.totalItemsCount-1), 0, shouldScroll, 0)
-//                        }else
-//                            readingState(false,false, 0, minOf(currentChapterIndex + 1,drawerLazyColumnState.layoutInfo.totalItemsCount-1), 0, shouldScroll, 0)
-                    }
-                ) {
-                    Icon(
+                        modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[3]),
-                        contentDescription = "Next chapter"
+                        contentDescription = "play/pause"
                     )
-                }
-                IconButton(
-                    onClick = {
-//                        if (isSpeaking||isPaused) {
-//                            stopReading(tts)
-//                            readingState(false,false, currentReadingItemIndex, currentChapterIndex, 0, shouldScroll, 0)
-//                        }else
-//                            readingState(false,false, currentReadingItemIndex, currentChapterIndex, 0, shouldScroll, 0)
-                    }
-                ) {
+                }else{
                     Icon(
-                        painter = painterResource(id = iconList[6]),
-                        contentDescription = "Stop"
+                        modifier = Modifier.size(30.dp),
+                        painter = painterResource(id = iconList[2]),
+                        contentDescription = "play/pause"
                     )
                 }
             }
-
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onNextParagraphIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[4]),
+                    contentDescription = "next paragraph"
+                )
+            }
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onNextChapterIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[5]),
+                    contentDescription = "next chapter"
+                )
+            }
         }
-    }
-}
-@Composable
-fun BottomBarDefault(
-    uiState : ContentUIState
-){
-    val iconList = listOf(
-        R.drawable.ic_previous_chapter,
-        R.drawable.ic_headphone,
-        R.drawable.ic_next_chapter,
-        R.drawable.ic_setting
-    )
-    AnimatedVisibility(
-        visible = uiState.bottomBarState,
-        enter = slideInVertically(initialOffsetY = { it }),
-        exit = slideOutVertically(targetOffsetY = { it }),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .background(MaterialTheme.colorScheme.surfaceContainer),
-            horizontalAlignment = Alignment.CenterHorizontally,
-
+        Spacer(modifier = Modifier.height(5.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
-            Spacer(modifier = Modifier.height(10.dp))
-            uiState.currentChapterHeader?.let {
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onTimerIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[6]),
+                    contentDescription = "timer"
+                )
+            }
+            TextButton(
+                modifier = Modifier.wrapContentWidth(),
+                onClick = {
+                    onSpeedIconClick()
+                }
+            ) {
                 Text(
-                    modifier = Modifier.padding(start = 10.dp, end = 10.dp),
-                    text = it,
-                    overflow = TextOverflow.Ellipsis,
+                    text = ttsState.currentSpeed.toString()+"x",
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                 )
             }
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onStopIconClick()
+                }
             ) {
-                IconButton(
-                    modifier = Modifier.size(50.dp),
-                    onClick = {
-                    }
-                ) {
-                    Icon(
-                        modifier = Modifier.size(30.dp),
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Stop"
-                    )
-                }
-                IconButton(
-                    modifier = Modifier.size(50.dp),
-                    onClick = {
-                    }
-                ) {
-                    Icon(
-                        modifier = Modifier.size(30.dp),
-                        painter = painterResource(id = iconList[0]),
-                        contentDescription = "Stop"
-                    )
-                }
-                IconButton(
-                    modifier = Modifier.size(50.dp),
-                    onClick = {
-
-                    }
-                ) {
-                    Icon(
-                        modifier = Modifier.size(30.dp),
-                        painter = painterResource(id = iconList[1]),
-                        contentDescription = "Stop"
-                    )
-                }
-
-                IconButton(
-                    modifier = Modifier.size(50.dp),
-                    onClick = {
-
-                    }
-                ) {
-                    Icon(
-                        modifier = Modifier.size(30.dp),
-                        painter = painterResource(id = iconList[2]),
-                        contentDescription = "Stop"
-                    )
-                }
-
-                IconButton(
-                    modifier = Modifier.size(50.dp),
-                    onClick = {
-
-                    }
-                ) {
-                    Icon(
-                        modifier = Modifier.size(30.dp),
-                        painter = painterResource(id = iconList[3]),
-                        contentDescription = "Stop"
-                    )
-                }
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[7]),
+                    contentDescription = "stop tts"
+                )
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onBackgroundMusicIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[7]),
+                    contentDescription = "background music"
+                )
+            }
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onTTSSettingIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[7]),
+                    contentDescription = "tts setting"
+                )
+            }
         }
+        Spacer(modifier = Modifier.height(5.dp))
+    }
+}
+
+@ExperimentalAnimationApi
+@Composable
+fun BottomBarDefault(
+    uiState : ContentUIState,
+    onThemeIconClick: () -> Unit,
+    onPreviousChapterIconClick: () -> Unit,
+    onTTSIconClick: () -> Unit,
+    onNextChapterIconClick: () -> Unit,
+    onSettingIconClick: () -> Unit,
+){
+    val iconList = listOf(
+        R.drawable.ic_theme,
+        R.drawable.ic_previous,
+        R.drawable.ic_headphone,
+        R.drawable.ic_next,
+        R.drawable.ic_setting
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+        horizontalAlignment = Alignment.CenterHorizontally,
+
+    ) {
+        Spacer(modifier = Modifier.height(10.dp))
+        uiState.currentChapterHeader?.let {
+            Text(
+                modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+                text = it,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .background(MaterialTheme.colorScheme.surfaceContainer),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onThemeIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[0]),
+                    contentDescription = "theme"
+                )
+            }
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onPreviousChapterIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[1]),
+                    contentDescription = "previous chapter"
+                )
+            }
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onTTSIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[2]),
+                    contentDescription = "start tts"
+                )
+            }
+
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onNextChapterIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[3]),
+                    contentDescription = "next chapter"
+                )
+            }
+
+            IconButton(
+                modifier = Modifier.size(50.dp),
+                onClick = {
+                    onSettingIconClick()
+                }
+            ) {
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    painter = painterResource(id = iconList[4]),
+                    contentDescription = "setting"
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
     }
 }

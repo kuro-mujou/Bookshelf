@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.core.navigation
+package com.capstone.bookshelf.core.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,10 +24,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.navigation.NavController
 import com.capstone.bookshelf.R
-import com.capstone.bookshelf.core.presentation.HomeScreen
+import com.capstone.bookshelf.core.navigation.BottomNavigationItem
 import com.capstone.bookshelf.core.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.feature.booklist.presentation.BookList
 import com.capstone.bookshelf.feature.importbook.presentation.component.ImportBookFloatingButton
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,12 +41,17 @@ fun Root(
     var message by remember { mutableStateOf("") }
     var progress by remember { mutableFloatStateOf(0f) }
     var isSavingBook by remember { mutableStateOf(false) }
-    var sortedByFavorite by remember { mutableStateOf(false) }
+    val viewModel = koinViewModel<SettingViewModel>()
+    val sortedByFavorite by viewModel.sortedByFavorite
+//    var sortedByFavorite by rememberSaveable { mutableStateOf(false) }
     val currentTitle = when (navigationSelectedItem) {
         0 -> "Home"
         1 -> "Book Library"
         else -> ""
     }
+//    LaunchedEffect(Unit) {
+//        sortedByFavorite = viewModel.sortedByFavorite
+//    }
     Scaffold(
         modifier = Modifier.fillMaxSize().background(Color.Blue),
         topBar = {
@@ -55,7 +61,7 @@ fun Root(
                     if (navigationSelectedItem == 1){
                         IconButton(
                             onClick = {
-                                sortedByFavorite = !sortedByFavorite
+                                viewModel.updateSortedByFavorite(!sortedByFavorite)
                             }
                         ) {
                             Icon(

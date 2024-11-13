@@ -14,6 +14,7 @@ class BookShelf : Application() {
             androidContext(this@BookShelf)
             modules(
                 listOf(
+                    settingViewModelModule,
                     databaseModule,
                     importBookViewModelModule,
                     bookListViewModelModule,

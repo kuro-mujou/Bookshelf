@@ -6,7 +6,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.capstone.bookshelf.core.domain.BookEntity
+import com.capstone.bookshelf.core.domain.BookSettingEntity
 import com.capstone.bookshelf.core.domain.ChapterContentEntity
+import com.capstone.bookshelf.core.domain.MainSettingEntity
 import com.capstone.bookshelf.core.domain.TableOfContentEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -53,4 +55,25 @@ interface BookDao {
 
     @Query("UPDATE books SET currentChapter = :chapterIndex WHERE bookId = :bookId")
     suspend fun saveBookInfo(bookId: Int, chapterIndex: Int)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveSetting(setting: MainSettingEntity) : Long
+
+    @Query("UPDATE setting SET toggleFavourite = :toggleFavourite WHERE settingId = :settingId")
+    suspend fun updateSetting(settingId: Int, toggleFavourite: Boolean)
+
+    @Query("SELECT * FROM setting WHERE settingId = :settingId")
+    suspend fun getSetting(settingId : Int) : MainSettingEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveBookSetting(setting: BookSettingEntity) : Long
+
+    @Query("SELECT * FROM bookContentSetting WHERE settingId = :settingId")
+    suspend fun getBookSetting(settingId : Int) : BookSettingEntity?
+
+    @Query("UPDATE bookContentSetting SET ttsLocale = :ttsLocale WHERE settingId = :settingId")
+    suspend fun updateBookSettingLocale(settingId: Int, ttsLocale: String)
+
+    @Query("UPDATE bookContentSetting SET ttsVoice = :ttsVoice WHERE settingId = :settingId")
+    suspend fun updateBookSettingVoice(settingId: Int, ttsVoice: String)
 }

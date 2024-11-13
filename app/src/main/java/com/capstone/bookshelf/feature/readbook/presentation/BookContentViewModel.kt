@@ -1,5 +1,7 @@
 package com.capstone.bookshelf.feature.readbook.presentation
 
+import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
@@ -7,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.bookshelf.core.data.BookRepository
 import com.capstone.bookshelf.core.domain.BookEntity
+import com.capstone.bookshelf.core.domain.BookSettingEntity
 import com.capstone.bookshelf.core.domain.ChapterContentEntity
 import com.capstone.bookshelf.core.domain.TableOfContentEntity
 import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
@@ -16,11 +19,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class BookContentViewModel(
     private val repository: BookRepository,
     private val bookId: Int,
-    private val tocId: Int
 ) : ViewModel() {
 
     private val _tableOfContents : MutableState<List<TableOfContentEntity>> = mutableStateOf(emptyList())
@@ -42,6 +45,36 @@ class BookContentViewModel(
     private val _ttsUiState = MutableStateFlow(TTSState())
     val ttsUiState : StateFlow<TTSState> = _ttsUiState.asStateFlow()
 
+    fun loadTTSLocaleVoice(textToSpeech: TextToSpeech){
+        viewModelScope.launch {
+            val setting = repository.getBookSetting(0)
+            if(setting != null){
+                val selectedLocale = textToSpeech.availableLanguages.find {
+                    it.displayName == setting.ttsLocale
+                }
+                val selectedVoice = textToSpeech.voices.find {
+                    it.name == setting.ttsVoice
+                }
+                updateTTSLocale(selectedLocale?: Locale.getDefault())
+                updateTTSVoice(selectedVoice?: textToSpeech.defaultVoice)
+            }
+            else{
+                val newSetting = BookSettingEntity(settingId = 0)
+                repository.saveBookSetting(newSetting)
+            }
+        }
+    }
+
+    fun updateBookSettingVoice(voice: String){
+        viewModelScope.launch {
+            repository.updateBookSettingVoice(0,voice)
+        }
+    }
+    fun updateBookSettingLocale(locale: String){
+        viewModelScope.launch {
+            repository.updateBookSettingLocale(0,locale)
+        }
+    }
     fun getBookInfo(){
         viewModelScope.launch {
             _book.value = repository.getBookById(bookId)
@@ -117,6 +150,13 @@ class BookContentViewModel(
             )
         }
     }
+    fun updateBottomBarIndex(bottomBarIndex: Int) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                bottomBarIndex = bottomBarIndex
+            )
+        }
+    }
     fun updateDrawerState(drawerState: Boolean) {
         _contentUIState.update { currentState ->
             currentState.copy(
@@ -153,6 +193,13 @@ class BookContentViewModel(
             )
         }
     }
+    fun updateReadingContent(readingContent: List<String>) {
+        _ttsUiState.update { currentState ->
+            currentState.copy(
+                readingContent = readingContent
+            )
+        }
+    }
     fun updateIsSpeaking(isSpeaking: Boolean) {
         _ttsUiState.update { currentState ->
             currentState.copy(
@@ -171,13 +218,6 @@ class BookContentViewModel(
         _ttsUiState.update { currentState ->
             currentState.copy(
                 isFocused = isFocused
-            )
-        }
-    }
-    fun updateIsStop(isStop: Boolean) {
-        _ttsUiState.update { currentState ->
-            currentState.copy(
-                isStop = isStop
             )
         }
     }
@@ -241,6 +281,35 @@ class BookContentViewModel(
         _ttsUiState.update { currentState ->
             currentState.copy(
                 flagStartAdjustScroll = flagStartAdjustScroll
+            )
+        }
+    }
+    fun updateCurrentSpeed(currentSpeed : Float){
+        _ttsUiState.update { currentState ->
+            currentState.copy(
+                currentSpeed = currentSpeed
+            )
+        }
+    }
+    fun updateTTSLocale(currentLanguage : Locale?){
+        _ttsUiState.update { currentState ->
+            currentState.copy(
+                currentLanguage = currentLanguage
+            )
+        }
+    }
+    fun updateTTSVoice(currentVoice : Voice?){
+        _ttsUiState.update { currentState ->
+            currentState.copy(
+                currentVoice = currentVoice
+            )
+        }
+    }
+
+    fun updateCurrentChapterContent(chapterContent: List<String>?) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                currentChapterContent = chapterContent
             )
         }
     }

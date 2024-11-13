@@ -42,10 +42,9 @@ class BookListViewModel(
             }
         }
     }
-    fun toggleSortByFavorite(toggle: Boolean) {
-        _sortedByFavorite.value = toggle
+    fun updateSortedByFavorite(favourite: Boolean) {
+        _sortedByFavorite.value = favourite
     }
-
     fun toggleFavorite(bookId: Int, isFavorite: Boolean) = viewModelScope.launch {
         repository.setBookAsFavorite(bookId, isFavorite)
     }
