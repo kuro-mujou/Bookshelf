@@ -76,4 +76,13 @@ interface BookDao {
 
     @Query("UPDATE bookContentSetting SET ttsVoice = :ttsVoice WHERE settingId = :settingId")
     suspend fun updateBookSettingVoice(settingId: Int, ttsVoice: String)
+
+    @Query("UPDATE bookContentSetting SET speed = :speed WHERE settingId = :settingId")
+    suspend fun updateBookSettingSpeed(settingId: Int, speed: Float)
+
+    @Query("UPDATE bookContentSetting SET pitch = :pitch WHERE settingId = :settingId")
+    suspend fun updateBookSettingPitch(settingId: Int, pitch: Float)
+
+    @Query("UPDATE bookContentSetting SET screenShallBeKeptOn = :screenShallBeKeptOn WHERE settingId = :settingId")
+    suspend fun updateBookSettingScreenShallBeKeptOn(settingId: Int, screenShallBeKeptOn: Boolean)
 }

@@ -1,11 +1,13 @@
 package com.capstone.bookshelf.feature.readbook.presentation.state
 
 data class ContentUIState(
+    val screenShallBeKeptOn : Boolean = false,
     val currentBookIndex : Int = 0,
     val currentChapterIndex: Int = 0,
     val currentParagraphIndex: Int = 0,
     val currentChapterHeader : String? = null,
     val currentChapterContent : List<String>? = null,
+    val currentReadingPosition : Int = 0,
     val totalChapter : Int = 0,
     val topBarState : Boolean = false,
     val bottomBarState: Boolean = false,
@@ -14,5 +16,8 @@ data class ContentUIState(
     val enableScaffoldBar : Boolean = true,
     val enablePagerScroll : Boolean = true,
     val screenHeight : Int = 0,
-    val screenWidth : Int = 0
+    val screenWidth : Int = 0,
+    val openTTSMusicMenu : Boolean = false,
+    val openTTSVoiceMenu : Boolean = false,
+    val openSetting : Boolean = false,
 )

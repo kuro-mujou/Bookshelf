@@ -22,7 +22,7 @@ import kotlinx.serialization.json.Json
         MainSettingEntity::class,
         BookSettingEntity::class
     ],
-    version = 1
+    version = 4
 )
 @TypeConverters(StringListTypeConverter::class)
 abstract class BookDatabase : RoomDatabase() {

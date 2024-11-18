@@ -79,4 +79,13 @@ class BookRepository(
     suspend fun updateBookSettingLocale(settingId: Int, locale: String){
         bookDao.updateBookSettingLocale(settingId, locale)
     }
+    suspend fun updateBookSettingSpeed(settingId: Int, speed: Float){
+        bookDao.updateBookSettingSpeed(settingId, speed)
+    }
+    suspend fun updateBookSettingPitch(settingId: Int, pitch: Float){
+        bookDao.updateBookSettingPitch(settingId, pitch)
+    }
+    suspend fun updateBookSettingScreenShallBeKeptOn(settingId: Int, screenShallBeKeptOn: Boolean){
+        bookDao.updateBookSettingScreenShallBeKeptOn(settingId, screenShallBeKeptOn)
+    }
 }

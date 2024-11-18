@@ -17,7 +17,8 @@ data class TTSState(
     val flagScrollAdjusted : Boolean = false,
     val flagTriggerAdjustScroll : Boolean = false,
     val flagStartAdjustScroll : Boolean = false,
-    val currentSpeed : Float = 1.34f,
+    val currentSpeed : Float? = null,
+    val currentPitch : Float? = null,
     val currentLanguage : Locale? = null,
     val currentVoice : Voice? = null,
 )

@@ -45,26 +45,84 @@ class BookContentViewModel(
     private val _ttsUiState = MutableStateFlow(TTSState())
     val ttsUiState : StateFlow<TTSState> = _ttsUiState.asStateFlow()
 
-    fun loadTTSLocaleVoice(textToSpeech: TextToSpeech){
+    fun loadTTSSetting(textToSpeech: TextToSpeech) {
         viewModelScope.launch {
             val setting = repository.getBookSetting(0)
-            if(setting != null){
+            if (setting != null) {
                 val selectedLocale = textToSpeech.availableLanguages.find {
                     it.displayName == setting.ttsLocale
+                } ?: Locale.getDefault()
+
+                var selectedVoice = textToSpeech.voices.find {
+                    it.name == setting.ttsVoice && it.locale == selectedLocale
                 }
-                val selectedVoice = textToSpeech.voices.find {
-                    it.name == setting.ttsVoice
+
+                if (selectedVoice == null) {
+                    selectedVoice = textToSpeech.voices.firstOrNull {
+                        it.locale == selectedLocale
+                    } ?: textToSpeech.defaultVoice
                 }
-                updateTTSLocale(selectedLocale?: Locale.getDefault())
-                updateTTSVoice(selectedVoice?: textToSpeech.defaultVoice)
-            }
-            else{
+                textToSpeech.language = selectedLocale
+                textToSpeech.voice = selectedVoice
+                textToSpeech.setSpeechRate(setting.speed ?: 1f)
+                textToSpeech.setPitch(setting.pitch ?: 1f)
+                updateCurrentSpeed(setting.speed ?: 1f)
+                updateCurrentPitch(setting.pitch ?: 1f)
+                updateTTSLocale(selectedLocale)
+                updateTTSVoice(selectedVoice)
+            } else {
                 val newSetting = BookSettingEntity(settingId = 0)
                 repository.saveBookSetting(newSetting)
             }
         }
     }
 
+    fun fixNullVoice(textToSpeech: TextToSpeech){
+        viewModelScope.launch {
+            var selectedVoice = textToSpeech.voices.find {
+                it.locale == _ttsUiState.value.currentLanguage
+            }
+            if (selectedVoice == null) {
+                selectedVoice = textToSpeech.voices.firstOrNull {
+                    it.locale == _ttsUiState.value.currentLanguage
+                } ?: textToSpeech.defaultVoice
+            }
+            updateTTSVoice(selectedVoice)
+        }
+    }
+    fun updateBookSettingKeepScreenOn(screenShallBeKeptOn : Boolean){
+        viewModelScope.launch {
+            repository.updateBookSettingScreenShallBeKeptOn(0,screenShallBeKeptOn)
+        }
+    }
+    fun updateKeepScreenOn(screenShallBeKeptOn : Boolean){
+        _contentUIState.update {currentState->
+            currentState.copy(
+                screenShallBeKeptOn = screenShallBeKeptOn
+            )
+        }
+    }
+    fun changeMenuTriggerSetting(openSetting : Boolean){
+        _contentUIState.update {currentState->
+            currentState.copy(
+                openSetting = openSetting
+            )
+        }
+    }
+    fun changeMenuTriggerMusic(openTTSMusicMenu : Boolean){
+        _contentUIState.update {currentState->
+            currentState.copy(
+                openTTSMusicMenu = openTTSMusicMenu
+            )
+        }
+    }
+    fun changeMenuTriggerVoice(openTTSVoiceMenu : Boolean){
+        _contentUIState.update {currentState->
+            currentState.copy(
+                openTTSVoiceMenu = openTTSVoiceMenu
+            )
+        }
+    }
     fun updateBookSettingVoice(voice: String){
         viewModelScope.launch {
             repository.updateBookSettingVoice(0,voice)
@@ -73,6 +131,16 @@ class BookContentViewModel(
     fun updateBookSettingLocale(locale: String){
         viewModelScope.launch {
             repository.updateBookSettingLocale(0,locale)
+        }
+    }
+    fun updateBookSettingSpeed(speed: Float){
+        viewModelScope.launch {
+            repository.updateBookSettingSpeed(0,speed)
+        }
+    }
+    fun updateBookSettingPitch(pitch: Float){
+        viewModelScope.launch {
+            repository.updateBookSettingPitch(0,pitch)
         }
     }
     fun getBookInfo(){
@@ -291,6 +359,13 @@ class BookContentViewModel(
             )
         }
     }
+    fun updateCurrentPitch(currentPitch : Float){
+        _ttsUiState.update { currentState ->
+            currentState.copy(
+                currentPitch = currentPitch
+            )
+        }
+    }
     fun updateTTSLocale(currentLanguage : Locale?){
         _ttsUiState.update { currentState ->
             currentState.copy(
@@ -310,6 +385,14 @@ class BookContentViewModel(
         _contentUIState.update { currentState ->
             currentState.copy(
                 currentChapterContent = chapterContent
+            )
+        }
+    }
+
+    fun updateCurrentReadingPosition(position: Int) {
+        _contentUIState.update { currentState ->
+            currentState.copy(
+                currentReadingPosition = position
             )
         }
     }

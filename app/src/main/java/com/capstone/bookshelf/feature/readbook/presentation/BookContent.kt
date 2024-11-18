@@ -2,22 +2,20 @@ package com.capstone.bookshelf.feature.readbook.presentation
 
 import android.annotation.SuppressLint
 import android.util.Log
+import android.view.View
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -25,16 +23,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +55,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -70,7 +63,7 @@ import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.viewinterop.AndroidView
 import com.capstone.bookshelf.core.domain.ChapterContentEntity
 import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarDefault
 import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarSetting
@@ -85,12 +78,13 @@ import com.capstone.bookshelf.feature.readbook.presentation.component.textToolBa
 import com.capstone.bookshelf.feature.readbook.presentation.component.topBar.TopBar
 import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 import com.capstone.bookshelf.feature.readbook.presentation.state.TTSState
+import com.capstone.bookshelf.feature.readbook.tts.readNextParagraph
 import com.capstone.bookshelf.feature.readbook.tts.rememberTextToSpeech
+import com.capstone.bookshelf.feature.readbook.tts.stopReading
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun BookContent(
@@ -105,14 +99,14 @@ fun BookContent(
     var callbackLoadChapter by remember { mutableStateOf(false) }
 
     val textToSpeech = rememberTextToSpeech(ttsState)
-//    val textMeasurer = rememberTextMeasurer()
-//    var currentPosition by remember { mutableIntStateOf(0) }
+    val textMeasurer = rememberTextMeasurer()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val pagerState = rememberPagerState(
         initialPage = uiState.currentChapterIndex,
         pageCount = { uiState.totalChapter }
     )
+
     val lazyListStates = remember { mutableStateMapOf<Int, LazyListState>() }
     val chapterContents = remember { mutableStateMapOf<Int, List<String>>() }
     val headers = remember{ mutableStateMapOf<Int,String>()}
@@ -123,13 +117,9 @@ fun BookContent(
 
     val scope = rememberCoroutineScope()
 
-    var openTTSSpeedMenu by remember { mutableStateOf(false) }
-    var openTTSMusicMenu by remember { mutableStateOf(false) }
-    var openTTSSettingMenu by remember { mutableStateOf(false) }
-
     val textStyle = TextStyle(
         textIndent = TextIndent(firstLine = 40.sp),
-        textAlign = TextAlign.Justify,
+        textAlign = TextAlign.Left,
         fontSize = 24.sp,
         background = Color(0x80e2e873),
         lineBreak = LineBreak.Paragraph,
@@ -137,6 +127,9 @@ fun BookContent(
     LaunchedEffect(Unit){
         drawerLazyColumnState.scrollToItem(uiState.currentChapterIndex)
         pagerState.animateScrollToPage(uiState.currentChapterIndex)
+    }
+    if (uiState.screenShallBeKeptOn) {
+        KeepScreenOn()
     }
     NavigationDrawer(
         bookContentViewModel = bookContentViewModel,
@@ -179,31 +172,52 @@ fun BookContent(
                 delay(300)
                 if(ttsState.isSpeaking||ttsState.isPaused)
                     bookContentViewModel.updateBottomBarIndex(3)
-                else
+                else {
+                    bookContentViewModel.changeMenuTriggerSetting(false)
                     bookContentViewModel.updateBottomBarIndex(0)
+                }
             }
         }
         LaunchedEffect(ttsState.currentLanguage) {
             if(ttsState.currentLanguage != null){
-                textToSpeech.language = ttsState.currentLanguage
+                textToSpeech.setLanguage(ttsState.currentLanguage)
                 bookContentViewModel.updateBookSettingLocale(ttsState.currentLanguage!!.displayName)
             }
         }
         LaunchedEffect(ttsState.currentVoice) {
             if(ttsState.currentVoice != null){
-                textToSpeech.voice = ttsState.currentVoice
+                textToSpeech.setVoice(ttsState.currentVoice)
                 bookContentViewModel.updateBookSettingVoice(ttsState.currentVoice!!.name)
+            }
+        }
+        LaunchedEffect(ttsState.currentSpeed){
+            if(ttsState.currentSpeed != null){
+                textToSpeech.setSpeechRate(ttsState.currentSpeed!!)
+                bookContentViewModel.updateBookSettingSpeed(ttsState.currentSpeed!!)
+            }
+        }
+        LaunchedEffect(ttsState.currentPitch){
+            if(ttsState.currentPitch != null){
+                textToSpeech.setPitch(ttsState.currentPitch!!)
+                bookContentViewModel.updateBookSettingPitch(ttsState.currentPitch!!)
             }
         }
         Scaffold(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = {
-                        Log.d("fab",uiState.currentChapterContent.toString())
-                    }
-                ){
+                        scope.launch {
+                            slowScrollToBottom(
+                                currentLazyColumnState!!,
+                                ttsUiState = ttsState,
+                                uiState = uiState
+                            )
+                        }
+                    },
+                    content = {
 
-                }
+                    }
+                )
             },
             topBar = {
                 TopBar(
@@ -215,6 +229,8 @@ fun BookContent(
                     },
                     onBackIconClick = {
                         onBackIconClick(uiState.currentChapterIndex+1)
+                        textToSpeech.stop()
+                        textToSpeech.shutdown()
                     }
                 )
             },
@@ -241,13 +257,41 @@ fun BookContent(
                                         bookContentViewModel.updateCurrentChapterIndex(uiState.currentChapterIndex-1)
                                 },
                                 onTTSIconClick = {
-                                    bookContentViewModel.updateIsSpeaking(true)
-                                    bookContentViewModel.loadTTSLocaleVoice(textToSpeech)
                                     scope.launch {
+                                        bookContentViewModel.loadTTSSetting(textToSpeech)
                                         bookContentViewModel.updateBottomBarState(false)
                                         delay(200)
                                         bookContentViewModel.updateBottomBarIndex(3)
                                         bookContentViewModel.updateBottomBarState(true)
+                                        bookContentViewModel.updateIsPaused(false)
+                                        bookContentViewModel.updateIsSpeaking(true)
+                                        bookContentViewModel.updateEnablePagerScroll(false)
+                                        readNextParagraph(
+                                            tts = textToSpeech,
+                                            uiState = uiState,
+                                            ttsState = ttsState,
+                                            chapterContents = chapterContents,
+                                            targetParagraphIndex = currentLazyColumnState?.firstVisibleItemIndex!!,
+                                            currentChapterIndex = uiState.currentChapterIndex,
+                                            currentPosition = 0,
+                                            isReading = true,
+                                            maxWidth = uiState.screenWidth,
+                                            maxHeight = uiState.screenHeight,
+                                            textStyle = textStyle,
+                                            textMeasurer = textMeasurer,
+                                            shouldScroll = ttsState.flagTriggerScrolling
+                                        ) { index,chapterIndex,currentPos,scroll,times,stopReading ->
+                                            updateVariable(
+                                                bookContentViewModel = bookContentViewModel,
+                                                isPaused = false,
+                                                isSpeaking = stopReading,
+                                                paragraphIndex = index,
+                                                chapterIndex = chapterIndex,
+                                                currentPos = currentPos,
+                                                triggerScroll = scroll,
+                                                scrollTimes = times
+                                            )
+                                        }
                                     }
                                 },
                                 onNextChapterIconClick = {
@@ -259,6 +303,7 @@ fun BookContent(
                                         bookContentViewModel.updateBottomBarState(false)
                                         delay(200)
                                         bookContentViewModel.updateBottomBarIndex(2)
+                                        bookContentViewModel.loadTTSSetting(textToSpeech)
                                         bookContentViewModel.updateBottomBarState(true)
                                     }
                                 },
@@ -271,57 +316,211 @@ fun BookContent(
                             )
                         }
                         2 -> {
+                            bookContentViewModel.changeMenuTriggerSetting(true)
                             BottomBarSetting(
+                                bookContentViewModel = bookContentViewModel,
                                 uiState = uiState,
+                                textToSpeech = textToSpeech,
+                                ttsState = ttsState
                             )
                         }
                         3 -> {
                             BottomBarTTS(
+                                bookContentViewModel = bookContentViewModel,
+                                textToSpeech = textToSpeech,
                                 uiState = uiState,
                                 ttsState = ttsState,
                                 onPreviousChapterIconClick = {
-                                    if(uiState.currentChapterIndex > 0)
-                                        bookContentViewModel.updateCurrentChapterIndex(uiState.currentChapterIndex-1)
+                                    stopReading(textToSpeech)
+                                    updateVariable(
+                                        bookContentViewModel = bookContentViewModel,
+                                        isPaused = true,
+                                        isSpeaking = false,
+                                        paragraphIndex = 0,
+                                        chapterIndex = maxOf(uiState.currentChapterIndex-1,0),
+                                        currentPos = 0,
+                                        triggerScroll = false,
+                                        scrollTimes = 0
+                                    )
                                 },
                                 onPreviousParagraphIconClick = {
-                                    if(ttsState.currentReadingParagraph > ttsState.firstVisibleItemIndex)
-                                        bookContentViewModel.updateCurrentReadingParagraph(ttsState.currentReadingParagraph-1)
+                                    if (ttsState.isSpeaking) {
+                                        bookContentViewModel.updateIsSpeaking(true)
+                                        bookContentViewModel.updateCurrentReadingPosition(0)
+                                        readNextParagraph(
+                                            tts = textToSpeech,
+                                            uiState = uiState,
+                                            ttsState = ttsState,
+                                            chapterContents = chapterContents,
+                                            targetParagraphIndex = maxOf(ttsState.currentReadingParagraph - 1,0),
+                                            currentChapterIndex = uiState.currentChapterIndex,
+                                            currentPosition = 0,
+                                            isReading = true,
+                                            maxWidth = uiState.screenWidth,
+                                            maxHeight = uiState.screenHeight,
+                                            textStyle = textStyle,
+                                            textMeasurer = textMeasurer,
+                                            shouldScroll = ttsState.flagTriggerScrolling,
+                                        ) { index, chapterIndex, currentPos,scroll,times,stopReading ->
+                                            updateVariable(
+                                                bookContentViewModel = bookContentViewModel,
+                                                isPaused = false,
+                                                isSpeaking = stopReading,
+                                                paragraphIndex = index,
+                                                chapterIndex = chapterIndex,
+                                                currentPos = currentPos,
+                                                triggerScroll = scroll,
+                                                scrollTimes = times
+                                            )
+                                        }
+                                    } else if(ttsState.isPaused){
+                                        updateVariable(
+                                            bookContentViewModel = bookContentViewModel,
+                                            isPaused = true,
+                                            isSpeaking = false,
+                                            paragraphIndex = maxOf(ttsState.currentReadingParagraph - 1,0),
+                                            chapterIndex = uiState.currentChapterIndex,
+                                            currentPos = 0,
+                                            triggerScroll = ttsState.flagTriggerScrolling,
+                                            scrollTimes = 0
+                                        )
+                                    }
                                 },
                                 onPlayPauseIconClick = {
-                                    if(ttsState.isSpeaking) {
-                                        bookContentViewModel.updateIsSpeaking(false)
-                                        bookContentViewModel.updateIsPaused(true)
-                                    }else{
+                                    if (ttsState.isSpeaking){
+                                        stopReading(tts = textToSpeech)
+                                        updateVariable(
+                                            bookContentViewModel = bookContentViewModel,
+                                            isPaused = true,
+                                            isSpeaking = false,
+                                            paragraphIndex = ttsState.currentReadingParagraph,
+                                            chapterIndex = uiState.currentChapterIndex,
+                                            currentPos = uiState.currentReadingPosition,
+                                            triggerScroll = ttsState.flagTriggerScrolling,
+                                            scrollTimes = 0
+                                        )
+                                    } else if(ttsState.isPaused){
                                         bookContentViewModel.updateIsSpeaking(true)
                                         bookContentViewModel.updateIsPaused(false)
+                                        readNextParagraph(
+                                            tts = textToSpeech,
+                                            uiState = uiState,
+                                            ttsState = ttsState,
+                                            chapterContents = chapterContents,
+                                            targetParagraphIndex = ttsState.currentReadingParagraph,
+                                            currentChapterIndex = uiState.currentChapterIndex,
+                                            currentPosition = uiState.currentReadingPosition,
+                                            isReading = true,
+                                            maxWidth = uiState.screenWidth,
+                                            maxHeight = uiState.screenHeight,
+                                            textStyle = textStyle,
+                                            textMeasurer = textMeasurer,
+                                            shouldScroll = ttsState.flagTriggerScrolling
+                                        ) { index, chapterIndex, currentPos,scroll,times,stopReading ->
+                                            updateVariable(
+                                                bookContentViewModel = bookContentViewModel,
+                                                isPaused = false,
+                                                isSpeaking = stopReading,
+                                                paragraphIndex = index,
+                                                chapterIndex = chapterIndex,
+                                                currentPos = currentPos,
+                                                triggerScroll = scroll,
+                                                scrollTimes = times
+                                            )
+                                        }
                                     }
                                 },
                                 onNextParagraphIconClick = {
-                                    if(ttsState.currentReadingParagraph < ttsState.lastVisibleItemIndex)
-                                        bookContentViewModel.updateCurrentReadingParagraph(ttsState.currentReadingParagraph+1)
+                                    if (ttsState.isSpeaking) {
+                                        bookContentViewModel.updateIsPaused(false)
+                                        bookContentViewModel.updateIsSpeaking(true)
+                                        readNextParagraph(
+                                            tts = textToSpeech,
+                                            uiState = uiState,
+                                            ttsState = ttsState,
+                                            chapterContents = chapterContents,
+                                            targetParagraphIndex = minOf(ttsState.currentReadingParagraph + 1,currentLazyColumnState?.layoutInfo?.totalItemsCount!! - 1),
+                                            currentChapterIndex = uiState.currentChapterIndex,
+                                            currentPosition = 0,
+                                            isReading = true,
+                                            maxWidth = uiState.screenWidth,
+                                            maxHeight = uiState.screenHeight,
+                                            textStyle = textStyle,
+                                            textMeasurer = textMeasurer,
+                                            shouldScroll = ttsState.flagTriggerScrolling
+                                        ) { index, chapterIndex, currentPos,scroll,times,stopReading ->
+                                            updateVariable(
+                                                bookContentViewModel = bookContentViewModel,
+                                                isPaused = false,
+                                                isSpeaking = stopReading,
+                                                paragraphIndex = index,
+                                                chapterIndex = chapterIndex,
+                                                currentPos = currentPos,
+                                                triggerScroll = scroll,
+                                                scrollTimes = times
+                                            )
+                                        }
+                                    }else if (ttsState.isPaused){
+                                        updateVariable(
+                                            bookContentViewModel = bookContentViewModel,
+                                            isPaused = true,
+                                            isSpeaking = false,
+                                            paragraphIndex = minOf(ttsState.currentReadingParagraph + 1,currentLazyColumnState?.layoutInfo?.totalItemsCount!! - 1),
+                                            chapterIndex = uiState.currentChapterIndex,
+                                            currentPos = 0,
+                                            triggerScroll = ttsState.flagTriggerScrolling,
+                                            scrollTimes = 0
+                                        )
+                                    }
                                 },
                                 onNextChapterIconClick = {
-                                    if(uiState.currentChapterIndex < uiState.totalChapter-1)
-                                        bookContentViewModel.updateCurrentChapterIndex(uiState.currentChapterIndex+1)
+                                    stopReading(textToSpeech)
+                                    updateVariable(
+                                        bookContentViewModel = bookContentViewModel,
+                                        isPaused = true,
+                                        isSpeaking = false,
+                                        paragraphIndex = 0,
+                                        chapterIndex = minOf(uiState.currentChapterIndex+1,uiState.totalChapter-1),
+                                        currentPos = 0,
+                                        triggerScroll = false,
+                                        scrollTimes = 0
+                                    )
                                 },
                                 onTimerIconClick = {
 
                                 },
-                                onSpeedIconClick = {
-                                    openTTSSpeedMenu = !openTTSSpeedMenu
-                                },
                                 onStopIconClick = {
-                                    bookContentViewModel.updateIsSpeaking(false)
-                                    bookContentViewModel.updateIsPaused(false)
-                                    bookContentViewModel.updateIsFocused(false)
-                                    bookContentViewModel.updateTopBarState(false)
+                                    stopReading(textToSpeech)
+                                    updateVariable(
+                                        bookContentViewModel = bookContentViewModel,
+                                        isPaused = false,
+                                        isSpeaking = false,
+                                        paragraphIndex = ttsState.currentReadingParagraph,
+                                        chapterIndex = uiState.currentChapterIndex,
+                                        currentPos = 0,
+                                        triggerScroll = ttsState.flagTriggerScrolling,
+                                        scrollTimes = 0
+                                    )
+                                    bookContentViewModel.updateEnablePagerScroll(true)
                                     bookContentViewModel.updateBottomBarState(false)
+                                    bookContentViewModel.updateTopBarState(false)
                                 },
                                 onBackgroundMusicIconClick = {
-                                    openTTSMusicMenu = !openTTSMusicMenu
+                                    bookContentViewModel.changeMenuTriggerMusic(!uiState.openTTSMusicMenu)
                                 },
                                 onTTSSettingIconClick = {
-                                    openTTSSettingMenu = !openTTSSettingMenu
+                                    bookContentViewModel.changeMenuTriggerVoice(!uiState.openTTSVoiceMenu)
+                                    stopReading(tts = textToSpeech)
+                                    updateVariable(
+                                        bookContentViewModel = bookContentViewModel,
+                                        isPaused = true,
+                                        isSpeaking = false,
+                                        paragraphIndex = ttsState.currentReadingParagraph,
+                                        chapterIndex = uiState.currentChapterIndex,
+                                        currentPos = uiState.currentReadingPosition,
+                                        triggerScroll = ttsState.flagTriggerScrolling,
+                                        scrollTimes = 0
+                                    )
                                 }
                             )
                         }
@@ -329,171 +528,6 @@ fun BookContent(
                 }
             }
         ){
-            if(openTTSSpeedMenu){
-                Dialog(
-                    onDismissRequest = {
-                        openTTSSpeedMenu = !openTTSSpeedMenu
-                    }
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight(),
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Text(text = "speed")
-                        }
-                    }
-                }
-            }
-            if(openTTSMusicMenu){
-                Dialog(
-                    onDismissRequest = {
-                        openTTSMusicMenu = !openTTSMusicMenu
-                    }
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight(),
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Text(text = "music")
-                        }
-                    }
-                }
-            }
-            if(openTTSSettingMenu){
-                Dialog(
-                    onDismissRequest = {
-                        openTTSSettingMenu = !openTTSSettingMenu
-                    }
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight(),
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            val locales = textToSpeech.availableLanguages.toList().sortedBy { it.displayName }
-                            val voices = textToSpeech.voices
-                                .filter{ !it.isNetworkConnectionRequired }
-                                .sortedBy { it.name }
-                            var languageMenuExpanded by remember { mutableStateOf(false) }
-                            var voiceMenuExpanded by remember { mutableStateOf(false) }
-                            val filteredVoices = voices.filter { it.locale == ttsState.currentLanguage }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                            ){
-                                Text(
-                                    modifier = Modifier
-                                        .weight(0.6f)
-                                        .padding(start = 8.dp),
-                                    text = "Language"
-                                )
-                                ExposedDropdownMenuBox(
-                                    modifier = Modifier.weight(1f),
-                                    expanded = languageMenuExpanded,
-                                    onExpandedChange = { languageMenuExpanded = !languageMenuExpanded }
-                                ) {
-                                    OutlinedTextField(
-                                        shape = RoundedCornerShape(8.dp),
-                                        value = ttsState.currentLanguage?.displayName.toString(),
-                                        onValueChange = {
-
-                                        },
-                                        trailingIcon = {
-                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = languageMenuExpanded)
-                                        },
-                                        readOnly = true,
-                                        singleLine = true,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .menuAnchor(MenuAnchorType.PrimaryEditable, true)
-                                    )
-                                    ExposedDropdownMenu(
-                                        expanded = languageMenuExpanded,
-                                        onDismissRequest = { languageMenuExpanded = false }
-                                    ) {
-                                        locales.forEach { locale ->
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Text(text = locale.displayName)
-                                                },
-                                                onClick = {
-                                                    bookContentViewModel.updateTTSLocale(locale)
-                                                    languageMenuExpanded = false
-                                                    bookContentViewModel.updateTTSVoice(null)
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                            ){
-                                Text(
-                                    modifier = Modifier
-                                        .weight(0.6f)
-                                        .padding(start = 8.dp),
-                                    text = "Voice",
-                                )
-                                ExposedDropdownMenuBox(
-                                    modifier = Modifier.weight(1f),
-                                    expanded = voiceMenuExpanded,
-                                    onExpandedChange = { voiceMenuExpanded = !voiceMenuExpanded }
-                                ) {
-                                    OutlinedTextField(
-                                        shape = RoundedCornerShape(8.dp),
-                                        value = ttsState.currentVoice?.name.toString(),
-                                        onValueChange = {
-
-                                        },
-                                        trailingIcon = {
-                                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = voiceMenuExpanded)
-                                        },
-                                        readOnly = true,
-                                        singleLine = true,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .menuAnchor(MenuAnchorType.PrimaryEditable,true)
-                                    )
-                                    ExposedDropdownMenu(
-                                        expanded = voiceMenuExpanded,
-                                        onDismissRequest = { voiceMenuExpanded = false }
-                                    ) {
-                                        filteredVoices.forEachIndexed { index, voice ->
-                                            DropdownMenuItem(
-                                                text = {
-                                                    Column {
-                                                        Text(text = "Voice ${index + 1}")
-                                                        Text(text = voice.name)
-                                                    }
-                                                },
-                                                onClick = {
-                                                    bookContentViewModel.updateTTSVoice(voice)
-                                                    voiceMenuExpanded = false
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
@@ -517,6 +551,16 @@ fun BookContent(
                     }.forEach { pageIndex ->
                         lazyListStates.remove(pageIndex)
                     }
+                    headers.keys.filter { pageIndex ->
+                        pageIndex < currentPage - 2 || pageIndex > currentPage + 2
+                    }.forEach { pageIndex ->
+                        headers.remove(pageIndex)
+                    }
+                    chapterContents.keys.filter { pageIndex ->
+                        pageIndex < currentPage - 2 || pageIndex > currentPage + 2
+                    }.forEach { pageIndex ->
+                        chapterContents.remove(pageIndex)
+                    }
                 }
                 LaunchedEffect(pagerState) {
                     snapshotFlow { pagerState.settledPage }
@@ -525,24 +569,23 @@ fun BookContent(
                             triggerLoadChapter = true
                         }
                 }
-                LaunchedEffect(callbackLoadChapter) {
+                LaunchedEffect(callbackLoadChapter, uiState.currentChapterIndex) {
                     if (callbackLoadChapter) {
                         triggerLoadChapter = false
                         callbackLoadChapter = false
                     }
+                    currentLazyColumnState = lazyListStates[uiState.currentChapterIndex]
+                    bookContentViewModel.updateCurrentChapterHeader(headers[uiState.currentChapterIndex])
+                    bookContentViewModel.updateCurrentChapterContent(chapterContents[uiState.currentChapterIndex])
                 }
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
                         .fillMaxSize(),
                     beyondViewportPageCount = 1,
+                    userScrollEnabled = uiState.enablePagerScroll,
                 ) { page ->
                     val lazyListState = lazyListStates.getOrPut(page) { LazyListState() }
-                    LaunchedEffect(uiState.currentChapterIndex) {
-                        currentLazyColumnState = lazyListStates[uiState.currentChapterIndex]
-                        bookContentViewModel.updateCurrentChapterHeader(headers[uiState.currentChapterIndex])
-                        bookContentViewModel.updateCurrentChapterContent(chapterContents[uiState.currentChapterIndex])
-                    }
                     Chapter(
                         bookContentViewModel = bookContentViewModel,
                         uiState = uiState,
@@ -597,8 +640,8 @@ fun Chapter(
             data = chapterContent
             contentList.value = parseListToComposableList(textStyle, data!!.content)
             header = data!!.chapterTitle
-            chapterContents.getOrPut(page){ removeHtmlTagsFromList(data!!.content)}
-            headers.getOrPut(page){data!!.chapterTitle}
+            chapterContents[page] = removeHtmlTagsFromList(data!!.content)
+            headers[page] = data!!.chapterTitle
             callbackLoadChapter(true)
         }
     }
@@ -689,8 +732,9 @@ fun Chapter(
         }
     }
     Column(
-        modifier = Modifier.fillMaxSize()
-            .onGloballyPositioned {coordinates->
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coordinates ->
                 bookContentViewModel.updateScreenWidth(coordinates.size.width)
             },
     ) {
@@ -775,7 +819,9 @@ private fun parseListToComposableList(
         val headerPatten = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
         if(linkPattern.containsMatchIn(it)) {
             composable.add{ _, _ ->
-                ImageComponent(ZoomableImage(it.text))
+                DisableSelection {
+                    ImageComponent(ZoomableImage(it.text))
+                }
             }
         }else if(headerPatten.containsMatchIn(it)) {
             composable.add { isHighlighted, isSpeaking ->
@@ -852,5 +898,35 @@ private fun convertToAnnotatedStrings(paragraphs: List<String>): List<AnnotatedS
                 }
             }
         }
+    }
+}
+
+private fun updateVariable(
+    bookContentViewModel: BookContentViewModel,
+    isPaused: Boolean,
+    isSpeaking: Boolean,
+    paragraphIndex: Int,
+    chapterIndex: Int,
+    currentPos: Int,
+    triggerScroll: Boolean,
+    scrollTimes: Int,
+){
+    bookContentViewModel.updateIsPaused(isPaused)
+    bookContentViewModel.updateIsSpeaking(isSpeaking)
+    bookContentViewModel.updateCurrentReadingParagraph(paragraphIndex)
+    bookContentViewModel.updateCurrentChapterIndex(chapterIndex)
+    bookContentViewModel.updateCurrentReadingPosition(currentPos)
+    bookContentViewModel.updateFlagTriggerScrolling(triggerScroll)
+    bookContentViewModel.updateScrollTime(scrollTimes)
+}
+@Composable
+fun KeepScreenOn() = AndroidView({ View(it).apply { keepScreenOn = true } })
+suspend fun slowScrollToBottom(listState: LazyListState,ttsUiState: TTSState,uiState: ContentUIState) {
+    val totalItems = listState.layoutInfo.totalItemsCount
+    while(ttsUiState.lastVisibleItemIndex < totalItems - 1){
+        listState.animateScrollBy(
+            value = uiState.screenHeight.toFloat(),
+            animationSpec = tween(durationMillis = 1000)
+        )
     }
 }

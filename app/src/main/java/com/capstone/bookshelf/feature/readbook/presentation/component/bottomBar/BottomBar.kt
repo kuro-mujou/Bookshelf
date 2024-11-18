@@ -1,7 +1,8 @@
 package com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar
 
-import androidx.compose.animation.ExperimentalAnimationApi
+import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,24 +12,29 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.capstone.bookshelf.R
+import com.capstone.bookshelf.feature.readbook.presentation.BookContentViewModel
+import com.capstone.bookshelf.feature.readbook.presentation.component.dialog.MusicMenuDialog
+import com.capstone.bookshelf.feature.readbook.presentation.component.dialog.VoiceMenuDialog
 import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 import com.capstone.bookshelf.feature.readbook.presentation.state.TTSState
 
-@ExperimentalAnimationApi
 @Composable
 fun BottomBarTheme(
     uiState : ContentUIState,
@@ -53,34 +59,91 @@ fun BottomBarTheme(
     }
 }
 
-@ExperimentalAnimationApi
 @Composable
 fun BottomBarSetting(
+    bookContentViewModel: BookContentViewModel,
     uiState : ContentUIState,
+    textToSpeech: TextToSpeech,
+    ttsState: TTSState
 ) {
+    if(uiState.openTTSVoiceMenu){
+        VoiceMenuDialog(
+            bookContentViewModel = bookContentViewModel,
+            textToSpeech = textToSpeech,
+            ttsState = ttsState,
+            uiState = uiState,
+            testVoiceButtonClicked = {
+                textToSpeech.speak("This is an example of a voice", TextToSpeech.QUEUE_FLUSH, null, "utteranceId")
+            }
+        )
+    }
     Column(
         modifier = Modifier
+            .padding(8.dp)
             .fillMaxWidth()
-            .height(200.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .height(300.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                modifier = Modifier.padding(start = 10.dp, end = 10.dp),
-                text = "Setting",
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
+        Text(
+            modifier = Modifier
+                .padding(4.dp),
+            text = "Setting",
+            style = TextStyle(
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
             )
+        )
+        HorizontalDivider(thickness = 2.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(text = "Keep Screen On")
+            RadioButton(
+                selected = uiState.screenShallBeKeptOn,
+                onClick = {
+                    bookContentViewModel.updateKeepScreenOn(!uiState.screenShallBeKeptOn)
+                    bookContentViewModel.updateBookSettingKeepScreenOn(!uiState.screenShallBeKeptOn)
+                }
+            )
+        }
+        HorizontalDivider(thickness = 1.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .clickable {
+                    bookContentViewModel.changeMenuTriggerVoice(true)
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(text = "Text to Speech")
+            Icon(
+                modifier = Modifier.size(30.dp),
+                painter = painterResource(id = R.drawable.ic_setting),
+                contentDescription = "text to speech"
+            )
+        }
+        HorizontalDivider(thickness = 1.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(text = "Keep Screen On")
+
         }
     }
 }
 
-@ExperimentalAnimationApi
 @Composable
 fun BottomBarTTS(
+    bookContentViewModel: BookContentViewModel,
+    textToSpeech: TextToSpeech,
     uiState : ContentUIState,
     ttsState : TTSState,
     onPreviousChapterIconClick: () -> Unit,
@@ -89,7 +152,6 @@ fun BottomBarTTS(
     onNextParagraphIconClick: () -> Unit,
     onNextChapterIconClick: () -> Unit,
     onTimerIconClick: () -> Unit,
-    onSpeedIconClick: () -> Unit,
     onStopIconClick: () -> Unit,
     onBackgroundMusicIconClick: () -> Unit,
     onTTSSettingIconClick: () -> Unit,
@@ -200,18 +262,6 @@ fun BottomBarTTS(
                     contentDescription = "timer"
                 )
             }
-            TextButton(
-                modifier = Modifier.wrapContentWidth(),
-                onClick = {
-                    onSpeedIconClick()
-                }
-            ) {
-                Text(
-                    text = ttsState.currentSpeed.toString()+"x",
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
-            }
             IconButton(
                 modifier = Modifier.size(50.dp),
                 onClick = {
@@ -251,9 +301,25 @@ fun BottomBarTTS(
         }
         Spacer(modifier = Modifier.height(5.dp))
     }
+
+    if(uiState.openTTSMusicMenu){
+        MusicMenuDialog(
+            bookContentViewModel = bookContentViewModel
+        )
+    }
+    if(uiState.openTTSVoiceMenu){
+        VoiceMenuDialog(
+            bookContentViewModel = bookContentViewModel,
+            textToSpeech = textToSpeech,
+            ttsState = ttsState,
+            uiState = uiState,
+            testVoiceButtonClicked = {
+
+            }
+        )
+    }
 }
 
-@ExperimentalAnimationApi
 @Composable
 fun BottomBarDefault(
     uiState : ContentUIState,
