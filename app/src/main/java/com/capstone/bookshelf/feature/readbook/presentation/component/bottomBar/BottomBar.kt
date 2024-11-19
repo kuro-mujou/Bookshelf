@@ -77,6 +77,7 @@ fun BottomBarSetting(
             }
         )
     }
+
     Column(
         modifier = Modifier
             .padding(8.dp)
@@ -130,12 +131,21 @@ fun BottomBarSetting(
         }
         HorizontalDivider(thickness = 1.dp)
         Row(
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .clickable{
+
+                },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = "Keep Screen On")
-
+            Text(text = "Auto Scroll Up")
+            Icon(
+                modifier = Modifier.size(30.dp),
+                painter = painterResource(id = R.drawable.ic_setting),
+                contentDescription = "auto scroll up"
+            )
         }
     }
 }

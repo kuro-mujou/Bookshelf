@@ -12,7 +12,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,21 +28,13 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 
-class ZoomableImage(
-    val path: String
-) {
-    var zoom = mutableFloatStateOf(1f)
-    var offset = mutableStateOf(Offset.Zero)
-    var popup = mutableStateOf(false)
-}
-
 @Composable
 fun ImageComponent(
-    zoomableSnack: ZoomableImage
+    content: ImageContent
 ) {
-    if(zoomableSnack.popup.value){
+    if(content.popup.value){
         Dialog(
-            onDismissRequest = { zoomableSnack.popup.value = false }
+            onDismissRequest = { content.popup.value = false }
         ) {
             var size by remember { mutableStateOf(IntSize.Zero) }
             Surface(
@@ -52,14 +43,14 @@ fun ImageComponent(
                 color = Color.White
             ) {
                 AsyncImage(
-                    model = zoomableSnack.path,
+                    model = content.content,
                     contentDescription = null,
                     contentScale = ContentScale.FillWidth,
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
-                            val zoom = zoomableSnack.zoom.value
-                            val offset = zoomableSnack.offset.value
+                            val zoom = content.zoom.value
+                            val offset = content.offset.value
                             translationX = offset.x
                             translationY = offset.y
                             scaleX = zoom
@@ -72,12 +63,12 @@ fun ImageComponent(
                                 do {
                                     val event = awaitPointerEvent()
                                     // Calculate gestures and consume pointerInputChange
-                                    var zoom = zoomableSnack.zoom.value
+                                    var zoom = content.zoom.value
                                     zoom *= event.calculateZoom()
                                     // Limit zoom between 100% and 300%
                                     zoom = zoom.coerceIn(1f, 3f)
 
-                                    zoomableSnack.zoom.value = zoom
+                                    content.zoom.value = zoom
 
                                     val pan = event.calculatePan()
 
@@ -86,7 +77,7 @@ fun ImageComponent(
                                     } else {
 
                                         // This is for limiting pan inside Image bounds
-                                        val temp = zoomableSnack.offset.value + pan.times(zoom)
+                                        val temp = content.offset.value + pan.times(zoom)
                                         val maxX = (size.width * (zoom - 1) / 2f)
                                         val maxY = (size.height * (zoom - 1) / 2f)
 
@@ -95,7 +86,7 @@ fun ImageComponent(
                                             temp.y.coerceIn(-maxY, maxY)
                                         )
                                     }
-                                    zoomableSnack.offset.value = currentOffset
+                                    content.offset.value = currentOffset
 
                                     // When image is zoomed consume event and prevent scrolling
                                     if (zoom > 1f) {
@@ -121,7 +112,7 @@ fun ImageComponent(
         shape = RectangleShape
     ) {
         AsyncImage(
-            model = zoomableSnack.path,
+            model = content.content,
             contentDescription = null,
             contentScale = ContentScale.FillWidth,
             modifier = Modifier
@@ -130,7 +121,7 @@ fun ImageComponent(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
                 ) {
-                    zoomableSnack.popup.value = true
+                    content.popup.value = true
                 }
         )
     }

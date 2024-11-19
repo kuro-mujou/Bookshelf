@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.util.Log
 import android.view.View
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -40,6 +41,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -69,10 +71,12 @@ import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.
 import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarSetting
 import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarTTS
 import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarTheme
+import com.capstone.bookshelf.feature.readbook.presentation.component.content.HeaderContent
 import com.capstone.bookshelf.feature.readbook.presentation.component.content.HeaderText
 import com.capstone.bookshelf.feature.readbook.presentation.component.content.ImageComponent
+import com.capstone.bookshelf.feature.readbook.presentation.component.content.ImageContent
+import com.capstone.bookshelf.feature.readbook.presentation.component.content.ParagraphContent
 import com.capstone.bookshelf.feature.readbook.presentation.component.content.ParagraphText
-import com.capstone.bookshelf.feature.readbook.presentation.component.content.ZoomableImage
 import com.capstone.bookshelf.feature.readbook.presentation.component.drawer.NavigationDrawer
 import com.capstone.bookshelf.feature.readbook.presentation.component.textToolBar.CustomTextToolbar
 import com.capstone.bookshelf.feature.readbook.presentation.component.topBar.TopBar
@@ -81,9 +85,11 @@ import com.capstone.bookshelf.feature.readbook.presentation.state.TTSState
 import com.capstone.bookshelf.feature.readbook.tts.readNextParagraph
 import com.capstone.bookshelf.feature.readbook.tts.rememberTextToSpeech
 import com.capstone.bookshelf.feature.readbook.tts.stopReading
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -562,13 +568,13 @@ fun BookContent(
                         chapterContents.remove(pageIndex)
                     }
                 }
-                LaunchedEffect(pagerState) {
-                    snapshotFlow { pagerState.settledPage }
-                        .distinctUntilChanged()
-                        .collect { _ ->
-                            triggerLoadChapter = true
-                        }
-                }
+//                LaunchedEffect(pagerState) {
+//                    snapshotFlow { pagerState.settledPage }
+//                        .distinctUntilChanged()
+//                        .collect { _ ->
+//                            triggerLoadChapter = true
+//                        }
+//                }
                 LaunchedEffect(callbackLoadChapter, uiState.currentChapterIndex) {
                     if (callbackLoadChapter) {
                         triggerLoadChapter = false
@@ -578,14 +584,26 @@ fun BookContent(
                     bookContentViewModel.updateCurrentChapterHeader(headers[uiState.currentChapterIndex])
                     bookContentViewModel.updateCurrentChapterContent(chapterContents[uiState.currentChapterIndex])
                 }
+                val beyondBoundsPageCount = 1
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
                         .fillMaxSize(),
-                    beyondViewportPageCount = 1,
+                    beyondViewportPageCount = beyondBoundsPageCount,
                     userScrollEnabled = uiState.enablePagerScroll,
+                    key = { page -> page}
                 ) { page ->
-                    val lazyListState = lazyListStates.getOrPut(page) { LazyListState() }
+                    val newPage by rememberUpdatedState(newValue = page)
+                    val lazyListState = lazyListStates.getOrPut(newPage) { LazyListState() }
+                    LaunchedEffect(key1 = Unit) {
+                        snapshotFlow { Pair(pagerState.isScrollInProgress, abs(pagerState.settledPage - newPage)) }.collectLatest { (scrollInProgress, diff) ->
+                            if (!scrollInProgress && (diff in 0..beyondBoundsPageCount)) {
+                                if (diff > 0) delay(1000)
+                                triggerLoadChapter = true
+                                cancel()
+                            }
+                        }
+                    }
                     Chapter(
                         bookContentViewModel = bookContentViewModel,
                         uiState = uiState,
@@ -593,7 +611,7 @@ fun BookContent(
                         totalChapter = uiState.totalChapter,
                         triggerLoadChapter = triggerLoadChapter,
                         textStyle = textStyle,
-                        page = page,
+                        page = newPage,
                         pagerState = pagerState,
                         currentLazyColumnState = currentLazyColumnState,
                         contentLazyColumnState = lazyListState,
@@ -633,6 +651,7 @@ fun Chapter(
     var data by remember { mutableStateOf<ChapterContentEntity?>(null) }
     val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean) -> Unit>())}
     var header by remember { mutableStateOf("") }
+    val density = LocalDensity.current
 
     LaunchedEffect(triggerLoadChapter) {
         if (triggerLoadChapter && data == null) {
@@ -735,7 +754,8 @@ fun Chapter(
         modifier = Modifier
             .fillMaxSize()
             .onGloballyPositioned { coordinates ->
-                bookContentViewModel.updateScreenWidth(coordinates.size.width)
+                bookContentViewModel.updateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt()))
+                bookContentViewModel.updateScreenHeight(coordinates.size.height - (with(density) { 40.dp.toPx() }.toInt()))
             },
     ) {
         Row(
@@ -794,13 +814,13 @@ fun ChapterContents(
         SelectionContainer{
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .onGloballyPositioned { coordinates ->
-                        bookContentViewModel.updateScreenHeight(coordinates.size.height)
-                    },
+                    .fillMaxSize(),
                 state = contentLazyColumnState,
             ) {
-                itemsIndexed(contentList) { index, composable ->
+                itemsIndexed(
+                    items = contentList,
+                    key = { index, _ -> index }
+                ) { index, composable ->
                     composable(index == currentReadingItemIndex, isFocused)
                 }
             }
@@ -820,16 +840,28 @@ private fun parseListToComposableList(
         if(linkPattern.containsMatchIn(it)) {
             composable.add{ _, _ ->
                 DisableSelection {
-                    ImageComponent(ZoomableImage(it.text))
+                    ImageComponent(
+                        content = ImageContent(content = it.text)
+                    )
                 }
             }
         }else if(headerPatten.containsMatchIn(it)) {
             composable.add { isHighlighted, isSpeaking ->
-                HeaderText(it.toString(), textStyle, isHighlighted, isSpeaking)
+                HeaderText(
+                    content = HeaderContent(content = it.text),
+                    style = textStyle,
+                    isHighlighted = isHighlighted,
+                    isSpeaking = isSpeaking
+                )
             }
         } else{
             composable.add {isHighlighted,isSpeaking ->
-                ParagraphText(it,textStyle,isHighlighted,isSpeaking)
+                ParagraphText(
+                    content = ParagraphContent(content = it),
+                    style = textStyle,
+                    isHighlighted = isHighlighted,
+                    isSpeaking = isSpeaking
+                )
             }
         }
     }
@@ -919,14 +951,26 @@ private fun updateVariable(
     bookContentViewModel.updateFlagTriggerScrolling(triggerScroll)
     bookContentViewModel.updateScrollTime(scrollTimes)
 }
+
 @Composable
-fun KeepScreenOn() = AndroidView({ View(it).apply { keepScreenOn = true } })
+fun KeepScreenOn() = AndroidView(
+    factory = {
+        View(it).apply {
+            keepScreenOn = true
+        }
+    }
+)
+
 suspend fun slowScrollToBottom(listState: LazyListState,ttsUiState: TTSState,uiState: ContentUIState) {
     val totalItems = listState.layoutInfo.totalItemsCount
     while(ttsUiState.lastVisibleItemIndex < totalItems - 1){
         listState.animateScrollBy(
             value = uiState.screenHeight.toFloat(),
-            animationSpec = tween(durationMillis = 1000)
+            animationSpec = tween(
+                durationMillis = 5000,
+                delayMillis = 0,
+                easing = LinearEasing
+            )
         )
     }
 }

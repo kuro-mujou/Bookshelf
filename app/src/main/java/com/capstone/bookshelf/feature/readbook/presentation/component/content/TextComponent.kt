@@ -6,20 +6,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun HeaderText(
-    text: String,
+    content: HeaderContent,
     style: TextStyle,
     isHighlighted: Boolean,
     isSpeaking: Boolean
 ) {
-    val removePatten = Regex("""<[^>]+>""")
-    val level = text.substring(2,3).toInt()
+    val level = content.content.substring(2,3).toInt()
     val color = if(isHighlighted && isSpeaking)
         style.background
     else
@@ -37,9 +36,10 @@ fun HeaderText(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp),
-        text = text.replace(removePatten, ""),
+        text = content.content.replace(content.removePatten, ""),
         style = TextStyle(
             fontSize = size,
+            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = style.color,
             background = color
@@ -48,7 +48,7 @@ fun HeaderText(
 }
 @Composable
 fun ParagraphText(
-    html: AnnotatedString,
+    content: ParagraphContent,
     style: TextStyle,
     isHighlighted: Boolean,
     isSpeaking: Boolean
@@ -61,7 +61,7 @@ fun ParagraphText(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp, top = 16.dp),
-        text = html,
+        text = content.content,
         style = TextStyle(
             textIndent = style.textIndent,
             textAlign = style.textAlign,

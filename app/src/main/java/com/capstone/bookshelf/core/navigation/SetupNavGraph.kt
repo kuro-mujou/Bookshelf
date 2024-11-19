@@ -20,7 +20,7 @@ fun SetupNavGraph(navController: NavHostController) {
         startDestination = Screen.Root.route
     ) {
         composable(
-            route = Screen.Root.route
+            route = Screen.Root.route,
         ){
             Root(
                 navController = navController
@@ -41,7 +41,7 @@ fun SetupNavGraph(navController: NavHostController) {
                     type = NavType.IntType
                     defaultValue = 0
                 }
-            )
+            ),
         ) {
             BackHandler(true) {}
             val bookId = it.arguments?.getInt(BOOK_ID_ARG) ?: 0
