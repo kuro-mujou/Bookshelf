@@ -296,8 +296,9 @@ fun VoiceMenuDialog(
         }
     }
 }
+
 @Composable
-fun AutoScrollDialog(
+fun AutoScrollMenuDialog(
     bookContentViewModel: BookContentViewModel,
     ttsState: TTSState,
     uiState: ContentUIState

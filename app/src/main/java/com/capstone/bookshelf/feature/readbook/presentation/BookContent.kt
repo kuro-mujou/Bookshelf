@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.capstone.bookshelf.core.domain.ChapterContentEntity
+import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarAutoScroll
 import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarDefault
 import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarSetting
 import com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar.BottomBarTTS
@@ -258,10 +259,6 @@ fun BookContent(
                                         bookContentViewModel.updateBottomBarState(true)
                                     }
                                 },
-                                onPreviousChapterIconClick = {
-                                    if(uiState.currentChapterIndex > 0)
-                                        bookContentViewModel.updateCurrentChapterIndex(uiState.currentChapterIndex-1)
-                                },
                                 onTTSIconClick = {
                                     scope.launch {
                                         bookContentViewModel.loadTTSSetting(textToSpeech)
@@ -300,9 +297,13 @@ fun BookContent(
                                         }
                                     }
                                 },
-                                onNextChapterIconClick = {
-                                    if(uiState.currentChapterIndex < uiState.totalChapter-1)
-                                        bookContentViewModel.updateCurrentChapterIndex(uiState.currentChapterIndex+1)
+                                onAutoScrollIconClick = {
+                                    scope.launch {
+                                        bookContentViewModel.updateBottomBarState(false)
+                                        delay(200)
+                                        bookContentViewModel.updateBottomBarIndex(1)
+                                        bookContentViewModel.updateBottomBarState(true)
+                                    }
                                 },
                                 onSettingIconClick = {
                                     scope.launch {
@@ -528,6 +529,31 @@ fun BookContent(
                                         scrollTimes = 0
                                     )
                                 }
+                            )
+                        }
+                        4 ->{
+                            BottomBarAutoScroll(
+                                bookContentViewModel = bookContentViewModel,
+                                uiState = uiState,
+                                ttsState = ttsState,
+                                onPreviousChapterIconClick ={
+
+                                },
+                                onPlayPauseIconClick = {
+
+                                },
+                                onNextChapterIconClick = {
+
+                                },
+                                onMusicIconClick = {
+
+                                },
+                                onStopIconClick = {
+
+                                },
+                                onSettingIconClick = {
+
+                                },
                             )
                         }
                     }

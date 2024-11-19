@@ -334,16 +334,14 @@ fun BottomBarTTS(
 fun BottomBarDefault(
     uiState : ContentUIState,
     onThemeIconClick: () -> Unit,
-    onPreviousChapterIconClick: () -> Unit,
     onTTSIconClick: () -> Unit,
-    onNextChapterIconClick: () -> Unit,
+    onAutoScrollIconClick: () -> Unit,
     onSettingIconClick: () -> Unit,
 ){
     val iconList = listOf(
         R.drawable.ic_theme,
-        R.drawable.ic_previous,
         R.drawable.ic_headphone,
-        R.drawable.ic_next,
+        R.drawable.ic_play,
         R.drawable.ic_setting
     )
     Column(
@@ -387,24 +385,12 @@ fun BottomBarDefault(
             IconButton(
                 modifier = Modifier.size(50.dp),
                 onClick = {
-                    onPreviousChapterIconClick()
-                }
-            ) {
-                Icon(
-                    modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[1]),
-                    contentDescription = "previous chapter"
-                )
-            }
-            IconButton(
-                modifier = Modifier.size(50.dp),
-                onClick = {
                     onTTSIconClick()
                 }
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[2]),
+                    painter = painterResource(id = iconList[1]),
                     contentDescription = "start tts"
                 )
             }
@@ -412,13 +398,13 @@ fun BottomBarDefault(
             IconButton(
                 modifier = Modifier.size(50.dp),
                 onClick = {
-                    onNextChapterIconClick()
+                    onAutoScrollIconClick()
                 }
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[3]),
-                    contentDescription = "next chapter"
+                    painter = painterResource(id = iconList[2]),
+                    contentDescription = "auto scroll"
                 )
             }
 
@@ -430,7 +416,7 @@ fun BottomBarDefault(
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[4]),
+                    painter = painterResource(id = iconList[3]),
                     contentDescription = "setting"
                 )
             }

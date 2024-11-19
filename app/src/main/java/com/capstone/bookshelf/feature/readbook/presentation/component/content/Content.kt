@@ -12,7 +12,6 @@ data class ImageContent(
 ){
     var zoom = mutableFloatStateOf(1f)
     var offset = mutableStateOf(Offset.Zero)
-    var popup = mutableStateOf(false)
 }
 
 @Immutable
