@@ -8,6 +8,8 @@ data class TTSState(
     val isSpeaking : Boolean = false,
     val isPaused : Boolean = false,
     val isFocused : Boolean = false,
+    val isAutoScroll : Boolean = false,
+    val isAutoScrollPaused : Boolean = false,
     val scrollTime : Int = 0,
     val currentReadingParagraph : Int = 0,
     val firstVisibleItemIndex : Int = 0,
@@ -21,4 +23,5 @@ data class TTSState(
     val currentPitch : Float? = null,
     val currentLanguage : Locale? = null,
     val currentVoice : Voice? = null,
+    val autoScrollSpeed : Float? = null,
 )

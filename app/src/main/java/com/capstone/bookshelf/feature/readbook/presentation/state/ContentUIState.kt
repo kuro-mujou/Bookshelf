@@ -17,7 +17,7 @@ data class ContentUIState(
     val enablePagerScroll : Boolean = true,
     val screenHeight : Int = 0,
     val screenWidth : Int = 0,
-    val openTTSMusicMenu : Boolean = false,
     val openTTSVoiceMenu : Boolean = false,
+    val openAutoScrollMenu : Boolean = false,
     val openSetting : Boolean = false,
 )

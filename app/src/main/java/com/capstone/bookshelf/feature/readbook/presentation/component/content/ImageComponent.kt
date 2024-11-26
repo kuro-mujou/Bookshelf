@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.feature.readbook.presentation.component.content
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -29,7 +28,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImageComponent(
     content: ImageContent

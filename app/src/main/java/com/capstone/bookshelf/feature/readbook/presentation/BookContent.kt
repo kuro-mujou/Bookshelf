@@ -1,7 +1,8 @@
 package com.capstone.bookshelf.feature.readbook.presentation
 
 import android.annotation.SuppressLint
-import android.util.Log
+import android.content.Context
+import android.os.PowerManager
 import android.view.View
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -25,15 +26,12 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.text.selection.DisableSelection
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,19 +46,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalTextToolbar
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -79,7 +70,6 @@ import com.capstone.bookshelf.feature.readbook.presentation.component.content.Im
 import com.capstone.bookshelf.feature.readbook.presentation.component.content.ParagraphContent
 import com.capstone.bookshelf.feature.readbook.presentation.component.content.ParagraphText
 import com.capstone.bookshelf.feature.readbook.presentation.component.drawer.NavigationDrawer
-import com.capstone.bookshelf.feature.readbook.presentation.component.textToolBar.CustomTextToolbar
 import com.capstone.bookshelf.feature.readbook.presentation.component.topBar.TopBar
 import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 import com.capstone.bookshelf.feature.readbook.presentation.state.TTSState
@@ -98,6 +88,11 @@ fun BookContent(
     bookContentViewModel: BookContentViewModel,
     onBackIconClick: (Int) -> Unit
 ){
+    val context = LocalContext.current
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    val wakeLock: PowerManager.WakeLock = remember {
+        powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "BookShelf::TTSWakeLock")
+    }
     val book by bookContentViewModel.book
     val uiState by bookContentViewModel.contentUIState.collectAsState()
     val ttsState by bookContentViewModel.ttsUiState.collectAsState()
@@ -105,7 +100,7 @@ fun BookContent(
     var triggerLoadChapter by remember { mutableStateOf(false) }
     var callbackLoadChapter by remember { mutableStateOf(false) }
 
-    val textToSpeech = rememberTextToSpeech(ttsState)
+    val textToSpeech = rememberTextToSpeech(context,wakeLock,ttsState)
     val textMeasurer = rememberTextMeasurer()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -123,6 +118,7 @@ fun BookContent(
     val drawerLazyColumnState = rememberLazyListState()
 
     val scope = rememberCoroutineScope()
+
 
     val textStyle = TextStyle(
         textIndent = TextIndent(firstLine = 40.sp),
@@ -177,9 +173,11 @@ fun BookContent(
         LaunchedEffect(uiState.bottomBarState){
             if(!uiState.bottomBarState){
                 delay(300)
-                if(ttsState.isSpeaking||ttsState.isPaused)
+                if(ttsState.isSpeaking||ttsState.isPaused){
                     bookContentViewModel.updateBottomBarIndex(3)
-                else {
+                }else if(ttsState.isAutoScroll||ttsState.isAutoScrollPaused){
+                    bookContentViewModel.updateBottomBarIndex(4)
+                }else {
                     bookContentViewModel.changeMenuTriggerSetting(false)
                     bookContentViewModel.updateBottomBarIndex(0)
                 }
@@ -210,22 +208,22 @@ fun BookContent(
             }
         }
         Scaffold(
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = {
-                        scope.launch {
-                            slowScrollToBottom(
-                                currentLazyColumnState!!,
-                                ttsUiState = ttsState,
-                                uiState = uiState
-                            )
-                        }
-                    },
-                    content = {
-
-                    }
-                )
-            },
+//            floatingActionButton = {
+//                FloatingActionButton(
+//                    onClick = {
+//                        scope.launch {
+//                            slowScrollToBottom(
+//                                currentLazyColumnState!!,
+//                                ttsUiState = ttsState,
+//                                uiState = uiState
+//                            )
+//                        }
+//                    },
+//                    content = {
+//
+//                    }
+//                )
+//            },
             topBar = {
                 TopBar(
                     topBarState = uiState.topBarState,
@@ -262,14 +260,15 @@ fun BookContent(
                                 onTTSIconClick = {
                                     scope.launch {
                                         bookContentViewModel.loadTTSSetting(textToSpeech)
+                                        bookContentViewModel.updateIsPaused(false)
+                                        bookContentViewModel.updateIsSpeaking(true)
                                         bookContentViewModel.updateBottomBarState(false)
                                         delay(200)
                                         bookContentViewModel.updateBottomBarIndex(3)
                                         bookContentViewModel.updateBottomBarState(true)
-                                        bookContentViewModel.updateIsPaused(false)
-                                        bookContentViewModel.updateIsSpeaking(true)
                                         bookContentViewModel.updateEnablePagerScroll(false)
                                         readNextParagraph(
+                                            wakeLock = wakeLock,
                                             tts = textToSpeech,
                                             uiState = uiState,
                                             ttsState = ttsState,
@@ -299,19 +298,22 @@ fun BookContent(
                                 },
                                 onAutoScrollIconClick = {
                                     scope.launch {
+                                        bookContentViewModel.loadTTSSetting(textToSpeech)
                                         bookContentViewModel.updateBottomBarState(false)
                                         delay(200)
-                                        bookContentViewModel.updateBottomBarIndex(1)
+                                        bookContentViewModel.updateBottomBarIndex(4)
                                         bookContentViewModel.updateBottomBarState(true)
+                                        bookContentViewModel.updateIsAutoScroll(true)
                                     }
                                 },
                                 onSettingIconClick = {
                                     scope.launch {
+                                        bookContentViewModel.loadTTSSetting(textToSpeech)
                                         bookContentViewModel.updateBottomBarState(false)
                                         delay(200)
                                         bookContentViewModel.updateBottomBarIndex(2)
-                                        bookContentViewModel.loadTTSSetting(textToSpeech)
                                         bookContentViewModel.updateBottomBarState(true)
+                                        bookContentViewModel.changeMenuTriggerSetting(true)
                                     }
                                 },
                             )
@@ -323,12 +325,12 @@ fun BookContent(
                             )
                         }
                         2 -> {
-                            bookContentViewModel.changeMenuTriggerSetting(true)
                             BottomBarSetting(
                                 bookContentViewModel = bookContentViewModel,
                                 uiState = uiState,
                                 textToSpeech = textToSpeech,
-                                ttsState = ttsState
+                                ttsState = ttsState,
+                                context = context
                             )
                         }
                         3 -> {
@@ -355,6 +357,7 @@ fun BookContent(
                                         bookContentViewModel.updateIsSpeaking(true)
                                         bookContentViewModel.updateCurrentReadingPosition(0)
                                         readNextParagraph(
+                                            wakeLock = wakeLock,
                                             tts = textToSpeech,
                                             uiState = uiState,
                                             ttsState = ttsState,
@@ -410,6 +413,7 @@ fun BookContent(
                                         bookContentViewModel.updateIsSpeaking(true)
                                         bookContentViewModel.updateIsPaused(false)
                                         readNextParagraph(
+                                            wakeLock = wakeLock,
                                             tts = textToSpeech,
                                             uiState = uiState,
                                             ttsState = ttsState,
@@ -442,6 +446,7 @@ fun BookContent(
                                         bookContentViewModel.updateIsPaused(false)
                                         bookContentViewModel.updateIsSpeaking(true)
                                         readNextParagraph(
+                                            wakeLock = wakeLock,
                                             tts = textToSpeech,
                                             uiState = uiState,
                                             ttsState = ttsState,
@@ -512,9 +517,6 @@ fun BookContent(
                                     bookContentViewModel.updateBottomBarState(false)
                                     bookContentViewModel.updateTopBarState(false)
                                 },
-                                onBackgroundMusicIconClick = {
-                                    bookContentViewModel.changeMenuTriggerMusic(!uiState.openTTSMusicMenu)
-                                },
                                 onTTSSettingIconClick = {
                                     bookContentViewModel.changeMenuTriggerVoice(!uiState.openTTSVoiceMenu)
                                     stopReading(tts = textToSpeech)
@@ -537,22 +539,28 @@ fun BookContent(
                                 uiState = uiState,
                                 ttsState = ttsState,
                                 onPreviousChapterIconClick ={
-
+                                    bookContentViewModel.updateCurrentChapterIndex(maxOf(uiState.currentChapterIndex-1,0))
                                 },
                                 onPlayPauseIconClick = {
-
+                                    if(ttsState.isAutoScroll){
+                                        bookContentViewModel.updateIsAutoScroll(false)
+                                        bookContentViewModel.updateIsAutoScrollPaused(true)
+                                    }else if(ttsState.isAutoScrollPaused){
+                                        bookContentViewModel.updateIsAutoScroll(true)
+                                        bookContentViewModel.updateIsAutoScrollPaused(false)
+                                    }
                                 },
                                 onNextChapterIconClick = {
-
-                                },
-                                onMusicIconClick = {
-
+                                    bookContentViewModel.updateCurrentChapterIndex(minOf(uiState.currentChapterIndex+1,uiState.totalChapter-1))
                                 },
                                 onStopIconClick = {
-
+                                    bookContentViewModel.updateIsAutoScroll(false)
+                                    bookContentViewModel.updateIsAutoScrollPaused(false)
+                                    bookContentViewModel.updateBottomBarState(false)
+                                    bookContentViewModel.updateTopBarState(false)
                                 },
                                 onSettingIconClick = {
-
+                                    bookContentViewModel.changeMenuTriggerAutoScroll(true)
                                 },
                             )
                         }
@@ -594,13 +602,6 @@ fun BookContent(
                         chapterContents.remove(pageIndex)
                     }
                 }
-//                LaunchedEffect(pagerState) {
-//                    snapshotFlow { pagerState.settledPage }
-//                        .distinctUntilChanged()
-//                        .collect { _ ->
-//                            triggerLoadChapter = true
-//                        }
-//                }
                 LaunchedEffect(callbackLoadChapter, uiState.currentChapterIndex) {
                     if (callbackLoadChapter) {
                         triggerLoadChapter = false
@@ -675,7 +676,7 @@ fun Chapter(
 ) {
     val chapterContent by bookContentViewModel.chapterContent
     var data by remember { mutableStateOf<ChapterContentEntity?>(null) }
-    val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean) -> Unit>())}
+    val contentList = remember { mutableStateOf(listOf<@Composable (Int, Boolean, Boolean) -> Unit>())}
     var header by remember { mutableStateOf("") }
     val density = LocalDensity.current
 
@@ -683,9 +684,11 @@ fun Chapter(
         if (triggerLoadChapter && data == null) {
             bookContentViewModel.getChapterContent(page)
             data = chapterContent
-            contentList.value = parseListToComposableList(textStyle, data!!.content)
+            parseListToUsableLists(textStyle, data!!.content).also{
+                contentList.value = it.first
+                chapterContents[page] = it.second
+            }
             header = data!!.chapterTitle
-            chapterContents[page] = removeHtmlTagsFromList(data!!.content)
             headers[page] = data!!.chapterTitle
             callbackLoadChapter(true)
         }
@@ -804,7 +807,6 @@ fun Chapter(
         }
         ChapterContents(
             bookContentViewModel = bookContentViewModel,
-            uiState = uiState,
             isFocused = ttsUiState.isFocused,
             currentReadingItemIndex = ttsUiState.currentReadingParagraph,
             contentLazyColumnState = contentLazyColumnState,
@@ -815,148 +817,84 @@ fun Chapter(
 @Composable
 fun ChapterContents(
     bookContentViewModel: BookContentViewModel,
-    uiState: ContentUIState,
     isFocused: Boolean,
     currentReadingItemIndex: Int,
     contentLazyColumnState: LazyListState,
-    contentList: List<@Composable (Boolean, Boolean) -> Unit>,
+    contentList: List<@Composable (Int, Boolean, Boolean) -> Unit>,
 ){
-    val view = LocalView.current
-    CompositionLocalProvider(
-        value = LocalTextToolbar provides
-            CustomTextToolbar(
-                view = view,
-                scrollingPager = uiState.enablePagerScroll,
-                enableScaffoldBar = uiState.enableScaffoldBar,
-                output = { test->
-                    Log.d("test",test)
-                },
-                updateState = {pager,scaffold->
-                    bookContentViewModel.updateEnableScaffoldBar(pager)
-                    bookContentViewModel.updateEnablePagerScroll(scaffold)
-                }
-            )
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize(),
+        state = contentLazyColumnState,
     ) {
-        SelectionContainer{
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize(),
-                state = contentLazyColumnState,
-            ) {
-                itemsIndexed(
-                    items = contentList,
-                    key = { index, _ -> index }
-                ) { index, composable ->
-                    composable(index == currentReadingItemIndex, isFocused)
-                }
-            }
+        itemsIndexed(
+            items = contentList,
+            key = { index, _ -> index }
+        ) { index, composable ->
+            composable(index, index == currentReadingItemIndex, isFocused)
         }
     }
 }
 
 @SuppressLint("SdCardPath")
-private fun parseListToComposableList(
+private fun parseListToUsableLists(
     textStyle: TextStyle,
-    paragraphs: List<String>
-): List<@Composable (Boolean, Boolean) -> Unit> {
-    val composable = mutableListOf<@Composable (Boolean,Boolean) -> Unit>()
-    convertToAnnotatedStrings(paragraphs).forEach {
+    paragraphs: List<String>,
+): Pair<List<@Composable (Int, Boolean, Boolean) -> Unit>,List<String>> {
+    val composable = mutableListOf<@Composable (Int, Boolean,Boolean) -> Unit>()
+    val ttsParagraph = mutableListOf<String>()
+    paragraphs.forEach {
         val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
         val headerPatten = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
-        if(linkPattern.containsMatchIn(it)) {
-            composable.add{ _, _ ->
-                DisableSelection {
-                    ImageComponent(
-                        content = ImageContent(content = it.text)
-                    )
+        val headerLevel = Regex("""<h([1-6])>.*?</h\1>""")
+        val htmlTagPattern = Regex(pattern = """<[^>]+>""")
+        if(it.isNotEmpty()){
+            if(linkPattern.containsMatchIn(it)) {
+                composable.add{ _, _, _ ->
+                    DisableSelection {
+                        ImageComponent(
+                            content = ImageContent(
+                                content = it
+                            )
+                        )
+                    }
                 }
-            }
-        }else if(headerPatten.containsMatchIn(it)) {
-            composable.add { isHighlighted, isSpeaking ->
-                HeaderText(
-                    content = HeaderContent(content = it.text),
-                    style = textStyle,
-                    isHighlighted = isHighlighted,
-                    isSpeaking = isSpeaking
-                )
-            }
-        } else{
-            composable.add {isHighlighted,isSpeaking ->
-                ParagraphText(
-                    content = ParagraphContent(content = it),
-                    style = textStyle,
-                    isHighlighted = isHighlighted,
-                    isSpeaking = isSpeaking
-                )
-            }
-        }
-    }
-    return composable
-}
-
-@SuppressLint("SdCardPath")
-private fun cleanString(input: String): String {
-    val htmlTagPattern = Regex(pattern = """<[^>]+>""")
-    val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
-    var result = htmlTagPattern.replace(input, replacement = "")
-    result = linkPattern.replace(result, replacement = " ")
-    return result
-}
-private fun removeHtmlTagsFromList(list: List<String>): List<String> {
-    return list.map { cleanString(it) }
-}
-private fun convertToAnnotatedStrings(paragraphs: List<String>): List<AnnotatedString> {
-    return paragraphs.map { paragraph ->
-        buildAnnotatedString {
-            val stack = mutableListOf<String>()
-            var currentIndex = 0
-
-            while (currentIndex < paragraph.length) {
-                when {
-                    paragraph.startsWith("<b>", currentIndex) -> {
-                        pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                        stack.add("b")
-                        currentIndex += 3
+                ttsParagraph.add(linkPattern.replace(it, replacement = " "))
+            }else if(headerPatten.containsMatchIn(it)) {
+                if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
+                    composable.add {index, isHighlighted, isSpeaking ->
+                        HeaderText(
+                            index = index,
+                            content = HeaderContent(
+                                content = htmlTagPattern.replace(it, replacement = "")
+                            ),
+                            level = headerLevel.find(it)!!.groupValues[1].toInt(),
+                            style = textStyle,
+                            isHighlighted = isHighlighted,
+                            isSpeaking = isSpeaking
+                        )
                     }
-                    paragraph.startsWith("</b>", currentIndex) -> {
-                        if (stack.lastOrNull() == "b") {
-                            pop()
-                            stack.removeAt(stack.lastIndex)
-                        }
-                        currentIndex += 4
+                    ttsParagraph.add(htmlTagPattern.replace(it, replacement = ""))
+                }
+            } else{
+                if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
+                    composable.add {index, isHighlighted,isSpeaking ->
+                        ParagraphText(
+                            index = index,
+                            content = ParagraphContent(
+                                content = it
+                            ),
+                            style = textStyle,
+                            isHighlighted = isHighlighted,
+                            isSpeaking = isSpeaking
+                        )
                     }
-                    paragraph.startsWith("<i>", currentIndex) -> {
-                        pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
-                        stack.add("i")
-                        currentIndex += 3
-                    }
-                    paragraph.startsWith("</i>", currentIndex) -> {
-                        if (stack.lastOrNull() == "i") {
-                            pop()
-                            stack.removeAt(stack.lastIndex)
-                        }
-                        currentIndex += 4
-                    }
-                    paragraph.startsWith("<u>", currentIndex) -> {
-                        pushStyle(SpanStyle(textDecoration = TextDecoration.Underline))
-                        stack.add("u")
-                        currentIndex += 3
-                    }
-                    paragraph.startsWith("</u>", currentIndex) -> {
-                        if (stack.lastOrNull() == "u") {
-                            pop()
-                            stack.removeAt(stack.lastIndex)
-                        }
-                        currentIndex += 4
-                    }
-                    else -> {
-                        append(paragraph[currentIndex])
-                        currentIndex++
-                    }
+                    ttsParagraph.add(htmlTagPattern.replace(it, replacement = ""))
                 }
             }
         }
     }
+    return Pair(composable,ttsParagraph)
 }
 
 private fun updateVariable(

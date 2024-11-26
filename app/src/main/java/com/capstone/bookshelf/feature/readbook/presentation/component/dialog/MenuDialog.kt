@@ -43,31 +43,6 @@ import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 import com.capstone.bookshelf.feature.readbook.presentation.state.TTSState
 import kotlin.math.roundToInt
 
-
-@Composable
-fun MusicMenuDialog(
-    bookContentViewModel : BookContentViewModel
-){
-    Dialog(
-        onDismissRequest = {
-            bookContentViewModel.changeMenuTriggerMusic(false)
-        }
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(text = "music")
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceMenuDialog(
@@ -297,11 +272,71 @@ fun VoiceMenuDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutoScrollMenuDialog(
     bookContentViewModel: BookContentViewModel,
     ttsState: TTSState,
     uiState: ContentUIState
 ){
-
+    Dialog(
+        onDismissRequest = {
+            bookContentViewModel.changeMenuTriggerAutoScroll(false)
+        }
+    ) {
+        var speedSliderValue by remember { mutableFloatStateOf(ttsState.currentSpeed?:1f) }
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+        ) {
+            Column(
+                modifier = Modifier.padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(bottom = 4.dp),
+                    text = "Auto Scroll Setting",
+                    style = TextStyle(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                HorizontalDivider(thickness = 2.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ){
+                    Text(text = "Speed")
+                    Text(text = "%.2fx".format(speedSliderValue))
+                }
+                Slider(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = speedSliderValue,
+                    onValueChange = { value ->
+                        speedSliderValue = (value * 100).roundToInt() / 100f
+                    },
+                    onValueChangeFinished ={
+                        bookContentViewModel.updateCurrentSpeed(speedSliderValue)
+                    },
+                    valueRange = 0.5f..2.5f,
+                    steps = 3,
+                    thumb = {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                )
+                        )
+                    }
+                )
+            }
+        }
+    }
 }

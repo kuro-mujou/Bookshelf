@@ -1,7 +1,15 @@
 package com.capstone.bookshelf.feature.readbook.tts
 
+import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.os.Build
+import android.os.PowerManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateListOf
@@ -24,9 +32,10 @@ import java.util.Locale
 
 @Composable
 fun rememberTextToSpeech(
+    context: Context,
+    wakeLock: PowerManager.WakeLock,
     ttsState : TTSState
 ): TextToSpeech {
-    val context = LocalContext.current
     var tts : TextToSpeech = remember { TextToSpeech(context, null) }
     DisposableEffect(context) {
         val textToSpeech = TextToSpeech(context) { status ->
@@ -38,16 +47,18 @@ fun rememberTextToSpeech(
             }
         }
         tts = textToSpeech
-
+        wakeLock.acquire(1*60*1000L)
         onDispose {
             textToSpeech.stop()
             textToSpeech.shutdown()
+            wakeLock.release()
         }
     }
     return tts
 }
 
 fun readNextParagraph(
+    wakeLock: PowerManager.WakeLock,
     tts: TextToSpeech,
     uiState: ContentUIState,
     ttsState: TTSState,
@@ -63,6 +74,7 @@ fun readNextParagraph(
     shouldScroll: Boolean,
     nextParagraph: (Int, Int, Int, Boolean, Int, Boolean) -> Unit
 ) {
+    wakeLock.acquire(60*500L)
     val currentChapterContent = chapterContents[currentChapterIndex]
     if (currentChapterContent != null) {
         if (targetParagraphIndex in currentChapterContent.indices) {
@@ -86,6 +98,7 @@ fun readNextParagraph(
                     override fun onDone(utteranceId: String?) {
                         if (targetParagraphIndex+1 < currentChapterContent.size) {
                             readNextParagraph(
+                                wakeLock = wakeLock,
                                 tts = tts,
                                 uiState = uiState,
                                 ttsState = ttsState,
@@ -115,6 +128,7 @@ fun readNextParagraph(
                                 CoroutineScope(Dispatchers.Main).launch {
                                     delay(1000)
                                     readNextParagraph(
+                                        wakeLock = wakeLock,
                                         tts = tts,
                                         uiState = uiState,
                                         ttsState = ttsState,
@@ -140,13 +154,17 @@ fun readNextParagraph(
                                     i,
                                     false
                                 )
+                                wakeLock.release()
                                 stopReading(tts)
                             }
+                            wakeLock.release()
                         }
                     }
 
-                    @Deprecated("Deprecated in Java")
-                    override fun onError(utteranceId: String?) {}
+                    @Deprecated("Deprecated in Java", ReplaceWith("wakeLock.release()"))
+                    override fun onError(utteranceId: String?) {
+                        wakeLock.release()
+                    }
                     override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                         super.onRangeStart(utteranceId, start, end, frame)
                         if(isReading) {
@@ -185,6 +203,7 @@ fun readNextParagraph(
                 0,
                 false
             )
+            wakeLock.release()
             stopReading(tts)
         }
     }

@@ -88,4 +88,7 @@ class BookRepository(
     suspend fun updateBookSettingScreenShallBeKeptOn(settingId: Int, screenShallBeKeptOn: Boolean){
         bookDao.updateBookSettingScreenShallBeKeptOn(settingId, screenShallBeKeptOn)
     }
+    suspend fun updateBookSettingAutoScrollSpeed(settingId: Int, autoScrollSpeed: Float){
+        bookDao.updateBookSettingAutoScrollSpeed(settingId, autoScrollSpeed)
+    }
 }

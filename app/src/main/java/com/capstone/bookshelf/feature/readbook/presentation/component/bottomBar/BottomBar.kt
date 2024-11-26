@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.feature.readbook.presentation.component.bottomBar
 
+import android.content.Context
 import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,7 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.feature.readbook.presentation.BookContentViewModel
-import com.capstone.bookshelf.feature.readbook.presentation.component.dialog.MusicMenuDialog
+import com.capstone.bookshelf.feature.readbook.presentation.component.dialog.AutoScrollMenuDialog
 import com.capstone.bookshelf.feature.readbook.presentation.component.dialog.VoiceMenuDialog
 import com.capstone.bookshelf.feature.readbook.presentation.state.ContentUIState
 import com.capstone.bookshelf.feature.readbook.presentation.state.TTSState
@@ -62,9 +63,10 @@ fun BottomBarTheme(
 @Composable
 fun BottomBarSetting(
     bookContentViewModel: BookContentViewModel,
-    uiState : ContentUIState,
+    uiState: ContentUIState,
     textToSpeech: TextToSpeech,
-    ttsState: TTSState
+    ttsState: TTSState,
+    context: Context
 ) {
     if(uiState.openTTSVoiceMenu){
         VoiceMenuDialog(
@@ -73,14 +75,15 @@ fun BottomBarSetting(
             ttsState = ttsState,
             uiState = uiState,
             testVoiceButtonClicked = {
-                textToSpeech.speak("This is an example of a voice", TextToSpeech.QUEUE_FLUSH, null, "utteranceId")
+                val tts = TextToSpeech(context, null)
+                tts.speak("This is an example of a voice", TextToSpeech.STOPPED, null, "utteranceId")
+                tts.stop()
+                tts.shutdown()
             }
         )
     }
-
     Column(
         modifier = Modifier
-            .padding(8.dp)
             .fillMaxWidth()
             .height(300.dp)
             .background(MaterialTheme.colorScheme.surfaceContainer),
@@ -103,11 +106,11 @@ fun BottomBarSetting(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(text = "Keep Screen On")
-            RadioButton(
-                selected = uiState.screenShallBeKeptOn,
-                onClick = {
-                    bookContentViewModel.updateKeepScreenOn(!uiState.screenShallBeKeptOn)
-                    bookContentViewModel.updateBookSettingKeepScreenOn(!uiState.screenShallBeKeptOn)
+            Switch(
+                checked = uiState.screenShallBeKeptOn,
+                onCheckedChange = {
+                    bookContentViewModel.updateKeepScreenOn(it)
+                    bookContentViewModel.updateBookSettingKeepScreenOn(it)
                 }
             )
         }
@@ -163,7 +166,6 @@ fun BottomBarTTS(
     onNextChapterIconClick: () -> Unit,
     onTimerIconClick: () -> Unit,
     onStopIconClick: () -> Unit,
-    onBackgroundMusicIconClick: () -> Unit,
     onTTSSettingIconClick: () -> Unit,
 ) {
     val iconList = listOf(
@@ -287,18 +289,6 @@ fun BottomBarTTS(
             IconButton(
                 modifier = Modifier.size(50.dp),
                 onClick = {
-                    onBackgroundMusicIconClick()
-                }
-            ) {
-                Icon(
-                    modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[7]),
-                    contentDescription = "background music"
-                )
-            }
-            IconButton(
-                modifier = Modifier.size(50.dp),
-                onClick = {
                     onTTSSettingIconClick()
                 }
             ) {
@@ -312,11 +302,6 @@ fun BottomBarTTS(
         Spacer(modifier = Modifier.height(5.dp))
     }
 
-    if(uiState.openTTSMusicMenu){
-        MusicMenuDialog(
-            bookContentViewModel = bookContentViewModel
-        )
-    }
     if(uiState.openTTSVoiceMenu){
         VoiceMenuDialog(
             bookContentViewModel = bookContentViewModel,
@@ -433,7 +418,6 @@ fun BottomBarAutoScroll(
     onPreviousChapterIconClick: () -> Unit,
     onPlayPauseIconClick: () -> Unit,
     onNextChapterIconClick: () -> Unit,
-    onMusicIconClick: () -> Unit,
     onStopIconClick: () -> Unit,
     onSettingIconClick: () -> Unit,
 ){
@@ -442,7 +426,6 @@ fun BottomBarAutoScroll(
         R.drawable.ic_play,
         R.drawable.ic_pause,
         R.drawable.ic_next_chapter,
-        //R.drawable.ic_music
         R.drawable.ic_stop,
         //R.drawable.ic_setting
     )
@@ -478,7 +461,7 @@ fun BottomBarAutoScroll(
                     onPlayPauseIconClick()
                 }
             ) {
-                if(ttsState.isSpeaking) {
+                if(ttsState.isAutoScroll) {
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[1]),
@@ -514,18 +497,6 @@ fun BottomBarAutoScroll(
             IconButton(
                 modifier = Modifier.size(50.dp),
                 onClick = {
-                    onMusicIconClick()
-                }
-            ) {
-                Icon(
-                    modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[4]),
-                    contentDescription = "music"
-                )
-            }
-            IconButton(
-                modifier = Modifier.size(50.dp),
-                onClick = {
                     onStopIconClick()
                 }
             ) {
@@ -548,15 +519,13 @@ fun BottomBarAutoScroll(
                 )
             }
         }
-        if(uiState.openTTSMusicMenu){
-            MusicMenuDialog(
-                bookContentViewModel = bookContentViewModel
-            )
-        }
-        // if(uiState.openAutoScrollMenu){
-        //     AutoScrollMenuDialog(
-        //         bookContentViewModel = bookContentViewModel
-        //     )
-        // }
+
+         if(uiState.openAutoScrollMenu){
+             AutoScrollMenuDialog(
+                 bookContentViewModel = bookContentViewModel,
+                 uiState = uiState,
+                 ttsState = ttsState
+             )
+         }
     }
 }

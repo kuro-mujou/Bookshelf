@@ -11,4 +11,5 @@ data class BookSettingEntity(
     val pitch: Float? = null,
     val ttsLocale: String? = null,
     val ttsVoice: String? = null,
+    val autoScrollSpeed: Float? = null,
 )

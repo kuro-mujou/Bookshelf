@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.feature.readbook.presentation.component.textToolBar
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
@@ -12,9 +13,7 @@ import androidx.compose.ui.platform.TextToolbarStatus
 
 class CustomTextToolbar(
     private val view: View,
-    private val scrollingPager: Boolean,
-    private val enableScaffoldBar: Boolean,
-    val output: (String) -> Unit,
+    val regexSelected: (String) -> Unit,
     val updateState: (Boolean,Boolean) -> Unit
 ) : TextToolbar {
     private var actionMode: ActionMode? = null
@@ -36,8 +35,9 @@ class CustomTextToolbar(
         textActionModeCallback.rect = rect
         textActionModeCallback.onTestRequested = {
             onCopyRequested?.invoke()
-            output(clipboard.primaryClip?.getItemAt(0)?.text.toString())
-            clipboard.clearPrimaryClip()
+            regexSelected(clipboard.primaryClip?.getItemAt(0)?.text.toString())
+            val clipData = ClipData.newPlainText(null,"")
+            clipboard.setPrimaryClip(clipData)
             updateState(true,true)
         }
         if (actionMode == null) {

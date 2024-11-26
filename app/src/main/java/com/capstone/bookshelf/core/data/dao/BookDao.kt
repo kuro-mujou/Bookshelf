@@ -85,4 +85,7 @@ interface BookDao {
 
     @Query("UPDATE bookContentSetting SET screenShallBeKeptOn = :screenShallBeKeptOn WHERE settingId = :settingId")
     suspend fun updateBookSettingScreenShallBeKeptOn(settingId: Int, screenShallBeKeptOn: Boolean)
+
+    @Query("UPDATE bookContentSetting SET autoScrollSpeed = :autoScrollSpeed WHERE settingId = :settingId")
+    suspend fun updateBookSettingAutoScrollSpeed(settingId: Int, autoScrollSpeed: Float)
 }

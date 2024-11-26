@@ -45,6 +45,10 @@ class BookContentViewModel(
     private val _ttsUiState = MutableStateFlow(TTSState())
     val ttsUiState : StateFlow<TTSState> = _ttsUiState.asStateFlow()
 
+//    init{
+//        readAllRegex()
+//    }
+
     fun loadTTSSetting(textToSpeech: TextToSpeech) {
         viewModelScope.launch {
             val setting = repository.getBookSetting(0)
@@ -66,6 +70,7 @@ class BookContentViewModel(
                 textToSpeech.voice = selectedVoice
                 textToSpeech.setSpeechRate(setting.speed ?: 1f)
                 textToSpeech.setPitch(setting.pitch ?: 1f)
+                updateCurrentAutoScrollSpeed(setting.autoScrollSpeed ?: 1f)
                 updateCurrentSpeed(setting.speed ?: 1f)
                 updateCurrentPitch(setting.pitch ?: 1f)
                 updateTTSLocale(selectedLocale)
@@ -90,6 +95,20 @@ class BookContentViewModel(
             updateTTSVoice(selectedVoice)
         }
     }
+    fun updateIsAutoScrollPaused(isAutoScrollPaused : Boolean){
+        _ttsUiState.update {currentState->
+            currentState.copy(
+                isAutoScrollPaused = isAutoScrollPaused
+            )
+        }
+    }
+    fun updateIsAutoScroll(isAutoScroll : Boolean){
+        _ttsUiState.update {currentState->
+            currentState.copy(
+                isAutoScroll = isAutoScroll
+            )
+        }
+    }
     fun updateBookSettingKeepScreenOn(screenShallBeKeptOn : Boolean){
         viewModelScope.launch {
             repository.updateBookSettingScreenShallBeKeptOn(0,screenShallBeKeptOn)
@@ -109,18 +128,23 @@ class BookContentViewModel(
             )
         }
     }
-    fun changeMenuTriggerMusic(openTTSMusicMenu : Boolean){
-        _contentUIState.update {currentState->
-            currentState.copy(
-                openTTSMusicMenu = openTTSMusicMenu
-            )
-        }
-    }
     fun changeMenuTriggerVoice(openTTSVoiceMenu : Boolean){
         _contentUIState.update {currentState->
             currentState.copy(
                 openTTSVoiceMenu = openTTSVoiceMenu
             )
+        }
+    }
+    fun changeMenuTriggerAutoScroll(openAutoScrollMenu : Boolean){
+        _contentUIState.update {currentState->
+            currentState.copy(
+                openAutoScrollMenu = openAutoScrollMenu
+            )
+        }
+    }
+    fun updateBookSettingAutoScrollSpeed(autoScrollSpeed: Float){
+        viewModelScope.launch {
+            repository.updateBookSettingAutoScrollSpeed(0,autoScrollSpeed)
         }
     }
     fun updateBookSettingVoice(voice: String){
@@ -356,6 +380,13 @@ class BookContentViewModel(
         _ttsUiState.update { currentState ->
             currentState.copy(
                 currentSpeed = currentSpeed
+            )
+        }
+    }
+    fun updateCurrentAutoScrollSpeed(autoScrollSpeed : Float) {
+        _ttsUiState.update { currentState ->
+            currentState.copy(
+                autoScrollSpeed = autoScrollSpeed
             )
         }
     }
