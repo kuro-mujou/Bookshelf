@@ -39,6 +39,7 @@ import com.capstone.bookshelf.presentation.main.RootState
 
 @Composable
 fun BottomNavigation(
+    modifier: Modifier,
     rootState: RootState,
     onTabSelected: (RootAction) -> Unit
 ) {
@@ -49,7 +50,7 @@ fun BottomNavigation(
         BottomBarTab.Setting,
     )
     Box(
-        modifier = Modifier
+        modifier = modifier
             .padding(vertical = 24.dp, horizontal = 24.dp)
             .fillMaxWidth()
             .height(70.dp)

@@ -50,6 +50,7 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun GlassmorphicBottomNavigation(
+    modifier: Modifier,
     hazeState: HazeState,
     rootState: RootState,
     onTabSelected: (RootAction) -> Unit
@@ -62,7 +63,7 @@ fun GlassmorphicBottomNavigation(
     )
     val style = HazeMaterials.ultraThin(MaterialTheme.colorScheme.background)
     Box(
-        modifier = Modifier
+        modifier = modifier
             .padding(vertical = 24.dp, horizontal = 24.dp)
             .fillMaxWidth()
             .height(70.dp)

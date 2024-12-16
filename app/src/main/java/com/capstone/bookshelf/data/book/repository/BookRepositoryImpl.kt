@@ -2,10 +2,10 @@ package com.capstone.bookshelf.data.book.repository
 
 import com.capstone.bookshelf.data.book.database.dao.BookDao
 import com.capstone.bookshelf.data.book.database.entity.BookEntity
-import com.capstone.bookshelf.data.book.mapper.toBook
-import com.capstone.bookshelf.data.book.mapper.toBookEntity
+import com.capstone.bookshelf.data.mapper.toDataClass
+import com.capstone.bookshelf.data.mapper.toEntity
 import com.capstone.bookshelf.domain.book.BookRepository
-import com.capstone.bookshelf.domain.book.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.Book
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -22,14 +22,14 @@ class BookRepositoryImpl(
         return bookDao
             .readAllBooksSortByFavorite()
             .map { bookEntity->
-                bookEntity.map{it.toBook()}
+                bookEntity.map{it.toDataClass()}
             }
     }
     override fun readAllBooks(): Flow<List<Book>> {
         return bookDao
             .readAllBooks()
             .map { bookEntity->
-                bookEntity.map{it.toBook()}
+                bookEntity.map{it.toDataClass()}
             }
     }
     override suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean) {
@@ -40,7 +40,7 @@ class BookRepositoryImpl(
     }
     override suspend fun deleteBooks(books: List<Book>) {
         val bookEntities = books.map{
-            it.toBookEntity()
+            it.toEntity()
         }
         bookDao.deleteBooks(bookEntities)
     }

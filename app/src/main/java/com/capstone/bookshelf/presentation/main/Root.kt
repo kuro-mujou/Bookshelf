@@ -2,12 +2,12 @@ package com.capstone.bookshelf.presentation.main
 
 import android.annotation.SuppressLint
 import android.os.Build
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.capstone.bookshelf.domain.book.wrapper.Book
+import androidx.compose.ui.Modifier
 import com.capstone.bookshelf.presentation.main.booklist.LibraryAction
 import com.capstone.bookshelf.presentation.main.booklist.LibraryPageRoot
 import com.capstone.bookshelf.presentation.main.booklist.LibraryViewModel
@@ -30,7 +30,6 @@ import org.koin.androidx.compose.koinViewModel
 fun Root(
     rootState: RootState,
     onRootAction: (RootAction) -> Unit,
-    onBookSelectedAction: (Book) -> Unit,
 ) {
     val hazeState = remember { HazeState() }
 
@@ -40,12 +39,13 @@ fun Root(
     val settingViewModel = koinViewModel<SettingViewModel>()
     val localBookListViewModel = koinViewModel<LocalBookListViewModel>()
     val remoteBookListViewModel = koinViewModel<RemoteBookListViewModel>()
+    val modifier = Modifier.navigationBarsPadding().statusBarsPadding()
 
-    val localBookListState by localBookListViewModel.state.collectAsStateWithLifecycle()
     Scaffold(
         bottomBar = {
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
                 GlassmorphicBottomNavigation(
+                    modifier = modifier,
                     hazeState = hazeState,
                     rootState = rootState,
                     onTabSelected = { action ->
@@ -57,6 +57,7 @@ fun Root(
                 )
             } else {
                 BottomNavigation(
+                    modifier = modifier,
                     rootState = rootState,
                     onTabSelected = { action ->
                         onRootAction(action)
@@ -73,26 +74,28 @@ fun Root(
                     HomePageRoot(
                         homePageViewModel = homePageViewModel,
                         hazeState = hazeState,
+                        modifier = modifier
                     )
                 }
                 1 -> {
                     SearchPageRoot(
                         searchPageViewModel = searchPageViewModel,
                         hazeState = hazeState,
+                        modifier = modifier
                     )
                 }
                 2 -> {
                     LibraryPageRoot(
+                        modifier = modifier,
                         libraryViewModel = libraryViewModel,
                         remoteBookListViewModel = remoteBookListViewModel,
                         localBookListViewModel = localBookListViewModel,
-//                        remoteBookListState = remoteBookListState,
-                        localBookListState = localBookListState,
                         hazeState = hazeState,
                         onAction = {action->
                             when(action) {
-                                is LibraryAction.OnBookClick -> onBookSelectedAction(action.book)
+                                is LibraryAction.OnBookClick -> onRootAction(RootAction.OnBookClick(action.book))
                                 is LibraryAction.OnTabSelected -> libraryViewModel.onAction(action)
+                                is LibraryAction.OnViewBookDetailClick -> onRootAction(RootAction.OnViewBookDetailClick(action.book))
                                 else -> Unit
                             }
                         },
@@ -105,6 +108,7 @@ fun Root(
                     SettingPageRoot(
                         settingViewModel = settingViewModel,
                         hazeState = hazeState,
+                        modifier = modifier
                     )
                 }
             }

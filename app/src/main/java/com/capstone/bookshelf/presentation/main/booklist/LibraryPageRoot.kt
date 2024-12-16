@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.capstone.bookshelf.presentation.main.booklist.local.LocalBookList
 import com.capstone.bookshelf.presentation.main.booklist.local.LocalBookListAction
-import com.capstone.bookshelf.presentation.main.booklist.local.LocalBookListState
 import com.capstone.bookshelf.presentation.main.booklist.local.LocalBookListViewModel
 import com.capstone.bookshelf.presentation.main.booklist.remote.RemoteBookList
 import com.capstone.bookshelf.presentation.main.booklist.remote.RemoteBookListViewModel
@@ -32,11 +31,10 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun LibraryPageRoot(
+    modifier: Modifier,
     libraryViewModel: LibraryViewModel = koinViewModel(),
     remoteBookListViewModel: RemoteBookListViewModel,
     localBookListViewModel: LocalBookListViewModel,
-//    remoteBookListState: RemoteBookListState,
-    localBookListState: LocalBookListState,
     hazeState: HazeState,
     onAction: (LibraryAction) -> Unit,
     currentTab: (Int) -> Unit
@@ -48,6 +46,7 @@ fun LibraryPageRoot(
             .haze(state = hazeState),
     ){
         Column(
+            modifier = modifier,
             horizontalAlignment = Alignment.CenterHorizontally
         ){
             TabRow(
@@ -117,9 +116,12 @@ fun LibraryPageRoot(
                     Box{
                         LocalBookList(
                             localBookListViewModel = localBookListViewModel,
-                            localBookListState = localBookListState,
-                            onBookClick = {
-                                onAction(LibraryAction.OnBookClick(it))
+                            onAction={ action->
+                                when(action){
+                                    is LocalBookListAction.OnBookClick -> onAction(LibraryAction.OnBookClick(action.book))
+                                    is LocalBookListAction.OnViewBookDetailClick -> onAction(LibraryAction.OnViewBookDetailClick(action.book))
+                                    else -> Unit
+                                }
                             }
                         )
                     }

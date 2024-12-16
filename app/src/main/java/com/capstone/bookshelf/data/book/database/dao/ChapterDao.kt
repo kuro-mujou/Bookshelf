@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 interface ChapterDao {
     @Transaction
     @Query("SELECT * FROM chapter_content WHERE bookId = :bookId AND tocId = :tocId")
-    suspend fun getChapterContent(bookId: Int,tocId: Int): ChapterContentEntity?
+    suspend fun getChapterContent(bookId: String,tocId: Int): ChapterContentEntity?
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertChapterContent(chapterContent: ChapterContentEntity)

@@ -31,9 +31,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.core.presentation.LoadingAnimation
-import com.capstone.bookshelf.domain.book.wrapper.Book
 import com.capstone.bookshelf.presentation.main.booklist.component.BookMenuBottomSheet
 import com.capstone.bookshelf.presentation.main.booklist.component.BookView
 import com.capstone.bookshelf.presentation.main.component.ImportBookRoot
@@ -44,10 +44,10 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalBookList(
-    localBookListViewModel: LocalBookListViewModel = koinViewModel(),
-    localBookListState: LocalBookListState,
-    onBookClick: (Book) -> Unit,
+    localBookListViewModel: LocalBookListViewModel,
+    onAction: (LocalBookListAction) -> Unit,
 ) {
+    val localBookListState by localBookListViewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
     val listState = rememberLazyStaggeredGridState()
@@ -157,7 +157,7 @@ fun LocalBookList(
                         localBookListState = localBookListState,
                         onItemClick = {
                             if(!localBookListState.isOnDeleteBooks){
-                                onBookClick(it)
+                                onAction(LocalBookListAction.OnBookClick(it))
                             }
                         },
                         onItemLongClick = {
@@ -197,11 +197,10 @@ fun LocalBookList(
             },
             onViewBookDetails = {
                 localBookListViewModel.onAction(LocalBookListAction.OnViewBookDetailClick(book = localBookListState.selectedBook!!))
-                localBookListViewModel.onAction(LocalBookListAction.OnBookLongClick(null,false))
+                onAction(LocalBookListAction.OnViewBookDetailClick(localBookListState.selectedBook!!))
             },
             onDeleteBook = {
                 localBookListViewModel.onAction(LocalBookListAction.OnBookDeleteClick(book = localBookListState.selectedBook!!))
-                localBookListViewModel.onAction(LocalBookListAction.OnBookLongClick(null,false))
             }
         )
     }

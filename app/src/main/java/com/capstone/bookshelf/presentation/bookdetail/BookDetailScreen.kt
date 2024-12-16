@@ -1,192 +1,325 @@
-//@file:OptIn(ExperimentalLayoutApi::class)
-//
 package com.capstone.bookshelf.presentation.bookdetail
-//
-//import androidx.compose.foundation.layout.Arrangement
-//import androidx.compose.foundation.layout.Column
-//import androidx.compose.foundation.layout.ExperimentalLayoutApi
-//import androidx.compose.foundation.layout.FlowRow
-//import androidx.compose.foundation.layout.Row
-//import androidx.compose.foundation.layout.fillMaxSize
-//import androidx.compose.foundation.layout.fillMaxWidth
-//import androidx.compose.foundation.layout.padding
-//import androidx.compose.foundation.layout.widthIn
-//import androidx.compose.foundation.layout.wrapContentSize
-//import androidx.compose.foundation.rememberScrollState
-//import androidx.compose.foundation.verticalScroll
-//import androidx.compose.material.icons.Icons
-//import androidx.compose.material.icons.filled.Star
-//import androidx.compose.material3.CircularProgressIndicator
-//import androidx.compose.material3.Icon
-//import androidx.compose.material3.MaterialTheme
-//import androidx.compose.material3.Text
-//import androidx.compose.runtime.Composable
-//import androidx.compose.runtime.getValue
-//import androidx.compose.ui.Alignment
-//import androidx.compose.ui.Modifier
-//import androidx.compose.ui.graphics.Color
-//import androidx.compose.ui.res.stringResource
-//import androidx.compose.ui.text.style.TextAlign
-//import androidx.compose.ui.unit.dp
-//import androidx.lifecycle.compose.collectAsStateWithLifecycle
-//import com.capstone.bookshelf.R
-//import com.capstone.bookshelf.core.presentation.SandYellow
-//import com.capstone.bookshelf.presentation.bookdetail.component.BlurredImageBackground
-//import com.capstone.bookshelf.presentation.bookdetail.component.BookChip
-//import com.capstone.bookshelf.presentation.bookdetail.component.ChipSize
-//import com.capstone.bookshelf.presentation.bookdetail.component.TitledContent
-//import com.plcoding.bookpedia.book.presentation.book_detail.BookDetailViewModel
-//import kotlin.math.round
-//
-//@Composable
-//fun BookDetailScreenRoot(
-//    viewModel: BookDetailViewModel,
-//    onBackClick: () -> Unit
-//) {
-//    val state by viewModel.state.collectAsStateWithLifecycle()
-//
-//    BookDetailScreen(
-//        state = state,
-//        onAction = { action ->
-//            when(action) {
-//                is BookDetailAction.OnBackClick -> onBackClick()
-//                else -> Unit
-//            }
-//            viewModel.onAction(action)
-//        }
-//    )
-//}
-//
-//@Composable
-//private fun BookDetailScreen(
-//    state: BookDetailState,
-//    onAction: (BookDetailAction) -> Unit
-//) {
-//    BlurredImageBackground(
-//        imageUrl = state.book?.imageUrl,
-//        isFavorite = state.isFavorite,
-//        onFavoriteClick = {
-//            onAction(BookDetailAction.OnFavoriteClick)
-//        },
-//        onBackClick = {
-//            onAction(BookDetailAction.OnBackClick)
-//        },
-//        modifier = Modifier.fillMaxSize()
-//    ) {
-//        if(state.book != null) {
-//            Column(
-//                modifier = Modifier
-//                    .widthIn(max = 700.dp)
-//                    .fillMaxWidth()
-//                    .padding(
-//                        vertical = 16.dp,
-//                        horizontal = 24.dp
-//                    )
-//                    .verticalScroll(rememberScrollState()),
-//                horizontalAlignment = Alignment.CenterHorizontally
-//            ) {
-//                Text(
-//                    text = state.book.title,
-//                    style = MaterialTheme.typography.headlineSmall,
-//                    textAlign = TextAlign.Center
-//                )
-//                Text(
-//                    text = state.book.authors.joinToString(),
-//                    style = MaterialTheme.typography.titleMedium,
-//                    textAlign = TextAlign.Center
-//                )
-//                Row(
-//                    modifier = Modifier
-//                        .padding(vertical = 8.dp),
-//                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-//                ) {
-//                    state.book.averageRating?.let { rating ->
-//                        TitledContent(
-//                            title = stringResource(R.string.rating),
-//                        ) {
-//                            BookChip {
-//                                Text(
-//                                    text = "${round(rating * 10) / 10.0}"
-//                                )
-//                                Icon(
-//                                    imageVector = Icons.Default.Star,
-//                                    contentDescription = null,
-//                                    tint = SandYellow
-//                                )
-//                            }
-//                        }
-//                    }
-//                    state.book.numPages?.let { pageCount ->
-//                        TitledContent(
-//                            title = stringResource(R.string.pages),
-//                        ) {
-//                            BookChip {
-//                                Text(text = pageCount.toString())
-//                            }
-//                        }
-//                    }
-//                }
-//                if(state.book.languages.isNotEmpty()) {
-//                    TitledContent(
-//                        title = stringResource(R.string.languages),
-//                        modifier = Modifier
-//                            .padding(vertical = 8.dp)
-//                    ) {
-//                        FlowRow(
-//                            horizontalArrangement = Arrangement.Center,
-//                            modifier = Modifier.wrapContentSize(Alignment.Center)
-//                        ) {
-//                            state.book.languages.forEach { language ->
-//                                BookChip(
-//                                    size = ChipSize.SMALL,
-//                                    modifier = Modifier.padding(2.dp)
-//                                ) {
-//                                    Text(
-//                                        text = language.uppercase(),
-//                                        style = MaterialTheme.typography.bodyMedium
-//                                    )
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//                Text(
-//                    text = stringResource(R.string.synopsis),
-//                    style = MaterialTheme.typography.titleLarge,
-//                    modifier = Modifier
-//                        .align(Alignment.Start)
-//                        .fillMaxWidth()
-//                        .padding(
-//                            top = 24.dp,
-//                            bottom = 8.dp
-//                        )
-//                )
-//                if(state.isLoading) {
-//                    CircularProgressIndicator()
-////                    Box(
-////                        modifier = Modifier
-////                            .fillMaxWidth()
-////                            .weight(1f),
-////                        contentAlignment = Alignment.Center
-////                    ) {
-////                    }
-//                } else {
-//                    Text(
-//                        text = if(state.book.description.isNullOrBlank()) {
-//                            stringResource(R.string.description_unavailable)
-//                        } else {
-//                            state.book.description
-//                        },
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        textAlign = TextAlign.Justify,
-//                        color = if(state.book.description.isNullOrBlank()) {
-//                            Color.Black.copy(alpha = 0.4f)
-//                        } else Color.Black,
-//                        modifier = Modifier
-//                            .padding(vertical = 8.dp)
-//                    )
-//                }
-//            }
-//        }
-//    }
-//}
+
+import android.graphics.drawable.Drawable
+import android.os.Build
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.palette.graphics.Palette
+import coil.ImageLoader
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import com.capstone.bookshelf.R
+import com.capstone.bookshelf.presentation.bookdetail.component.BookChip
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
+
+@OptIn(ExperimentalHazeMaterialsApi::class)
+@Composable
+fun BookDetailScreenRoot(
+    viewModel: BookDetailViewModel,
+    onBackClick: () -> Unit
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    var vibrantColor by remember { mutableStateOf(Color.Transparent) }
+    val context = LocalContext.current
+    var result by remember { mutableStateOf<Drawable?>(null) }
+    var canvasHeight by remember { mutableFloatStateOf(0f) }
+    val style = HazeMaterials.ultraThin(Color(0xFF181C20))
+    val hazeState = remember { HazeState() }
+    LaunchedEffect(state.book) {
+        val imageUrl =
+            if (state.book?.coverImagePath == "error")
+                R.mipmap.book_cover_not_available
+            else
+                state.book?.coverImagePath
+        val loader = ImageLoader(context)
+        val request = ImageRequest.Builder(context)
+            .data(imageUrl)
+            .allowHardware(false)
+            .build()
+        result = (loader.execute(request) as? SuccessResult)?.drawable
+        result?.toBitmap()?.let { bitmap ->
+            Palette.from(bitmap).generate { palette ->
+                val color = palette?.vibrantSwatch?.rgb
+                if (color != null) {
+                    vibrantColor = Color(color)
+                }
+            }
+        }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+        ){
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(with(LocalDensity.current) { canvasHeight.toDp() + 8.dp })
+                        .align(Alignment.BottomStart)
+                        .blur(30.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                ) {
+                    drawRect(
+                        color = vibrantColor.copy(alpha = 0.5f),
+                    )
+                }
+            }
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .height(with(LocalDensity.current) { canvasHeight.toDp() })
+                .clip(RoundedCornerShape(bottomEnd = 30.dp, bottomStart = 30.dp))
+            ) {
+                AsyncImage(
+                    model = result,
+                    contentDescription = null,
+                    contentScale = ContentScale.FillWidth,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                Modifier
+                                    .haze(state = hazeState)
+                            }
+                            else
+                                Modifier
+                        )
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .clip(RoundedCornerShape(bottomEnd = 30.dp, bottomStart = 30.dp))
+                    .onGloballyPositioned {
+                        canvasHeight = it.size.height.toFloat()
+                    }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(start = 8.dp, end = 8.dp, bottom = 8.dp)
+                        .wrapContentHeight()
+                        .fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        IconButton(
+                            onClick = onBackClick,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.go_back),
+                                tint = Color.White
+                            )
+                        }
+                        IconButton(
+                            onClick = {},
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
+                                contentDescription = null,
+                                tint = if (state.book?.isFavorite == true)
+                                    Color.Green
+                                else
+                                    Color.White,
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(125.dp)
+                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 30.dp, bottomEnd = 8.dp))
+                                .background(Color(0xFF156683).copy(0.5f))
+                        ) {
+                            AsyncImage(
+                                model = result,
+                                contentDescription = null,
+                                contentScale = ContentScale.FillWidth,
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .fillMaxWidth()
+                                    .wrapContentHeight()
+                                    .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 30.dp, bottomEnd = 8.dp))
+                            )
+                        }
+                        Column(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 8.dp, bottomEnd = 30.dp))
+                                .then(
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                        Modifier
+                                            .background(Color.Transparent)
+                                            .hazeChild(
+                                                state = hazeState,
+                                                style = style
+                                            )
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(4.dp),
+                                text = state.book?.title ?: "",
+                                maxLines = 4,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(
+                                    color = Color.White,
+                                    fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                            )
+                            Text(
+                                modifier = Modifier.padding(4.dp),
+                                text = state.book?.authors?.joinToString(",") ?: "",
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(
+                                    color = Color.White,
+                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(
+                text = "Category",
+                style = TextStyle(
+                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    fontWeight = FontWeight.Medium
+                )
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                if(state.book?.categories?.isNotEmpty() == true){
+                    state.book?.categories?.forEach {
+                        BookChip {
+                            Text(text = it)
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "no category available",
+                        style = TextStyle(
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                        )
+                    )
+                }
+            }
+            Text(
+                text = "Description",
+                style = TextStyle(
+                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    fontWeight = FontWeight.Medium
+                )
+            )
+            Text(
+                text = state.book?.description ?: "no description available",
+                style = TextStyle(
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                )
+            )
+        }
+        Button(
+            onClick = {
+
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(end = 16.dp, start = 16.dp, bottom = 16.dp)
+                .height(50.dp)
+        ) {
+            Text(
+                text = "Read Book",
+                style = TextStyle(
+                    color = Color.White,
+                    fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                    fontWeight = FontWeight.Medium
+                )
+            )
+        }
+    }
+}

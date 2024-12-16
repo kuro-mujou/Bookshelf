@@ -1,7 +1,7 @@
 package com.capstone.bookshelf.presentation
 
 import androidx.lifecycle.ViewModel
-import com.capstone.bookshelf.domain.book.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.Book
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 

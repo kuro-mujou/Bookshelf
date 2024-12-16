@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.presentation.main
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +22,6 @@ class RootViewModel :ViewModel() {
                 _state.update {
                     it.copy(selectedTabIndex = action.index)
                 }
-                Log.d("Root", "Root: ${action.index}")
             }
         }
     }

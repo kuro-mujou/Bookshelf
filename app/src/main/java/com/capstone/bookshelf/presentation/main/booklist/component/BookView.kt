@@ -35,7 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
-import com.capstone.bookshelf.domain.book.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.Book
 import com.capstone.bookshelf.presentation.main.booklist.local.LocalBookListState
 
 @OptIn(ExperimentalFoundationApi::class)

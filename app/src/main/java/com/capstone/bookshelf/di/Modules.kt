@@ -19,6 +19,7 @@ import com.capstone.bookshelf.domain.book.ImagePathRepository
 import com.capstone.bookshelf.domain.book.TableOfContentRepository
 import com.capstone.bookshelf.domain.setting.SettingRepository
 import com.capstone.bookshelf.presentation.SelectedBookViewModel
+import com.capstone.bookshelf.presentation.bookdetail.BookDetailViewModel
 import com.capstone.bookshelf.presentation.main.RootViewModel
 import com.capstone.bookshelf.presentation.main.booklist.LibraryViewModel
 import com.capstone.bookshelf.presentation.main.booklist.local.LocalBookListViewModel
@@ -70,4 +71,5 @@ val viewModelModule = module {
     viewModelOf(::HomePageViewModel)
     viewModelOf(::SearchPageViewModel)
     viewModelOf(::SettingViewModel)
+    viewModelOf(::BookDetailViewModel)
 }

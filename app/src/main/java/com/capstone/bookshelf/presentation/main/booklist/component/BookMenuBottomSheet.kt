@@ -59,7 +59,7 @@ fun BookMenuBottomSheet(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = state.selectedBook!!.authors.joinToString(","),
+                text = state.selectedBook.authors.joinToString(","),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 style = TextStyle(

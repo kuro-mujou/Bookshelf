@@ -1,6 +1,6 @@
 package com.capstone.bookshelf.presentation.bookdetail
 
-import com.capstone.bookshelf.domain.book.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.Book
 
 data class BookDetailState(
     val isLoading: Boolean = true,

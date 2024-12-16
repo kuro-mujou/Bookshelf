@@ -54,7 +54,11 @@ class LocalBookListViewModel(
     fun onAction(action: LocalBookListAction) {
         when (action) {
             is LocalBookListAction.OnBookClick -> {
-
+                _state.update {
+                    it.copy(
+                        selectedBook = action.book
+                    )
+                }
             }
             is LocalBookListAction.OnBookLongClick -> {
                 _state.update {
@@ -73,6 +77,11 @@ class LocalBookListViewModel(
                 viewModelScope.launch {
                     bookRepository.deleteBooks(listOf(action.book))
                     processDeleteImages(listOf(action.book.id))
+                    _state.update {
+                        it.copy(
+                            isOpenBottomSheet = false
+                        )
+                    }
                 }
             }
             is LocalBookListAction.OnBookListBookmarkClick -> {
@@ -86,7 +95,12 @@ class LocalBookListViewModel(
                 }
             }
             is LocalBookListAction.OnViewBookDetailClick -> {
-
+                _state.update {
+                    it.copy(
+                        isOpenBottomSheet = false,
+                        selectedBook = action.book
+                    )
+                }
             }
             is LocalBookListAction.OnSaveBook -> {
                 _state.update {

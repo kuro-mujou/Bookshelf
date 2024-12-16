@@ -15,6 +15,7 @@ import org.koin.androidx.compose.koinViewModel
 fun SearchPageRoot(
     searchPageViewModel: SearchPageViewModel = koinViewModel(),
     hazeState: HazeState,
+    modifier: Modifier
 ){
     Surface(
         modifier = Modifier
@@ -22,6 +23,7 @@ fun SearchPageRoot(
             .haze(state = hazeState),
     ){
         Column(
+            modifier = modifier,
             horizontalAlignment = Alignment.CenterHorizontally
         ){
             Text(text = "Search")

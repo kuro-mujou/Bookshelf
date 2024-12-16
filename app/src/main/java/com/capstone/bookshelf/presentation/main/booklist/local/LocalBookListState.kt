@@ -1,7 +1,7 @@
 package com.capstone.bookshelf.presentation.main.booklist.local
 
 import com.capstone.bookshelf.core.presentation.UiText
-import com.capstone.bookshelf.domain.book.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.Book
 
 data class LocalBookListState(
     val isSortedByFavorite: Boolean = false,
