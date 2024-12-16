@@ -9,7 +9,7 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.9.3"
-composeBom = "2024.11.00"
+composeBom = "2024.12.01"
 koinAndroidxNavigation = "4.0.0"
 koinCore = "4.0.0"
 roomRuntime = "2.6.1"
@@ -18,11 +18,11 @@ lottieCompose = "6.6.0"
 gson = "2.11.0"
 navigationCompose = "2.8.0-alpha10"
 coilCompose = "2.7.0"
-roomPaging = "2.7.0-alpha11"
-pagingCompose = "3.3.4"
-pagingRuntimeKtx = "3.3.4"
+roomPaging = "2.7.0-alpha12"
+pagingCompose = "3.3.5"
+pagingRuntimeKtx = "3.3.5"
 kotlinxSerializationJson = "1.7.3"
-lifecycleViewmodelCompose = "2.9.0-alpha07"
+lifecycleViewmodelCompose = "2.9.0-alpha08"
 ktor = "3.0.1"
 hazeMaterials = "1.0.2"
 paletteKtx = "1.0.0"
@@ -43,7 +43,7 @@ androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version = "1.7.5" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version = "1.7.6" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinAndroid" }
