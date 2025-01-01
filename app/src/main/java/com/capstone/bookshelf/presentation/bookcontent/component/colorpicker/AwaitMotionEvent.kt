@@ -33,16 +33,12 @@ suspend fun PointerInputScope.detectMotionEvents(
 ) {
     coroutineScope {
         awaitEachGesture {
-            // Wait for at least one pointer to press down, and set first contact position
             val down: PointerInputChange = awaitFirstDown()
             onDown(down)
 
             var pointer = down
-            // Main pointer is the one that is down initially
             var pointerId = down.id
 
-            // If a move event is followed fast enough down is skipped, especially by Canvas
-            // to prevent it we add delay after first touch
             var waitedAfterDown = false
 
             launch {
@@ -56,16 +52,11 @@ suspend fun PointerInputScope.detectMotionEvents(
 
                 val anyPressed = event.changes.any { it.pressed }
 
-                // There are at least one pointer pressed
                 if (anyPressed) {
-                    // Get pointer that is down, if first pointer is up
-                    // get another and use it if other pointers are also down
-                    // event.changes.first() doesn't return same order
                     val pointerInputChange =
                         event.changes.firstOrNull { it.id == pointerId }
                             ?: event.changes.first()
 
-                    // Next time will check same pointer with this id
                     pointerId = pointerInputChange.id
                     pointer = pointerInputChange
 
@@ -73,7 +64,6 @@ suspend fun PointerInputScope.detectMotionEvents(
                         onMove(pointer)
                     }
                 } else {
-                    // All of the pointers are up
                     onUp(pointer)
                     break
                 }
@@ -110,16 +100,12 @@ suspend fun PointerInputScope.detectMotionEventsAsList(
 
     coroutineScope {
         awaitEachGesture {
-            // Wait for at least one pointer to press down, and set first contact position
             val down: PointerInputChange = awaitFirstDown()
             onDown(down)
 
             var pointer = down
-            // Main pointer is the one that is down initially
             var pointerId = down.id
 
-            // If a move event is followed fast enough down is skipped, especially by Canvas
-            // to prevent it we add delay after first touch
             var waitedAfterDown = false
 
             launch {
@@ -133,16 +119,11 @@ suspend fun PointerInputScope.detectMotionEventsAsList(
 
                 val anyPressed = event.changes.any { it.pressed }
 
-                // There are at least one pointer pressed
                 if (anyPressed) {
-                    // Get pointer that is down, if first pointer is up
-                    // get another and use it if other pointers are also down
-                    // event.changes.first() doesn't return same order
                     val pointerInputChange =
                         event.changes.firstOrNull { it.id == pointerId }
                             ?: event.changes.first()
 
-                    // Next time will check same pointer with this id
                     pointerId = pointerInputChange.id
                     pointer = pointerInputChange
 
@@ -151,7 +132,6 @@ suspend fun PointerInputScope.detectMotionEventsAsList(
                     }
 
                 } else {
-                    // All of the pointers are up
                     onUp(pointer)
                     break
                 }

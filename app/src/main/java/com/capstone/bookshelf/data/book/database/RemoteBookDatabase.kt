@@ -20,7 +20,7 @@ import com.capstone.bookshelf.data.book.database.entity.TableOfContentEntity
         BookSettingEntity::class,
     ],
     exportSchema = false,
-    version = 1
+    version = 2
 )
 @TypeConverters(StringListTypeConverter::class)
 abstract class RemoteBookDatabase : RoomDatabase() {

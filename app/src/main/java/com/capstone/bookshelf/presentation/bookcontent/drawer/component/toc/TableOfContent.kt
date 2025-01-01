@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
@@ -22,6 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalFocusManager
@@ -31,6 +32,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 
@@ -39,6 +41,7 @@ fun TableOfContents(
     drawerContainerState : DrawerContainerState,
     contentState : ContentState,
     drawerLazyColumnState: LazyListState,
+    colorPaletteState: ColorPalette,
     onDrawerItemClick: (Int) -> Unit,
 ) {
     var searchInput by remember { mutableStateOf("") }
@@ -46,6 +49,7 @@ fun TableOfContents(
     var flag by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(flag) {
         if(flag){
@@ -64,7 +68,7 @@ fun TableOfContents(
     }
     ModalDrawerSheet(
         drawerShape = RectangleShape,
-        drawerContainerColor = MaterialTheme.colorScheme.background,
+        drawerContainerColor = colorPaletteState.backgroundColor,
     ) {
         OutlinedTextField(
             value = searchInput,
@@ -87,10 +91,11 @@ fun TableOfContents(
                         else
                             drawerContainerState.tableOfContents.size-1
                         flag = true
+                        focusManager.clearFocus()
                     }
                 }
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
         )
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -127,10 +132,10 @@ fun TableOfContents(
                     },
                     modifier = Modifier.wrapContentHeight(),
                     colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                        selectedContainerColor = Color.Transparent,
                         unselectedContainerColor = Color.Transparent,
-                        selectedTextColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        unselectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                        selectedTextColor = colorPaletteState.tocTextColor,
+                        unselectedTextColor = colorPaletteState.tocTextColor.copy(alpha = 0.6f),
                     )
                 )
             }

@@ -26,6 +26,7 @@ lifecycleViewmodelCompose = "2.9.0-alpha08"
 ktor = "3.0.1"
 hazeMaterials = "1.0.2"
 paletteKtx = "1.0.0"
+datastorePreferences = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -75,6 +76,7 @@ ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-conte
 
 haze-materials = { group = "dev.chrisbanes.haze", name = "haze-materials", version.ref = "hazeMaterials" }
 androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version.ref = "paletteKtx" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

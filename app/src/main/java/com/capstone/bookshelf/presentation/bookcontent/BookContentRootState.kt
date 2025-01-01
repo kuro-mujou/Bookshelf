@@ -7,13 +7,9 @@ data class BookContentRootState (
     val enableScaffoldBar : Boolean = true,
     val enablePagerScroll : Boolean = true,
 
-    val currentBookIndex : Int = 0,
-    val currentParagraphIndex: Int = 0,
-    val currentChapterContent : List<String>? = null,
-    val isSelectedParagraph: Boolean = false,
-    val commentButtonClicked: Boolean = false,
-
-
-    val readingContent : List<String> = emptyList(),
-    val autoScrollSpeed : Float? = null,
+//    val currentBookIndex : Int = 0,
+//    val currentParagraphIndex: Int = 0,
+//    val currentChapterContent : List<String>? = null,
+//    val isSelectedParagraph: Boolean = false,
+//    val commentButtonClicked: Boolean = false,
 )

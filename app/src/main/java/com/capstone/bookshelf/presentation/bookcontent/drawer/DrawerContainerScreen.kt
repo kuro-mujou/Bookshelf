@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.domain.wrapper.Book
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContents
 
@@ -44,6 +45,7 @@ fun DrawerScreen(
     contentState: ContentState,
     drawerState: DrawerState,
     drawerLazyColumnState: LazyListState,
+    colorPaletteState: ColorPalette,
     book: Book?,
     onDrawerItemClick: (Int) -> Unit,
     content: @Composable () -> Unit
@@ -70,7 +72,7 @@ fun DrawerScreen(
                     .statusBarsPadding()
                     .fillMaxHeight()
                     .width(300.dp)
-                    .background(MaterialTheme.colorScheme.background),
+                    .background(colorPaletteState.backgroundColor),
             ){
                 Row(
                     modifier = Modifier
@@ -123,7 +125,9 @@ fun DrawerScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .wrapContentHeight(),
-                        selectedTabIndex = selectedTabIndex
+                        selectedTabIndex = selectedTabIndex,
+                        containerColor = colorPaletteState.backgroundColor,
+                        contentColor = colorPaletteState.textColor,
                     ) {
                         tabItems.forEachIndexed { index, item ->
                             Tab(
@@ -143,6 +147,7 @@ fun DrawerScreen(
                                 drawerContainerState = drawerContainerState,
                                 contentState = contentState,
                                 drawerLazyColumnState = drawerLazyColumnState,
+                                colorPaletteState = colorPaletteState,
                                 onDrawerItemClick = {contentPageIndex->
                                     onDrawerItemClick(contentPageIndex)
                                 },

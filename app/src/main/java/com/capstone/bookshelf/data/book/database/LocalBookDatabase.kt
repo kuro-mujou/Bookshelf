@@ -23,7 +23,7 @@ import com.capstone.bookshelf.data.book.database.entity.TableOfContentEntity
         ImagePathEntity::class
     ],
     exportSchema = false,
-    version = 2
+    version = 3
 )
 @TypeConverters(StringListTypeConverter::class)
 abstract class LocalBookDatabase : RoomDatabase() {

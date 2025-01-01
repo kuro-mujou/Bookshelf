@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,12 +19,14 @@ import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.AutoScrollMenuDialog
 
 @Composable
 fun BottomBarAutoScroll(
     bottomBarState: BottomBarState,
     autoScrollState: AutoScrollState,
+    colorPaletteState: ColorPalette,
     onPreviousChapterIconClick: () -> Unit,
     onPlayPauseIconClick: () -> Unit,
     onNextChapterIconClick: () -> Unit,
@@ -45,7 +46,7 @@ fun BottomBarAutoScroll(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+            .background(colorPaletteState.backgroundColor),
         horizontalAlignment = Alignment.CenterHorizontally,
 
     ) {
@@ -64,6 +65,7 @@ fun BottomBarAutoScroll(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[0]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "previous chapter"
                 )
             }
@@ -77,12 +79,14 @@ fun BottomBarAutoScroll(
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[1]),
+                        tint = colorPaletteState.textColor,
                         contentDescription = "play/pause"
                     )
                 }else{
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[2]),
+                        tint = colorPaletteState.textColor,
                         contentDescription = "play/pause"
                     )
                 }
@@ -96,6 +100,7 @@ fun BottomBarAutoScroll(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[3]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "next chapter"
                 )
             }
@@ -116,6 +121,7 @@ fun BottomBarAutoScroll(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[4]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "stop"
                 )
             }
@@ -128,6 +134,7 @@ fun BottomBarAutoScroll(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[4]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "setting"
                 )
             }
@@ -136,6 +143,7 @@ fun BottomBarAutoScroll(
         if(bottomBarState.openAutoScrollMenu){
             AutoScrollMenuDialog(
                 autoScrollState = autoScrollState,
+                colorPaletteState = colorPaletteState,
                 onDismissRequest = {
 //                    viewModel.changeMenuTriggerAutoScroll(false)
                     onDismissDialogRequest()

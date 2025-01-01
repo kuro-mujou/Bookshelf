@@ -31,4 +31,10 @@ interface BookSettingDao {
 
     @Query("UPDATE bookContentSetting SET autoScrollSpeed = :autoScrollSpeed WHERE settingId = :settingId")
     suspend fun updateBookSettingAutoScrollSpeed(settingId: Int, autoScrollSpeed: Float)
+
+    @Query("UPDATE bookContentSetting SET backgroundColor = :backgroundColor WHERE settingId = :settingId")
+    suspend fun updateBookSettingBackgroundColor(settingId: Int, backgroundColor: Int)
+
+    @Query("UPDATE bookContentSetting SET textColor = :textColor WHERE settingId = :settingId")
+    suspend fun updateBookSettingTextColor(settingId: Int, textColor: Int)
 }

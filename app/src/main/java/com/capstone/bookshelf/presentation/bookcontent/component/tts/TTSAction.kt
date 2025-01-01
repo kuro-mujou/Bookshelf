@@ -12,4 +12,5 @@ sealed interface TTSAction {
     data class UpdateTTSSpeed(val currentSpeed: Float) : TTSAction
     data class UpdateTTSPitch(val currentPitch: Float) : TTSAction
     data class UpdateCurrentChapterContent(val strings: List<String>?): TTSAction
+    data class UpdateCurrentReadingParagraph(val pos: Int): TTSAction
 }

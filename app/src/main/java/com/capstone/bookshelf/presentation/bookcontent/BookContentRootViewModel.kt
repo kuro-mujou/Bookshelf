@@ -4,37 +4,14 @@ package com.capstone.bookshelf.presentation.bookcontent
 //import android.speech.tts.Voice
 //import androidx.compose.runtime.MutableState
 //import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.toRoute
-import com.capstone.bookshelf.app.Route
-import com.capstone.bookshelf.domain.book.BookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-//import androidx.lifecycle.viewModelScope
-//import com.capstone.bookshelf.data.book.database.entity.BookEntity
-//import com.capstone.bookshelf.data.book.database.entity.BookSettingEntity
-//import com.capstone.bookshelf.data.book.database.entity.ChapterContentEntity
-//import com.capstone.bookshelf.data.book.database.entity.TableOfContentEntity
-//import com.capstone.bookshelf.data.book.repository.BookRepositoryImpl
-//import com.capstone.bookshelf.presentation.bookcontent.state.ContentUIState
-//import com.capstone.bookshelf.presentation.bookcontent.state.TTSState
-//import kotlinx.coroutines.flow.MutableStateFlow
-//import kotlinx.coroutines.flow.StateFlow
-//import kotlinx.coroutines.flow.asStateFlow
-//import kotlinx.coroutines.flow.update
-//import kotlinx.coroutines.launch
-//import java.util.Locale
-//
-class BookContentRootViewModel(
-    private val repository: BookRepository,
-    private val savedStateHandle: SavedStateHandle
-) : ViewModel() {
-    private val bookId = savedStateHandle.toRoute<Route.BookDetail>().bookId
+class BookContentRootViewModel() : ViewModel() {
     private val _state = MutableStateFlow(BookContentRootState())
     val state = _state
         .stateIn(
@@ -45,7 +22,7 @@ class BookContentRootViewModel(
 
     fun onAction(action: BookContentRootAction) {
         when(action) {
-            is BookContentRootAction.SelectedBookRoot -> {
+            is BookContentRootAction.SelectedBook -> {
                 _state.update { it.copy(
                     book = action.book
                 ) }
@@ -54,41 +31,6 @@ class BookContentRootViewModel(
     }
 }
 //
-
-//
-//    private val _book: MutableState<BookEntity> = mutableStateOf(
-//        BookEntity(
-//        title = "",
-//        coverImagePath = "",
-//        totalChapter = 0
-//    )
-//    )
-//    val book: State<BookEntity> = _book
-//
-
-//
-//    private val _contentUIState = MutableStateFlow(ContentUIState())
-//    val contentUIState : StateFlow<ContentUIState> = _contentUIState.asStateFlow()
-//
-//    private val _ttsUiState = MutableStateFlow(TTSState())
-//    val ttsUiState : StateFlow<TTSState> = _ttsUiState.asStateFlow()
-//
-//
-
-//
-//    fun fixNullVoice(textToSpeech: TextToSpeech){
-//        viewModelScope.launch {
-//            var selectedVoice = textToSpeech.voices.find {
-//                it.locale == _ttsUiState.value.currentLanguage
-//            }
-//            if (selectedVoice == null) {
-//                selectedVoice = textToSpeech.voices.firstOrNull {
-//                    it.locale == _ttsUiState.value.currentLanguage
-//                } ?: textToSpeech.defaultVoice
-//            }
-//            updateTTSVoice(selectedVoice)
-//        }
-//    }
 //    fun updateIsAutoScrollPaused(isAutoScrollPaused : Boolean){
 //        _ttsUiState.update {currentState->
 //            currentState.copy(

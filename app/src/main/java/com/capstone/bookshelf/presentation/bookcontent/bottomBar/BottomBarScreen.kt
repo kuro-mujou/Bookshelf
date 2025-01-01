@@ -15,12 +15,15 @@ import com.capstone.bookshelf.presentation.bookcontent.bottomBar.component.Botto
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
+import com.capstone.bookshelf.util.DataStoreManger
 
 @Composable
 fun BottomBarManager(
@@ -28,15 +31,18 @@ fun BottomBarManager(
     bottomBarViewModel: BottomBarViewModel,
     autoScrollViewModel: AutoScrollViewModel,
     ttsViewModel: TTSViewModel,
+    colorPaletteViewModel: ColorPaletteViewModel,
     bottomBarState : BottomBarState,
     ttsState: TTSState,
     autoScrollState: AutoScrollState,
     drawerContainerState: DrawerContainerState,
+    dataStore : DataStoreManger,
+    colorPaletteState: ColorPalette,
+    textToSpeech: TextToSpeech,
+    context: Context,
 //    scope: CoroutineScope,
 //    chapterContents: SnapshotStateMap<Int,List<String>>,
 //    currentLazyColumnState: LazyListState?,
-    textToSpeech: TextToSpeech,
-    context: Context,
 //    textMeasurer: TextMeasurer,
 //    textStyle: TextStyle,
 //    updateVariable: (Boolean,Boolean,Int,Int,Int,Boolean,Int) -> Unit
@@ -59,6 +65,7 @@ fun BottomBarManager(
     ) {
         BottomBarDefault(
             drawerContainerState = drawerContainerState,
+            colorPaletteState = colorPaletteState,
             onThemeIconClick = {
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(true))
@@ -87,6 +94,7 @@ fun BottomBarManager(
         BottomBarAutoScroll(
             bottomBarState = bottomBarState,
             autoScrollState = autoScrollState,
+            colorPaletteState = colorPaletteState,
             onPreviousChapterIconClick = {
 
             },
@@ -117,8 +125,12 @@ fun BottomBarManager(
         BottomBarSetting(
             bottomBarState = bottomBarState,
             ttsState = ttsState,
+            colorPaletteState = colorPaletteState,
             textToSpeech = textToSpeech,
-            context = context
+            context = context,
+            onSwitchChange = {
+                bottomBarViewModel.onAction(BottomBarAction.UpdateKeepScreenOn(it))
+            }
         )
     }
     AnimatedVisibility(
@@ -129,6 +141,7 @@ fun BottomBarManager(
         BottomBarTTS(
             bottomBarState = bottomBarState,
             ttsState = ttsState,
+            colorPaletteState = colorPaletteState,
             textToSpeech = textToSpeech,
             onPreviousChapterIconClick = {
 
@@ -164,7 +177,10 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarTheme(
+            colorPaletteViewModel = colorPaletteViewModel,
             bottomBarState = bottomBarState,
+            dataStore = dataStore,
+            colorPaletteState = colorPaletteState
         )
     }
 //

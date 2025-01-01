@@ -4,11 +4,7 @@ package com.capstone.bookshelf.presentation.bookcontent
 import android.annotation.SuppressLint
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -28,6 +24,7 @@ import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarManager
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.rememberTextToSpeech
@@ -40,12 +37,15 @@ import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerScreen
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBar
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
+import com.capstone.bookshelf.util.DataStoreManger
 import org.koin.androidx.compose.koinViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun BookContentScreenRoot(
     viewModel: BookContentRootViewModel,
+    colorPaletteViewModel : ColorPaletteViewModel,
+    dataStore : DataStoreManger,
     onBackClick: () -> Unit
 ){
     val bottomBarViewModel = koinViewModel<BottomBarViewModel>()
@@ -62,7 +62,7 @@ fun BookContentScreenRoot(
     val ttsState by ttsViewModel.state.collectAsStateWithLifecycle()
     val contentState by contentViewModel.state.collectAsStateWithLifecycle()
     val drawerContainerState by drawerContainerViewModel.state.collectAsStateWithLifecycle()
-
+    val colorPaletteState by colorPaletteViewModel.colorPalette.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -83,11 +83,14 @@ fun BookContentScreenRoot(
         background = Color(0x80e2e873),
         lineBreak = LineBreak.Paragraph,
     )
+    LaunchedEffect(Unit){
+    }
     DrawerScreen(
         drawerContainerState = drawerContainerState,
         contentState = contentState,
         drawerState = drawerState,
         drawerLazyColumnState = drawerLazyColumnState,
+        colorPaletteState = colorPaletteState,
         book = bookContentRootState.book,
         onDrawerItemClick ={
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
@@ -146,25 +149,10 @@ fun BookContentScreenRoot(
             }
         }
         Scaffold(
-            floatingActionButton = {
-                if(bookContentRootState.isSelectedParagraph){
-                    FloatingActionButton(
-                        onClick = {
-                            //                    viewModel.updateCommentButtonClicked(true)
-                            //                    Log.d("test","FloatingActionButton")
-                        },
-                        content = {
-                            Icon(
-                                imageVector = Icons.Default.Create,
-                                contentDescription = "Comment"
-                            )
-                        }
-                    )
-                }
-            },
             topBar = {
                 TopBar(
                     topBarState = topBarState.visibility,
+                    colorPaletteState = colorPaletteState,
                     onMenuIconClick ={
                         drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(true))
                         topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
@@ -184,10 +172,13 @@ fun BookContentScreenRoot(
                     bottomBarViewModel = bottomBarViewModel,
                     autoScrollViewModel = autoScrollViewModel,
                     ttsViewModel = ttsViewModel,
+                    colorPaletteViewModel = colorPaletteViewModel,
                     bottomBarState = bottomBarState,
                     ttsState = ttsState,
                     autoScrollState = autoScrollState,
                     drawerContainerState = drawerContainerState,
+                    colorPaletteState = colorPaletteState,
+                    dataStore = dataStore,
                     textToSpeech = textToSpeech,
                     context =  context
                 )
@@ -201,6 +192,7 @@ fun BookContentScreenRoot(
                     drawerContainerState = drawerContainerState,
                     contentState = contentState,
                     ttsState = ttsState,
+                    colorPaletteState = colorPaletteState,
                     textStyle = textStyle,
                     updateSystemBar = {
                         topBarViewModel.onAction(TopBarAction.UpdateVisibility(!topBarState.visibility))
@@ -208,7 +200,7 @@ fun BookContentScreenRoot(
                     },
                     currentChapter = { index,pos ->
                         contentViewModel.onAction(ContentAction.UpdateCurrentChapterIndex(index))
-//                        bookContentViewModel.updateCurrentReadingParagraph(pos)
+                        ttsViewModel.onAction(TTSAction.UpdateCurrentReadingParagraph(pos))
                     }
                 )
             }

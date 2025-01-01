@@ -18,7 +18,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -39,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
 import kotlin.math.roundToInt
 
@@ -47,6 +47,7 @@ import kotlin.math.roundToInt
 fun VoiceMenuDialog(
     bottomBarState: BottomBarState,
     ttsState: TTSState,
+    colorPaletteState: ColorPalette,
     textToSpeech: TextToSpeech,
     onDismiss: () -> Unit,
     testVoiceButtonClicked: () -> Unit
@@ -86,7 +87,8 @@ fun VoiceMenuDialog(
                     text = "Voice Setting",
                     style = TextStyle(
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = colorPaletteState.textColor
                     )
                 )
                 HorizontalDivider(thickness = 2.dp)
@@ -102,7 +104,12 @@ fun VoiceMenuDialog(
                             .width(100.dp),
                         contentAlignment = Alignment.CenterStart,
                         content = {
-                            Text(text = "Language")
+                            Text(
+                                text = "Language",
+                                style = TextStyle(
+                                    color = colorPaletteState.textColor
+                                )
+                            )
                         }
                     )
                     ExposedDropdownMenuBox(
@@ -155,7 +162,12 @@ fun VoiceMenuDialog(
                             .width(100.dp),
                         contentAlignment = Alignment.CenterStart,
                         content = {
-                            Text(text = "Voice")
+                            Text(
+                                text = "Voice",
+                                style = TextStyle(
+                                    color = colorPaletteState.textColor
+                                )
+                            )
                         }
                     )
                     ExposedDropdownMenuBox(
@@ -185,8 +197,18 @@ fun VoiceMenuDialog(
                                 DropdownMenuItem(
                                     text = {
                                         Column {
-                                            Text(text = "Quality: " + voice.quality.toString())
-                                            Text(text = voice.name)
+                                            Text(
+                                                text = "Quality: " + voice.quality.toString(),
+                                                style = TextStyle(
+                                                    color = colorPaletteState.textColor
+                                                )
+                                            )
+                                            Text(
+                                                text = voice.name,
+                                                style = TextStyle(
+                                                    color = colorPaletteState.textColor
+                                                )
+                                            )
                                         }
                                     },
                                     onClick = {
@@ -203,8 +225,18 @@ fun VoiceMenuDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
-                    Text(text = "Speed")
-                    Text(text = "%.2fx".format(speedSliderValue))
+                    Text(
+                        text = "Speed",
+                        style = TextStyle(
+                            color = colorPaletteState.textColor
+                        )
+                    )
+                    Text(
+                        text = "%.2fx".format(speedSliderValue),
+                        style = TextStyle(
+                            color = colorPaletteState.textColor
+                        )
+                    )
 
                 }
                 Slider(
@@ -222,7 +254,7 @@ fun VoiceMenuDialog(
                             modifier = Modifier
                                 .size(24.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = colorPaletteState.backgroundColor,
                                     shape = CircleShape
                                 )
                         )
@@ -233,8 +265,18 @@ fun VoiceMenuDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
-                    Text(text = "Pitch")
-                    Text(text = "%.2fx".format(pitchSliderValue))
+                    Text(
+                        text = "Pitch",
+                        style = TextStyle(
+                            color = colorPaletteState.textColor
+                        )
+                    )
+                    Text(
+                        text = "%.2fx".format(pitchSliderValue),
+                        style = TextStyle(
+                            color = colorPaletteState.textColor
+                        )
+                    )
                 }
                 Slider(
                     modifier = Modifier.fillMaxWidth(),
@@ -251,7 +293,7 @@ fun VoiceMenuDialog(
                             modifier = Modifier
                                 .size(24.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = colorPaletteState.backgroundColor,
                                     shape = CircleShape
                                 )
                         )
@@ -264,7 +306,12 @@ fun VoiceMenuDialog(
                             testVoiceButtonClicked()
                         }
                     ) {
-                        Text(text = "Test Voice")
+                        Text(
+                            text = "Test Voice",
+                            style = TextStyle(
+                                color = colorPaletteState.textColor
+                            )
+                        )
                     }
                 }
             }

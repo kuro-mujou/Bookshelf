@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import kotlin.math.roundToInt
 
 
@@ -37,6 +37,7 @@ import kotlin.math.roundToInt
 @Composable
 fun AutoScrollMenuDialog(
     autoScrollState: AutoScrollState,
+    colorPaletteState: ColorPalette,
     onDismissRequest: () -> Unit,
 ){
     Dialog(
@@ -63,7 +64,8 @@ fun AutoScrollMenuDialog(
                     text = "Auto Scroll Setting",
                     style = TextStyle(
                         fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = colorPaletteState.textColor
                     )
                 )
                 HorizontalDivider(thickness = 2.dp)
@@ -72,8 +74,18 @@ fun AutoScrollMenuDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
-                    Text(text = "Speed")
-                    Text(text = "%.2fx".format(speedSliderValue))
+                    Text(
+                        text = "Speed",
+                        style = TextStyle(
+                            color = colorPaletteState.textColor
+                        )
+                    )
+                    Text(
+                        text = "%.2fx".format(speedSliderValue),
+                        style = TextStyle(
+                            color = colorPaletteState.textColor
+                        )
+                    )
                 }
                 Slider(
                     modifier = Modifier.fillMaxWidth(),
@@ -91,7 +103,7 @@ fun AutoScrollMenuDialog(
                             modifier = Modifier
                                 .size(24.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = colorPaletteState.textColor,
                                     shape = CircleShape
                                 )
                         )

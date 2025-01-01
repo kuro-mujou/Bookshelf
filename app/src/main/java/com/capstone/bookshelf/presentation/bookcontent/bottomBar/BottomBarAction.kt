@@ -8,5 +8,5 @@ sealed interface BottomBarAction {
     data class UpdateBottomBarSettingState(val setting : Boolean) : BottomBarAction
     data class UpdateBottomBarTTSState(val tts : Boolean) : BottomBarAction
     data class UpdateBottomBarThemeState(val theme : Boolean) : BottomBarAction
-
+    data class UpdateKeepScreenOn(val keepScreenOn : Boolean) : BottomBarAction
 }

@@ -11,4 +11,6 @@ interface BookSettingRepository {
     suspend fun updateBookSettingPitch(settingId: Int, pitch: Float)
     suspend fun updateBookSettingScreenShallBeKeptOn(settingId: Int, screenShallBeKeptOn: Boolean)
     suspend fun updateBookSettingAutoScrollSpeed(settingId: Int, autoScrollSpeed: Float)
+    suspend fun updateBookSettingBackgroundColor(settingId: Int, backgroundColor: Int)
+    suspend fun updateBookSettingTextColor(settingId: Int, textColor: Int)
 }

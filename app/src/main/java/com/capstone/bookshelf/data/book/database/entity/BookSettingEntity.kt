@@ -12,4 +12,6 @@ data class BookSettingEntity(
     val ttsLocale: String? = null,
     val ttsVoice: String? = null,
     val autoScrollSpeed: Float? = null,
+    val backgroundColor: Int? = null,
+    val textColor: Int? = null,
 )

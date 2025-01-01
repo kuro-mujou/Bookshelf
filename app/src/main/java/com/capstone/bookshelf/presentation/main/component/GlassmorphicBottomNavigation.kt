@@ -71,7 +71,7 @@ fun GlassmorphicBottomNavigation(
             .hazeChild(
                 state = hazeState,
                 style = style
-            ) ,
+            ),
         contentAlignment = Alignment.Center
     ) {
         BottomBarTabs(

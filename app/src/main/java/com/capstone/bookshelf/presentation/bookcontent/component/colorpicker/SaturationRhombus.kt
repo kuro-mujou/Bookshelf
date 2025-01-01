@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.presentation.bookcontent.component.colorpicker
 
-import android.content.res.Configuration
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
@@ -17,12 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.capstone.bookshelf.theme.BookShelfTheme
 import kotlin.math.roundToInt
 
 // FIXME Figure how to create HSL gradient instead of drawing each point which has long loading time
@@ -109,12 +105,6 @@ fun SaturationRhombus(
                     val end = range.endInclusive + selectorRadius
 
                     isTouched = posX in start..end
-
-                    println("🔥 onDown()\n" +
-                            " posX: $posX, posY: $posY\n" +
-                            "range: $range\n" +
-                            "start: $start, end: $end, isTouched: $isTouched")
-
                     if (isTouched) {
 
                         val posXInPercent = (posX / length).coerceIn(0f, 1f)
@@ -275,17 +265,6 @@ fun getPointsInRhombus(length: Float): MutableList<ColorPoint> {
     return colorPints
 }
 
-/**
- * Rhombus path as below with equal length and width
- * ```
- *      / \
- *     /   \
- *    /     \
- *    \     /
- *     \   /
- *      \ /
- * ```
- */
 fun rhombusPath(size: Size) = Path().apply {
     moveTo(size.width / 2f, 0f)
     lineTo(size.width, size.height / 2f)
@@ -301,27 +280,3 @@ val rhombusShape = GenericShape { size: Size, _: LayoutDirection ->
 }
 
 data class ColorPoint(val point: Offset, val saturation: Float, val lightness: Float)
-
-@Preview
-@Preview("dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Preview(device = Devices.PIXEL_C)
-@Composable
-private fun SaturationRhombusPreview() {
-    BookShelfTheme {
-
-        val hue by remember { mutableStateOf(0f) }
-        var saturation by remember { mutableStateOf(0.5f) }
-        var lightness by remember { mutableStateOf(0.5f) }
-
-        SaturationRhombus(
-            modifier = Modifier.size(200.dp),
-            hue = hue,
-            saturation = saturation,
-            lightness = lightness
-        ) { s, l ->
-            println("CHANGING sat: $s, lightness: $l")
-            saturation = s
-            lightness = l
-        }
-    }
-}

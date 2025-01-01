@@ -13,13 +13,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.VoiceMenuDialog
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
 
@@ -27,6 +27,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
 fun BottomBarTTS(
     bottomBarState: BottomBarState,
     ttsState: TTSState,
+    colorPaletteState: ColorPalette,
     textToSpeech: TextToSpeech,
     onPreviousChapterIconClick: () -> Unit,
     onPreviousParagraphIconClick: () -> Unit,
@@ -51,7 +52,7 @@ fun BottomBarTTS(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+            .background(colorPaletteState.backgroundColor),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -66,6 +67,7 @@ fun BottomBarTTS(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[0]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "previous chapter"
                 )
             }
@@ -78,6 +80,7 @@ fun BottomBarTTS(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[1]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "previous paragraph"
                 )
             }
@@ -97,6 +100,7 @@ fun BottomBarTTS(
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[2]),
+                        tint = colorPaletteState.textColor,
                         contentDescription = "play/pause"
                     )
                 }
@@ -110,6 +114,7 @@ fun BottomBarTTS(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[4]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "next paragraph"
                 )
             }
@@ -122,6 +127,7 @@ fun BottomBarTTS(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[5]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "next chapter"
                 )
             }
@@ -142,6 +148,7 @@ fun BottomBarTTS(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[6]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "timer"
                 )
             }
@@ -154,6 +161,7 @@ fun BottomBarTTS(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[7]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "stop tts"
                 )
             }
@@ -166,6 +174,7 @@ fun BottomBarTTS(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[7]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "tts setting"
                 )
             }
@@ -177,6 +186,7 @@ fun BottomBarTTS(
         VoiceMenuDialog(
             bottomBarState = bottomBarState,
             ttsState = ttsState,
+            colorPaletteState = colorPaletteState,
             textToSpeech = textToSpeech,
             onDismiss = {
 

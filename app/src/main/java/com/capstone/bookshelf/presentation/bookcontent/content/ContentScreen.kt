@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.domain.wrapper.Chapter
 import com.capstone.bookshelf.presentation.bookcontent.BookContentRootState
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
@@ -62,6 +63,7 @@ fun ContentScreen(
     drawerContainerState: DrawerContainerState,
     contentState : ContentState,
     ttsState : TTSState,
+    colorPaletteState: ColorPalette,
     textStyle: TextStyle,
     updateSystemBar: () -> Unit,
     currentChapter : (Int,Int) -> Unit
@@ -70,7 +72,6 @@ fun ContentScreen(
     val chapterContents = remember { mutableStateMapOf<Int, List<String>>() }
     var triggerLoadChapter by remember { mutableStateOf(false) }
     var callbackLoadChapter by remember { mutableStateOf(false) }
-
 
     var currentLazyColumnState by remember { mutableStateOf<LazyListState?>(null) }
 //    val currentReadingItemIndex by rememberUpdatedState(newValue = contentState.firstVisibleItemIndex)
@@ -90,6 +91,7 @@ fun ContentScreen(
                 else
                     Modifier
             ),
+        color = colorPaletteState.backgroundColor
     ) {
         LaunchedEffect(pagerState.currentPage) {
             val currentPage = pagerState.currentPage
@@ -125,7 +127,7 @@ fun ContentScreen(
             val lazyListState = lazyListStates.getOrPut(newPage) { LazyListState() }
             val chapterContent by contentViewModel.chapterContent
             var data by remember { mutableStateOf<Chapter?>(null) }
-            val contentList = remember { mutableStateOf(listOf<@Composable (Int, Boolean, Boolean) -> Unit>())}
+            val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean,ColorPalette) -> Unit>())}
             val density = LocalDensity.current
             LaunchedEffect(key1 = Unit) {
                 snapshotFlow {
@@ -257,15 +259,17 @@ fun ContentScreen(
                 ) {
                     drawerContainerState.currentTOC?.title?.let {
                         Text(
-                            modifier = Modifier.width(with(density) { contentState.screenWidth.toDp() - 100.dp }),
+                            modifier = Modifier.weight(1f),
                             text = it,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
                     Text(
-                        modifier = Modifier.width(100.dp),
+                        modifier = Modifier.wrapContentWidth(),
                         text = "${pagerState.currentPage + 1} / ${drawerContainerState.tableOfContents.size}",
-                        textAlign = TextAlign.End,
+                        style = TextStyle(
+                            textAlign = TextAlign.Right
+                        ),
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -278,7 +282,7 @@ fun ContentScreen(
                         items = contentList.value,
                         key = { index, _ -> index }
                     ) { index, composable ->
-                        composable(index, index == ttsState.currentReadingParagraph, ttsState.isFocused)
+                        composable(index == ttsState.currentReadingParagraph, ttsState.isFocused,colorPaletteState)
                     }
                 }
             }
@@ -289,10 +293,8 @@ fun ContentScreen(
 private fun parseListToUsableLists(
     textStyle: TextStyle,
     paragraphs: List<String>,
-//    uiState: ContentUIState,
-//    viewModel: viewModel
-): Pair<List<@Composable (Int, Boolean, Boolean) -> Unit>,List<String>> {
-    val composable = mutableListOf<@Composable (Int, Boolean,Boolean) -> Unit>()
+): Pair<List<@Composable (Boolean, Boolean, ColorPalette) -> Unit>,List<String>> {
+    val composable = mutableListOf<@Composable (Boolean,Boolean,ColorPalette) -> Unit>()
     val ttsParagraph = mutableListOf<String>()
     paragraphs.forEach {
         val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
@@ -301,7 +303,7 @@ private fun parseListToUsableLists(
         val htmlTagPattern = Regex(pattern = """<[^>]+>""")
         if(it.isNotEmpty()){
             if(linkPattern.containsMatchIn(it)) {
-                composable.add{ _, _, _ ->
+                composable.add{ _, _,_ ->
                     ImageComponent(
                         content = ImageContent(
                             content = it
@@ -311,11 +313,9 @@ private fun parseListToUsableLists(
                 ttsParagraph.add(linkPattern.replace(it, replacement = " "))
             }else if(headerPatten.containsMatchIn(it)) {
                 if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
-                    composable.add {index, isHighlighted, isSpeaking ->
+                    composable.add {isHighlighted, isSpeaking, colorPaletteState ->
                         HeaderText(
-                            index = index,
-//                            uiState = uiState,
-//                            viewModel = viewModel,
+                            colorPaletteState = colorPaletteState,
                             content = HeaderContent(
                                 content = htmlTagPattern.replace(it, replacement = "")
                             ),
@@ -329,11 +329,9 @@ private fun parseListToUsableLists(
                 }
             } else{
                 if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
-                    composable.add {index, isHighlighted,isSpeaking ->
+                    composable.add { isHighlighted,isSpeaking, colorPaletteState->
                         ParagraphText(
-                            index = index,
-//                            uiState = uiState,
-//                            viewModel = viewModel,
+                            colorPaletteState = colorPaletteState,
                             content = ParagraphContent(
                                 content = it
                             ),

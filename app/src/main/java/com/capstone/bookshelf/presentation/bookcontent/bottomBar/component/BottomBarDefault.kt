@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,12 +22,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 
 
 @Composable
 fun BottomBarDefault(
     drawerContainerState: DrawerContainerState,
+    colorPaletteState: ColorPalette,
     onThemeIconClick: () -> Unit,
     onTTSIconClick: () -> Unit,
     onAutoScrollIconClick: () -> Unit,
@@ -44,7 +45,7 @@ fun BottomBarDefault(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+            .background(colorPaletteState.backgroundColor),
         horizontalAlignment = Alignment.CenterHorizontally,
 
     ) {
@@ -63,8 +64,7 @@ fun BottomBarDefault(
             modifier = Modifier
                 .navigationBarsPadding()
                 .fillMaxWidth()
-                .wrapContentHeight()
-                .background(MaterialTheme.colorScheme.surfaceContainer),
+                .wrapContentHeight(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             IconButton(
@@ -76,6 +76,7 @@ fun BottomBarDefault(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[0]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "theme"
                 )
             }
@@ -88,6 +89,7 @@ fun BottomBarDefault(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[1]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "start tts"
                 )
             }
@@ -101,6 +103,7 @@ fun BottomBarDefault(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[2]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "auto scroll"
                 )
             }
@@ -114,6 +117,7 @@ fun BottomBarDefault(
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[3]),
+                    tint = colorPaletteState.textColor,
                     contentDescription = "setting"
                 )
             }

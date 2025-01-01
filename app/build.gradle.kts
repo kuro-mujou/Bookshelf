@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    //data store
+    implementation(libs.androidx.datastore.preferences)
     // Koin for Jetpack Compose
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)

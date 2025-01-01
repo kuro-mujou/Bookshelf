@@ -31,4 +31,10 @@ class BookSettingRepositoryImpl(
     override suspend fun updateBookSettingAutoScrollSpeed(settingId: Int, autoScrollSpeed: Float){
         bookSettingDao.updateBookSettingAutoScrollSpeed(settingId, autoScrollSpeed)
     }
+    override suspend fun updateBookSettingBackgroundColor(settingId: Int, backgroundColor: Int){
+        bookSettingDao.updateBookSettingBackgroundColor(settingId, backgroundColor)
+    }
+    override suspend fun updateBookSettingTextColor(settingId: Int, textColor: Int){
+        bookSettingDao.updateBookSettingTextColor(settingId, textColor)
+    }
 }
