@@ -102,7 +102,7 @@ fun DrawerScreen(
                         book?.title?.let {
                             Text(
                                 text = it,
-                                color = MaterialTheme.colorScheme.onBackground,
+                                color = colorPaletteState.textColor,
                                 fontSize = MaterialTheme.typography.titleMedium.fontSize,
                                 fontWeight = FontWeight.Medium
                             )
@@ -110,7 +110,7 @@ fun DrawerScreen(
                         book?.authors?.joinToString(",")?.let {
                             Text(
                                 text = it,
-                                color = MaterialTheme.colorScheme.onBackground,
+                                color = colorPaletteState.textColor,
                                 fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                 fontWeight = FontWeight.Normal
                             )

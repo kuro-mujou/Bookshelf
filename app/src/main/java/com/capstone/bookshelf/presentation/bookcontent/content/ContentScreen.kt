@@ -262,12 +262,16 @@ fun ContentScreen(
                             modifier = Modifier.weight(1f),
                             text = it,
                             overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(
+                                color = colorPaletteState.textColor,
+                            )
                         )
                     }
                     Text(
                         modifier = Modifier.wrapContentWidth(),
                         text = "${pagerState.currentPage + 1} / ${drawerContainerState.tableOfContents.size}",
                         style = TextStyle(
+                            color = colorPaletteState.textColor,
                             textAlign = TextAlign.Right
                         ),
                         overflow = TextOverflow.Ellipsis,

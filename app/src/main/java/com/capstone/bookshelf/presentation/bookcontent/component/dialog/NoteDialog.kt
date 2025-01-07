@@ -56,7 +56,12 @@ fun NoteDialog(
                         onDismiss()
                     }
                 ) {
-                    Text(text = "Close")
+                    Text(
+                        text = "Close",
+                        style = TextStyle(
+                            color = colorPaletteState.textColor
+                        )
+                    )
                 }
             }
         }

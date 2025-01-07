@@ -94,7 +94,8 @@ fun BottomBarTTS(
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[3]),
-                        contentDescription = "play/pause"
+                        contentDescription = "play/pause",
+                        tint = colorPaletteState.textColor
                     )
                 }else{
                     Icon(

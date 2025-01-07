@@ -12,6 +12,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -95,7 +96,11 @@ fun TableOfContents(
                     }
                 }
             ),
-            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
+            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedBorderColor = colorPaletteState.textColor,
+                unfocusedLabelColor = colorPaletteState.textColor
+            )
         )
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -135,7 +140,7 @@ fun TableOfContents(
                         selectedContainerColor = Color.Transparent,
                         unselectedContainerColor = Color.Transparent,
                         selectedTextColor = colorPaletteState.tocTextColor,
-                        unselectedTextColor = colorPaletteState.tocTextColor.copy(alpha = 0.6f),
+                        unselectedTextColor = colorPaletteState.tocTextColor.copy(alpha = 0.5f),
                     )
                 )
             }

@@ -142,6 +142,7 @@ fun SetupNavGraph(navController: NavHostController) {
                     }
                     colorPaletteViewModel.updateBackgroundColor(Color(dataStore.backgroundColor.first()))
                     colorPaletteViewModel.updateTextColor(Color(dataStore.textColor.first()))
+                    colorPaletteViewModel.updateSelectedColorSet(dataStore.selectedColorSet.first())
                     yield()
                     isLoading = false
                 }

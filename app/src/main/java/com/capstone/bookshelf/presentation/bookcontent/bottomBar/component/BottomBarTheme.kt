@@ -30,7 +30,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -51,19 +50,17 @@ import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.Col
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPicker
 import com.capstone.bookshelf.util.DataStoreManger
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
 fun BottomBarTheme(
     colorPaletteViewModel: ColorPaletteViewModel,
-    bottomBarState : BottomBarState,
+    bottomBarState: BottomBarState,
     dataStore: DataStoreManger,
-    colorPaletteState: ColorPalette,
+    colorPaletteState: ColorPalette
 ) {
     var openColorPickerForBackground by remember { mutableStateOf(false) }
     var openColorPickerForText by remember { mutableStateOf(false) }
-    var selectedColorSet by remember { mutableIntStateOf(0) }
     var openChangeColorMenu by remember { mutableStateOf(false) }
     var fontSize by remember { mutableIntStateOf(16) }
     val scope = rememberCoroutineScope()
@@ -74,7 +71,7 @@ fun BottomBarTheme(
             },
             onColorSelected = {
                 colorPaletteViewModel.updateBackgroundColor(it)
-                selectedColorSet = 18
+                colorPaletteViewModel.updateSelectedColorSet(18)
                 scope.launch {
                     dataStore.setSelectedColorSet(18)
                     dataStore.setBackgroundColor(it.toArgb())
@@ -90,7 +87,7 @@ fun BottomBarTheme(
             },
             onColorSelected = {
                 colorPaletteViewModel.updateTextColor(it)
-                selectedColorSet = 18
+                colorPaletteViewModel.updateSelectedColorSet(18)
                 scope.launch {
                     dataStore.setSelectedColorSet(18)
                     dataStore.setTextColor(it.toArgb())
@@ -98,9 +95,6 @@ fun BottomBarTheme(
                 openColorPickerForText = false
             }
         )
-    }
-    LaunchedEffect(Unit){
-        selectedColorSet = dataStore.selectedColorSet.first()
     }
     Column(
         modifier = Modifier
@@ -170,16 +164,16 @@ fun BottomBarTheme(
                 ) {index, sample->
                     SampleColorItem(
                         colorSample = sample,
-                        selected = selectedColorSet == index,
+                        selected = colorPaletteState.selectedColorSet == index,
                         onClick = {
                             scope.launch {
                                 dataStore.setSelectedColorSet(index)
                                 dataStore.setTextColor(sample.colorTxt.toArgb())
                                 dataStore.setBackgroundColor(sample.colorBg.toArgb())
-                                selectedColorSet = index
                             }
                             colorPaletteViewModel.updateTextColor(sample.colorTxt)
                             colorPaletteViewModel.updateBackgroundColor(sample.colorBg)
+                            colorPaletteViewModel.updateSelectedColorSet(index)
                         }
                     )
                 }
@@ -218,7 +212,8 @@ fun BottomBarTheme(
             ) {
                 OutlinedIconButton(
                     onClick = {
-
+                        if(fontSize >= 16)
+                        fontSize -= 4
                     },
                     modifier = Modifier
                         .size(30.dp),
@@ -234,12 +229,13 @@ fun BottomBarTheme(
                     )
                 }
                 Text(
-                    text = "Font Size",
+                    text = "${fontSize}px",
                     style = TextStyle(color = colorPaletteState.textColor)
                 )
                 OutlinedIconButton(
                     onClick = {
-
+                        if(fontSize <= 44)
+                            fontSize += 4
                     },
                     modifier = Modifier
                         .size(30.dp),

@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,7 +56,10 @@ fun BottomBarDefault(
                 modifier = Modifier.padding(start = 10.dp, end = 10.dp),
                 text = it.title,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
+                style = TextStyle(
+                    color = colorPaletteState.textColor,
+                    textAlign = TextAlign.Center,
+                ),
                 maxLines = 1,
             )
         }

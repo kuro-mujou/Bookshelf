@@ -79,7 +79,7 @@ fun BookContentScreenRoot(
     val textStyle = TextStyle(
         textIndent = TextIndent(firstLine = 40.sp),
         textAlign = TextAlign.Left,
-        fontSize = 24.sp,
+        fontSize = 20.sp,
         background = Color(0x80e2e873),
         lineBreak = LineBreak.Paragraph,
     )

@@ -13,14 +13,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,7 +44,6 @@ import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
 import kotlin.math.roundToInt
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceMenuDialog(
@@ -129,7 +131,11 @@ fun VoiceMenuDialog(
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryEditable, true)
+                                .menuAnchor(MenuAnchorType.PrimaryEditable, true),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = colorPaletteState.textColor,
+                                unfocusedLabelColor = colorPaletteState.textColor
+                            )
                         )
                         ExposedDropdownMenu(
                             expanded = languageMenuExpanded,
@@ -145,6 +151,14 @@ fun VoiceMenuDialog(
                                         languageMenuExpanded = false
 //                                        viewModel.updateTTSVoice(null)
                                     },
+                                    colors = MenuItemColors(
+                                        textColor = colorPaletteState.textColor,
+                                        leadingIconColor = colorPaletteState.textColor,
+                                        trailingIconColor = colorPaletteState.textColor,
+                                        disabledTextColor = colorPaletteState.textColor.copy(alpha = 0.5f),
+                                        disabledLeadingIconColor = colorPaletteState.textColor.copy(alpha = 0.5f),
+                                        disabledTrailingIconColor = colorPaletteState.textColor.copy(alpha = 0.5f),
+                                    )
                                 )
                             }
                         }
@@ -187,7 +201,11 @@ fun VoiceMenuDialog(
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryEditable, true)
+                                .menuAnchor(MenuAnchorType.PrimaryEditable, true),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = colorPaletteState.textColor,
+                                unfocusedLabelColor = colorPaletteState.textColor
+                            )
                         )
                         ExposedDropdownMenu(
                             expanded = voiceMenuExpanded,
@@ -304,7 +322,13 @@ fun VoiceMenuDialog(
                     OutlinedButton(
                         onClick = {
                             testVoiceButtonClicked()
-                        }
+                        },
+                        colors = ButtonColors(
+                            containerColor = colorPaletteState.backgroundColor,
+                            contentColor = colorPaletteState.textColor,
+                            disabledContainerColor = colorPaletteState.backgroundColor,
+                            disabledContentColor = colorPaletteState.textColor.copy(alpha = 0.5f)
+                        )
                     ) {
                         Text(
                             text = "Test Voice",

@@ -44,7 +44,8 @@ fun TopBar(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = "Back",
+                    tint = colorPaletteState.textColor
                 )
             }
             IconButton(
@@ -56,7 +57,8 @@ fun TopBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu"
+                    contentDescription = "Menu",
+                    tint = colorPaletteState.textColor
                 )
             }
         }
