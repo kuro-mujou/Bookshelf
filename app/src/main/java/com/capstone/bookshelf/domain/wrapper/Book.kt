@@ -8,8 +8,9 @@ data class Book(
     val categories: List<String>,
     val description: String?,
     val totalChapter: Int,
-    val currentChapter: Int = 1,
+    val currentChapter: Int = 0,
     val isFavorite: Boolean = false,
+    val storagePath: String?,
     val ratingsAverage: Double?,
     val ratingsCount: Int?,
 )

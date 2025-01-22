@@ -20,10 +20,6 @@ class BookDetailViewModel(
 
     private val _state = MutableStateFlow(BookDetailState())
     val state = _state
-//        .onStart {
-//            fetchBookDescription()
-//            observeFavoriteStatus()
-//        }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000L),

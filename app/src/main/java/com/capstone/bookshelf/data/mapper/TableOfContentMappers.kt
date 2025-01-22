@@ -1,6 +1,6 @@
 package com.capstone.bookshelf.data.mapper
 
-import com.capstone.bookshelf.data.book.database.entity.TableOfContentEntity
+import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
 import com.capstone.bookshelf.domain.wrapper.TableOfContent
 
 fun TableOfContent.toEntity(): TableOfContentEntity {

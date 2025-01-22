@@ -5,8 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,9 +27,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,15 +46,21 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
+import com.capstone.bookshelf.util.DataStoreManager
 import kotlin.math.roundToInt
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceMenuDialog(
+    ttsViewModel: TTSViewModel,
     bottomBarState: BottomBarState,
     ttsState: TTSState,
     colorPaletteState: ColorPalette,
     textToSpeech: TextToSpeech,
+    dataStoreManager: DataStoreManager,
     onDismiss: () -> Unit,
     testVoiceButtonClicked: () -> Unit
 ){
@@ -65,14 +75,21 @@ fun VoiceMenuDialog(
     val filteredVoices = voices.filter { it.locale == ttsState.currentLanguage }
     Dialog(
         onDismissRequest = {
-//            if(state.currentVoice == null){
-//                viewModel.fixNullVoice(textToSpeech)
-//            }
+            if(ttsState.currentVoice == null){
+                ttsViewModel.fixNullVoice(dataStoreManager,textToSpeech)
+            }
 //            viewModel.changeMenuTriggerVoice(false)
             onDismiss()
         }
     ) {
+        LaunchedEffect (ttsState.currentSpeed){
+            speedSliderValue = ttsState.currentSpeed?:1f
+        }
+        LaunchedEffect (ttsState.currentPitch){
+            pitchSliderValue = ttsState.currentPitch?:1f
+        }
         Surface(
+            color = colorPaletteState.backgroundColor,
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
@@ -133,13 +150,19 @@ fun VoiceMenuDialog(
                                 .fillMaxWidth()
                                 .menuAnchor(MenuAnchorType.PrimaryEditable, true),
                             colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = colorPaletteState.textColor,
+                                unfocusedTextColor = colorPaletteState.textColor,
+                                focusedTrailingIconColor = colorPaletteState.textColor,
+                                unfocusedTrailingIconColor = colorPaletteState.textColor,
+                                focusedBorderColor = colorPaletteState.textColor,
                                 unfocusedBorderColor = colorPaletteState.textColor,
-                                unfocusedLabelColor = colorPaletteState.textColor
                             )
                         )
                         ExposedDropdownMenu(
+                            modifier = Modifier.height(IntrinsicSize.Min),
                             expanded = languageMenuExpanded,
-                            onDismissRequest = { languageMenuExpanded = false }
+                            onDismissRequest = { languageMenuExpanded = false },
+                            containerColor = colorPaletteState.backgroundColor,
                         ) {
                             locales.forEach { locale ->
                                 DropdownMenuItem(
@@ -147,9 +170,9 @@ fun VoiceMenuDialog(
                                         Text(text = locale.displayName)
                                     },
                                     onClick = {
-//                                        viewModel.updateTTSLocale(locale)
+                                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSLanguage(locale))
                                         languageMenuExpanded = false
-//                                        viewModel.updateTTSVoice(null)
+                                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSVoice(null))
                                     },
                                     colors = MenuItemColors(
                                         textColor = colorPaletteState.textColor,
@@ -203,13 +226,19 @@ fun VoiceMenuDialog(
                                 .fillMaxWidth()
                                 .menuAnchor(MenuAnchorType.PrimaryEditable, true),
                             colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = colorPaletteState.textColor,
+                                unfocusedTextColor = colorPaletteState.textColor,
+                                focusedTrailingIconColor = colorPaletteState.textColor,
+                                unfocusedTrailingIconColor = colorPaletteState.textColor,
+                                focusedBorderColor = colorPaletteState.textColor,
                                 unfocusedBorderColor = colorPaletteState.textColor,
-                                unfocusedLabelColor = colorPaletteState.textColor
                             )
                         )
                         ExposedDropdownMenu(
+                            modifier = Modifier.height(IntrinsicSize.Min),
                             expanded = voiceMenuExpanded,
-                            onDismissRequest = { voiceMenuExpanded = false }
+                            onDismissRequest = { voiceMenuExpanded = false },
+                            containerColor = colorPaletteState.backgroundColor,
                         ) {
                             filteredVoices.forEach{voice ->
                                 DropdownMenuItem(
@@ -230,7 +259,7 @@ fun VoiceMenuDialog(
                                         }
                                     },
                                     onClick = {
-//                                        viewModel.updateTTSVoice(voice)
+                                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSVoice(voice))
                                         voiceMenuExpanded = false
                                     },
                                 )
@@ -264,15 +293,19 @@ fun VoiceMenuDialog(
                         speedSliderValue = (value * 100).roundToInt() / 100f
                     },
                     onValueChangeFinished = {
-//                        viewModel.updateCurrentSpeed(speedSliderValue)
+                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSSpeed(speedSliderValue))
                     },
+                    colors = SliderDefaults.colors(
+                        activeTrackColor = colorPaletteState.textColor,
+                        inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f)
+                    ),
                     valueRange = 0.5f..2.5f,
                     thumb = {
                         Box(
                             modifier = Modifier
                                 .size(24.dp)
                                 .background(
-                                    color = colorPaletteState.backgroundColor,
+                                    color = colorPaletteState.textColor,
                                     shape = CircleShape
                                 )
                         )
@@ -303,15 +336,19 @@ fun VoiceMenuDialog(
                         pitchSliderValue = (value * 100).roundToInt() / 100f
                     },
                     onValueChangeFinished = {
-//                        viewModel.updateCurrentPitch(pitchSliderValue)
+                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSPitch(pitchSliderValue))
                     },
+                    colors = SliderDefaults.colors(
+                        activeTrackColor = colorPaletteState.textColor,
+                        inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f)
+                    ),
                     valueRange = 0.5f..1.5f,
                     thumb = {
                         Box(
                             modifier = Modifier
                                 .size(24.dp)
                                 .background(
-                                    color = colorPaletteState.backgroundColor,
+                                    color = colorPaletteState.textColor,
                                     shape = CircleShape
                                 )
                         )

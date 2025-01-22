@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -25,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
@@ -67,83 +65,84 @@ fun TableOfContents(
             focusManager.clearFocus()
         }
     }
-    ModalDrawerSheet(
-        drawerShape = RectangleShape,
-        drawerContainerColor = colorPaletteState.backgroundColor,
-    ) {
-        OutlinedTextField(
-            value = searchInput,
-            onValueChange = { newValue ->
-                if (newValue.all { it.isDigit() }) {
-                    searchInput = newValue
-                }
-            },
-            label = { Text("Enter a chapter number") },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    val chapterIndex = searchInput.toIntOrNull()
-                    if (chapterIndex != null) {
-                        targetDatabaseIndex = if(chapterIndex < drawerContainerState.tableOfContents.size)
-                            chapterIndex
-                        else
-                            drawerContainerState.tableOfContents.size-1
-                        flag = true
-                        focusManager.clearFocus()
-                    }
-                }
-            ),
-            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = colorPaletteState.textColor,
-                unfocusedLabelColor = colorPaletteState.textColor
-            )
-        )
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            state = drawerLazyColumnState,
-        ) {
-            items(
-                items = drawerContainerState.tableOfContents
-            ) { tocItem ->
-                NavigationDrawerItem(
-                    label = {
-                        Text(
-                            text = tocItem.title,
-                            style =
-                                if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetDatabaseIndex) {
-                                    TextStyle(
-                                        color = Color.Green,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                } else if(drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex){
-                                    TextStyle(
-                                        fontStyle = FontStyle.Italic,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                } else{
-                                    TextStyle(
-
-                                    )
-                                }
-                        )
-                    },
-                    selected = drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex,
-                    onClick = {
-                        onDrawerItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
-                    },
-                    modifier = Modifier.wrapContentHeight(),
-                    colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor = Color.Transparent,
-                        unselectedContainerColor = Color.Transparent,
-                        selectedTextColor = colorPaletteState.tocTextColor,
-                        unselectedTextColor = colorPaletteState.tocTextColor.copy(alpha = 0.5f),
-                    )
-                )
+    OutlinedTextField(
+        value = searchInput,
+        onValueChange = { newValue ->
+            if (newValue.all { it.isDigit() }) {
+                searchInput = newValue
             }
+        },
+        textStyle = TextStyle(
+            color = colorPaletteState.textColor
+        ),
+        label = { Text("Enter a chapter number") },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Number,
+            imeAction = ImeAction.Done
+        ),
+        keyboardActions = KeyboardActions(
+            onDone = {
+                val chapterIndex = searchInput.toIntOrNull()
+                if (chapterIndex != null) {
+                    targetDatabaseIndex = if(chapterIndex < drawerContainerState.tableOfContents.size)
+                        chapterIndex
+                    else
+                        drawerContainerState.tableOfContents.size-1
+                    flag = true
+                    focusManager.clearFocus()
+                }
+            }
+        ),
+        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = colorPaletteState.textColor,
+            unfocusedLabelColor = colorPaletteState.textColor,
+            focusedBorderColor = colorPaletteState.textColor,
+            focusedLabelColor = colorPaletteState.textColor,
+            cursorColor = colorPaletteState.textColor,
+        )
+    )
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        state = drawerLazyColumnState,
+    ) {
+        items(
+            items = drawerContainerState.tableOfContents
+        ) { tocItem ->
+            NavigationDrawerItem(
+                label = {
+                    Text(
+                        text = tocItem.title,
+                        style =
+                            if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetDatabaseIndex) {
+                                TextStyle(
+                                    color = Color.Green,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            } else if(drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex){
+                                TextStyle(
+                                    fontStyle = FontStyle.Italic,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            } else{
+                                TextStyle(
+
+                                )
+                            }
+                    )
+                },
+                selected = drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex,
+                onClick = {
+                    onDrawerItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
+                },
+                modifier = Modifier.wrapContentHeight(),
+                colors = NavigationDrawerItemDefaults.colors(
+                    selectedContainerColor = Color.Transparent,
+                    unselectedContainerColor = Color.Transparent,
+                    selectedTextColor = colorPaletteState.tocTextColor,
+                    unselectedTextColor = colorPaletteState.tocTextColor.copy(alpha = 0.5f),
+                )
+            )
         }
     }
 }

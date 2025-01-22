@@ -17,9 +17,19 @@ class AutoScrollViewModel : ViewModel() {
 
     fun onAction(action: AutoScrollAction){
         when(action) {
-            is AutoScrollAction.UpdateIsAutoScroll -> {
+            is AutoScrollAction.UpdateIsStart -> {
                 _state.value = _state.value.copy(
-                    isAutoScroll = action.isAutoScroll
+                    isStart = action.isAutoScroll
+                )
+            }
+            is AutoScrollAction.UpdateAutoScrollSpeed -> {
+                _state.value = _state.value.copy(
+                    currentSpeed = action.autoScrollSpeed
+                )
+            }
+            is AutoScrollAction.UpdateIsPaused -> {
+                _state.value = _state.value.copy(
+                    isPaused = action.isPaused
                 )
             }
         }

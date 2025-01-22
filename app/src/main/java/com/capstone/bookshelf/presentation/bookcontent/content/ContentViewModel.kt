@@ -8,13 +8,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.capstone.bookshelf.app.Route
+import com.capstone.bookshelf.domain.book.BookRepository
 import com.capstone.bookshelf.domain.book.ChapterRepository
 import com.capstone.bookshelf.domain.wrapper.Chapter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class ContentViewModel(
+    private val bookRepository: BookRepository,
     private val chapterRepository: ChapterRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -85,9 +88,31 @@ class ContentViewModel(
                     screenWidth = action.value
                 )
             }
+
+            is ContentAction.UpdateTotalChapter -> {
+                _state.value = _state.value.copy(
+                    totalChapter = action.value
+                )
+            }
+
+            is ContentAction.UpdatePreviousChapterIndex -> {
+                _state.value = _state.value.copy(
+                    previousChapterIndex = action.index
+                )
+            }
+
+            is ContentAction.UpdateChapterIndexForBook -> {
+                viewModelScope.launch {
+                    bookRepository.saveBookInfo(bookId, action.index)
+                }
+            }
         }
     }
     suspend fun getChapter(page: Int) {
         _chapterContent.value = chapterRepository.getChapterContent(bookId, page)
+    }
+
+    suspend fun getChapterIndex() : Int {
+        return bookRepository.getBookById(bookId).currentChapter
     }
 }

@@ -8,6 +8,7 @@ import com.capstone.bookshelf.app.Route
 import com.capstone.bookshelf.domain.book.TableOfContentRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -54,7 +55,7 @@ class DrawerContainerViewModel(
         viewModelScope.launch {
             tableOfContentRepository
                 .getTableOfContents(bookId)
-                .collect{ tableOfContents ->
+                .collectLatest{ tableOfContents ->
                     _state.update { it.copy(
                         tableOfContents = tableOfContents
                     ) }

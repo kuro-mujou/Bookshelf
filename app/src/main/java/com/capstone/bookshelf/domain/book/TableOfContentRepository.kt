@@ -1,6 +1,6 @@
 package com.capstone.bookshelf.domain.book
 
-import com.capstone.bookshelf.data.book.database.entity.TableOfContentEntity
+import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
 import com.capstone.bookshelf.domain.wrapper.TableOfContent
 import kotlinx.coroutines.flow.Flow
 

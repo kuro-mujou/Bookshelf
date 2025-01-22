@@ -18,7 +18,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -28,7 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
+import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import kotlin.math.roundToInt
 
@@ -37,16 +39,16 @@ import kotlin.math.roundToInt
 @Composable
 fun AutoScrollMenuDialog(
     autoScrollState: AutoScrollState,
+    autoScrollViewModel: AutoScrollViewModel,
     colorPaletteState: ColorPalette,
     onDismissRequest: () -> Unit,
 ){
     Dialog(
         onDismissRequest = {
-//            viewModel.changeMenuTriggerAutoScroll(false)
             onDismissRequest()
         }
     ) {
-        var speedSliderValue by remember { mutableFloatStateOf(autoScrollState.currentSpeed) }
+        var speedSliderValue by remember { mutableIntStateOf(autoScrollState.currentSpeed) }
         Surface(
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
@@ -81,7 +83,7 @@ fun AutoScrollMenuDialog(
                         )
                     )
                     Text(
-                        text = "%.2fx".format(speedSliderValue),
+                        text = "%.2fx".format(speedSliderValue/10000f),
                         style = TextStyle(
                             color = colorPaletteState.textColor
                         )
@@ -89,15 +91,15 @@ fun AutoScrollMenuDialog(
                 }
                 Slider(
                     modifier = Modifier.fillMaxWidth(),
-                    value = speedSliderValue,
+                    value = speedSliderValue/10000f,
                     onValueChange = { value ->
-                        speedSliderValue = (value * 100).roundToInt() / 100f
+                        speedSliderValue = (value * 10000).roundToInt()
                     },
-                    onValueChangeFinished ={
-//                        viewModel.updateCurrentSpeed(speedSliderValue)
+                    onValueChangeFinished = {
+                        autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(speedSliderValue))
                     },
-                    valueRange = 0.5f..2.5f,
-                    steps = 3,
+                    valueRange = 0.5f..1.5f,
+                    steps = 5,
                     thumb = {
                         Box(
                             modifier = Modifier

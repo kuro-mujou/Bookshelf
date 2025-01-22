@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar.component
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,11 +20,18 @@ import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
+import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.AutoScrollMenuDialog
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.hazeChild
 
 @Composable
 fun BottomBarAutoScroll(
+    hazeState: HazeState,
+    style: HazeStyle,
+    autoScrollViewModel : AutoScrollViewModel,
     bottomBarState: BottomBarState,
     autoScrollState: AutoScrollState,
     colorPaletteState: ColorPalette,
@@ -46,7 +54,16 @@ fun BottomBarAutoScroll(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(colorPaletteState.backgroundColor),
+            .then(
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                    Modifier.hazeChild(
+                        state = hazeState,
+                        style = style
+                    )
+                }else{
+                    Modifier.background(colorPaletteState.containerColor)
+                }
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
 
     ) {
@@ -75,7 +92,7 @@ fun BottomBarAutoScroll(
                     onPlayPauseIconClick()
                 }
             ) {
-                if(autoScrollState.isAutoScroll) {
+                if(autoScrollState.isPaused) {
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[1]),
@@ -143,9 +160,9 @@ fun BottomBarAutoScroll(
         if(bottomBarState.openAutoScrollMenu){
             AutoScrollMenuDialog(
                 autoScrollState = autoScrollState,
+                autoScrollViewModel = autoScrollViewModel,
                 colorPaletteState = colorPaletteState,
                 onDismissRequest = {
-//                    viewModel.changeMenuTriggerAutoScroll(false)
                     onDismissDialogRequest()
                 }
             )

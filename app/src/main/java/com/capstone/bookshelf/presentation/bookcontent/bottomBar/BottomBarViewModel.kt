@@ -53,6 +53,24 @@ class BottomBarViewModel : ViewModel(){
                     screenShallBeKeptOn = action.keepScreenOn
                 ) }
             }
+
+            is BottomBarAction.OpenVoiceMenuSetting -> {
+                _state.update { it.copy(
+                    openTTSVoiceMenu = action.open
+                ) }
+            }
+
+            is BottomBarAction.OpenSetting -> {
+                _state.update { it.copy(
+                    openSetting = action.open
+                ) }
+            }
+
+            is BottomBarAction.OpenAutoScrollMenu -> {
+                _state.update { it.copy(
+                    openAutoScrollMenu = action.open
+                ) }
+            }
         }
     }
 }

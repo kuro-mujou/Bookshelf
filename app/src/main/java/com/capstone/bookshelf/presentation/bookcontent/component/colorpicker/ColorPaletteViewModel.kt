@@ -9,8 +9,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlin.math.abs
 
-class ColorPaletteViewModel(
-) : ViewModel() {
+class ColorPaletteViewModel : ViewModel() {
 
     private val _colorPalette = MutableStateFlow(ColorPalette())
     val colorPalette = _colorPalette
@@ -25,7 +24,17 @@ class ColorPaletteViewModel(
             backgroundColor = it,
             tocTextColor = generateTOCTextColor(it),
             textBackgroundColor = generateTextSelectionColor(it, _colorPalette.value.textColor),
+            containerColor = generateContainerColor(it)
         )
+    }
+
+    private fun generateContainerColor(backgroundColor: Color): Color {
+        val bgV = backgroundColor.toHsv().third
+        return if (bgV <= 0.5) {
+            generateLightenColor(backgroundColor)
+        }else{
+            generateDarkenColor(backgroundColor)
+        }
     }
 
     fun updateTextColor(it: Color) {
@@ -77,20 +86,20 @@ class ColorPaletteViewModel(
         return tocTextColor
     }
 
-    private fun generateDarkenColor(backgroundColor: Color, ratio: Float): Color {
-        val r = backgroundColor.red * (1 - ratio)
-        val g = backgroundColor.green * (1 - ratio)
-        val b = backgroundColor.blue * (1 - ratio)
+    private fun generateDarkenColor(backgroundColor: Color): Color {
+        val r = backgroundColor.red * (1 - 0.1f)
+        val g = backgroundColor.green * (1 - 0.1f)
+        val b = backgroundColor.blue * (1 - 0.1f)
         return Color(r, g, b)
     }
 
-    private fun generateLightenColor(backgroundColor: Color, ratio: Float): Color {
-        val r = backgroundColor.red
-        val g = backgroundColor.green
-        val b = backgroundColor.blue
-        val r1 = ((100 - ratio) * r + ratio * 255) / 100
-        val g1 = ((100 - ratio) * g + ratio * 255) / 100
-        val b1 = ((100 - ratio) * b + ratio * 255) / 100
-        return Color(r1, g1, b1)
+    private fun generateLightenColor(backgroundColor: Color): Color {
+        val r = backgroundColor.red * 255
+        val g = backgroundColor.green * 255
+        val b = backgroundColor.blue * 255
+        val r1 = ((100 - 5) * r + 5 * 255) / 100
+        val g1 = ((100 - 5) * g + 5 * 255) / 100
+        val b1 = ((100 - 5) * b + 5 * 255) / 100
+        return Color(r1/255, g1/255, b1/255)
     }
 }

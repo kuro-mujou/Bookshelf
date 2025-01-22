@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,8 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
@@ -37,8 +41,12 @@ import com.capstone.bookshelf.domain.wrapper.Book
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContents
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 fun DrawerScreen(
     drawerContainerState : DrawerContainerState,
@@ -46,10 +54,12 @@ fun DrawerScreen(
     drawerState: DrawerState,
     drawerLazyColumnState: LazyListState,
     colorPaletteState: ColorPalette,
+    hazeState: HazeState,
     book: Book?,
     onDrawerItemClick: (Int) -> Unit,
     content: @Composable () -> Unit
 ){
+    val style = HazeMaterials.ultraThin(colorPaletteState.containerColor)
     val tabItems = listOf(
         TabItem(
             title = "Table of Contents",
@@ -69,13 +79,22 @@ fun DrawerScreen(
         drawerContent = {
             Column (
                 modifier = Modifier
-                    .statusBarsPadding()
                     .fillMaxHeight()
                     .width(300.dp)
-                    .background(colorPaletteState.backgroundColor),
+                    .then(
+                        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                            Modifier.hazeChild(
+                                state = hazeState,
+                                style = style
+                            )
+                        }else{
+                            Modifier.background(colorPaletteState.containerColor)
+                        }
+                    ),
             ){
                 Row(
                     modifier = Modifier
+                        .statusBarsPadding()
                         .fillMaxWidth()
                         .wrapContentHeight()
                         .padding(8.dp),
@@ -126,7 +145,12 @@ fun DrawerScreen(
                             .fillMaxWidth()
                             .wrapContentHeight(),
                         selectedTabIndex = selectedTabIndex,
-                        containerColor = colorPaletteState.backgroundColor,
+                        indicator = {TabRowDefaults.PrimaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(selectedTabIndex, matchContentSize = true),
+                            width = Dp.Unspecified,
+                            color = colorPaletteState.textColor
+                        )},
+                        containerColor = Color.Transparent,
                         contentColor = colorPaletteState.textColor,
                     ) {
                         tabItems.forEachIndexed { index, item ->

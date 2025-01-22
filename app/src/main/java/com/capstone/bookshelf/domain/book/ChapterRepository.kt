@@ -1,6 +1,6 @@
 package com.capstone.bookshelf.domain.book
 
-import com.capstone.bookshelf.data.book.database.entity.ChapterContentEntity
+import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.domain.wrapper.Chapter
 
 interface ChapterRepository {

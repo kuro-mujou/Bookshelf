@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar.component
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,10 +26,15 @@ import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.hazeChild
 
 
 @Composable
 fun BottomBarDefault(
+    hazeState: HazeState,
+    style: HazeStyle,
     drawerContainerState: DrawerContainerState,
     colorPaletteState: ColorPalette,
     onThemeIconClick: () -> Unit,
@@ -46,7 +52,16 @@ fun BottomBarDefault(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(colorPaletteState.backgroundColor),
+            .then(
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                    Modifier.hazeChild(
+                        state = hazeState,
+                        style = style
+                    )
+                }else{
+                    Modifier.background(colorPaletteState.containerColor)
+                }
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
 
     ) {

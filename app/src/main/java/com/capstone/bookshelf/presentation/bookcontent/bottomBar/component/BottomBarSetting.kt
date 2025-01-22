@@ -1,6 +1,7 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar.component
 
 import android.content.Context
+import android.os.Build
 import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,34 +27,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.capstone.bookshelf.R
+import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
+import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.VoiceMenuDialog
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
+import com.capstone.bookshelf.util.DataStoreManager
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.hazeChild
 
 @Composable
 fun BottomBarSetting(
+    hazeState: HazeState,
+    style: HazeStyle,
+    bottomBarViewModel: BottomBarViewModel,
+    ttsViewModel : TTSViewModel,
     bottomBarState: BottomBarState,
     ttsState: TTSState,
     colorPaletteState: ColorPalette,
     textToSpeech: TextToSpeech,
+    dataStoreManager: DataStoreManager,
     context: Context,
     onSwitchChange: (Boolean) -> Unit
 ) {
     if(bottomBarState.openTTSVoiceMenu){
         VoiceMenuDialog(
+            ttsViewModel = ttsViewModel,
             bottomBarState = bottomBarState,
             ttsState = ttsState,
             colorPaletteState = colorPaletteState,
             textToSpeech = textToSpeech,
+            dataStoreManager = dataStoreManager,
             onDismiss = {
-
+                bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))
+                bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(false))
             },
             testVoiceButtonClicked = {
-                val tts = TextToSpeech(context, null)
-                tts.speak("This is an example of a voice", TextToSpeech.STOPPED, null, "utteranceId")
-                tts.stop()
-                tts.shutdown()
+                textToSpeech.speak("This is an example of a voice", TextToSpeech.QUEUE_FLUSH, null, "utteranceId")
             }
         )
     }
@@ -61,7 +74,16 @@ fun BottomBarSetting(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp)
-            .background(colorPaletteState.backgroundColor),
+            .then(
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                    Modifier.hazeChild(
+                        state = hazeState,
+                        style = style
+                    )
+                }else{
+                    Modifier.background(colorPaletteState.containerColor)
+                }
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
     ) {
@@ -95,22 +117,12 @@ fun BottomBarSetting(
                     onSwitchChange(it)
                 },
                 colors = SwitchDefaults.colors(
-//                    checkedThumbColor = colorPaletteState.onBackground,
-//                    checkedTrackColor = colorPaletteState.onBackground,
-//                    checkedBorderColor = colorPaletteState.onBackground,
-//                    checkedIconColor = colorPaletteState.onBackground,
-//                    uncheckedThumbColor = colorPaletteState.onBackground,
-                    uncheckedTrackColor = colorPaletteState.textColor,
-//                    uncheckedBorderColor = colorPaletteState.onBackground,
-//                    uncheckedIconColor = colorPaletteState.onBackground,
-//                    disabledCheckedThumbColor = colorPaletteState.onBackground,
-//                    disabledCheckedTrackColor = colorPaletteState.onBackground,
-//                    disabledCheckedBorderColor = colorPaletteState.onBackground,
-//                    disabledCheckedIconColor = colorPaletteState.onBackground,
-//                    disabledUncheckedThumbColor = colorPaletteState.onBackground,
-//                    disabledUncheckedTrackColor = colorPaletteState.onBackground,
-//                    disabledUncheckedBorderColor = colorPaletteState.onBackground,
-//                    disabledUncheckedIconColor = colorPaletteState.onBackground,
+                    checkedThumbColor = colorPaletteState.textColor,
+                    checkedTrackColor = colorPaletteState.textColor.copy(0.5f),
+                    checkedBorderColor = colorPaletteState.textColor,
+                    uncheckedThumbColor = colorPaletteState.textColor,
+                    uncheckedTrackColor = colorPaletteState.textColor.copy(0.5f),
+                    uncheckedBorderColor = colorPaletteState.textColor,
                 )
             )
         }
@@ -120,7 +132,9 @@ fun BottomBarSetting(
                 .fillMaxWidth()
                 .height(50.dp)
                 .clickable {
-//                    viewModel.changeMenuTriggerVoice(true)
+                    bottomBarViewModel.onAction(BottomBarAction.OpenSetting(true))
+                    ttsViewModel.loadTTSSetting(dataStoreManager,textToSpeech)
+                    bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween

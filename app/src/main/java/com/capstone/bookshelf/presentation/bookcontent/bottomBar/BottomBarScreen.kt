@@ -17,14 +17,20 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.font.FontState
+import com.capstone.bookshelf.presentation.bookcontent.component.font.FontViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
-import com.capstone.bookshelf.util.DataStoreManger
+import com.capstone.bookshelf.util.DataStoreManager
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun BottomBarManager(
     topBarViewModel: TopBarViewModel,
@@ -32,24 +38,22 @@ fun BottomBarManager(
     autoScrollViewModel: AutoScrollViewModel,
     ttsViewModel: TTSViewModel,
     colorPaletteViewModel: ColorPaletteViewModel,
+    fontViewModel: FontViewModel,
+    hazeState: HazeState,
     bottomBarState : BottomBarState,
     ttsState: TTSState,
     autoScrollState: AutoScrollState,
     drawerContainerState: DrawerContainerState,
-    dataStore : DataStoreManger,
+    dataStoreManager : DataStoreManager,
     colorPaletteState: ColorPalette,
+    fontState: FontState,
     textToSpeech: TextToSpeech,
     context: Context,
-//    scope: CoroutineScope,
-//    chapterContents: SnapshotStateMap<Int,List<String>>,
-//    currentLazyColumnState: LazyListState?,
-//    textMeasurer: TextMeasurer,
-//    textStyle: TextStyle,
-//    updateVariable: (Boolean,Boolean,Int,Int,Int,Boolean,Int) -> Unit
 ){
+    val style = HazeMaterials.ultraThin(colorPaletteState.containerColor)
     LaunchedEffect(bottomBarState.visibility){
         if(!bottomBarState.visibility) {
-            if(!ttsState.isSpeaking && !ttsState.isPaused && !autoScrollState.isAutoScroll && !autoScrollState.isAutoScrollPaused){
+            if(!ttsState.isSpeaking && !ttsState.isPaused && !autoScrollState.isStart && !autoScrollState.isPaused){
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(true))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(false))
@@ -64,6 +68,8 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarDefault(
+            hazeState = hazeState,
+            style = style,
             drawerContainerState = drawerContainerState,
             colorPaletteState = colorPaletteState,
             onThemeIconClick = {
@@ -73,12 +79,15 @@ fun BottomBarManager(
             onTTSIconClick = {
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
-                ttsViewModel.onAction(TTSAction.UpdateIsSpeaking(true))
+                ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateIsSpeaking(true))
             },
             onAutoScrollIconClick = {
+                topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarAutoScrollState(true))
-                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsAutoScroll(true))
+                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(true))
+                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
             },
             onSettingIconClick = {
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
@@ -92,6 +101,9 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarAutoScroll(
+            hazeState = hazeState,
+            style = style,
+            autoScrollViewModel = autoScrollViewModel,
             bottomBarState = bottomBarState,
             autoScrollState = autoScrollState,
             colorPaletteState = colorPaletteState,
@@ -99,21 +111,24 @@ fun BottomBarManager(
 
             },
             onPlayPauseIconClick = {
-
+                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(!autoScrollState.isPaused))
+//                bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
+//                topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
             },
             onNextChapterIconClick = {
 
             },
             onStopIconClick = {
-                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsAutoScroll(false))
+                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(false))
+                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                 topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
             },
             onSettingIconClick = {
-
+                bottomBarViewModel.onAction(BottomBarAction.OpenAutoScrollMenu(true))
             },
             onDismissDialogRequest = {
-
+                bottomBarViewModel.onAction(BottomBarAction.OpenAutoScrollMenu(false))
             }
         )
     }
@@ -123,10 +138,15 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarSetting(
+            hazeState = hazeState,
+            style = style,
+            bottomBarViewModel = bottomBarViewModel,
+            ttsViewModel = ttsViewModel,
             bottomBarState = bottomBarState,
             ttsState = ttsState,
             colorPaletteState = colorPaletteState,
             textToSpeech = textToSpeech,
+            dataStoreManager = dataStoreManager,
             context = context,
             onSwitchChange = {
                 bottomBarViewModel.onAction(BottomBarAction.UpdateKeepScreenOn(it))
@@ -139,10 +159,14 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarTTS(
+            hazeState = hazeState,
+            style = style,
+            ttsViewModel = ttsViewModel,
             bottomBarState = bottomBarState,
             ttsState = ttsState,
             colorPaletteState = colorPaletteState,
             textToSpeech = textToSpeech,
+            dataStoreManager = dataStoreManager,
             onPreviousChapterIconClick = {
 
             },
@@ -162,7 +186,7 @@ fun BottomBarManager(
 
             },
             onStopIconClick = {
-                ttsViewModel.onAction(TTSAction.UpdateIsSpeaking(false))
+                ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateIsSpeaking(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                 topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
             },
@@ -177,10 +201,14 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarTheme(
+            hazeState = hazeState,
+            style = style,
             colorPaletteViewModel = colorPaletteViewModel,
+            fontViewModel = fontViewModel,
             bottomBarState = bottomBarState,
-            dataStore = dataStore,
-            colorPaletteState = colorPaletteState
+            dataStore = dataStoreManager,
+            colorPaletteState = colorPaletteState,
+            fontState = fontState
         )
     }
 //

@@ -58,6 +58,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -75,11 +76,13 @@ dependencies {
     //room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.gson)
     implementation(libs.androidx.room.paging)
-    implementation(libs.androidx.palette.ktx)
     annotationProcessor(libs.androidx.room.compiler)
     ksp(libs.androidx.room.compiler)
+    //palette
+    implementation(libs.androidx.palette.ktx)
+    //work manager
+    implementation(libs.androidx.work.runtime.ktx)
     //epub reader
     implementation("nl.siegmann.epublib:epublib-core:3.1") {
         exclude(group = "org.slf4j")
@@ -104,6 +107,7 @@ dependencies {
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.client.content.negotiation)
     //serialization
+    implementation(libs.gson)
     implementation(libs.kotlinx.serialization.json)
     //glass effect
     implementation(libs.haze.materials)

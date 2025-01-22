@@ -1,16 +1,23 @@
 package com.capstone.bookshelf.presentation.bookcontent.content
 
 import android.annotation.SuppressLint
+import android.os.Build
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -25,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -38,7 +46,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.domain.wrapper.Chapter
 import com.capstone.bookshelf.presentation.bookcontent.BookContentRootState
+import com.capstone.bookshelf.presentation.bookcontent.KeepScreenOn
+import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
+import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
+import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
+import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.presentation.bookcontent.component.font.FontState
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
@@ -49,45 +63,54 @@ import com.capstone.bookshelf.presentation.bookcontent.content.content_component
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ParagraphContent
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ParagraphText
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
+import com.capstone.bookshelf.util.DataStoreManager
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContentScreen(
     ttsViewModel: TTSViewModel,
     contentViewModel: ContentViewModel,
+    autoScrollViewModel: AutoScrollViewModel,
+    bottomBarState: BottomBarState,
+    hazeState: HazeState,
     pagerState : PagerState,
     bookContentRootState : BookContentRootState,
     drawerContainerState: DrawerContainerState,
     contentState : ContentState,
     ttsState : TTSState,
     colorPaletteState: ColorPalette,
-    textStyle: TextStyle,
+    fontState: FontState,
+    autoScrollState: AutoScrollState,
+    dataStoreManager: DataStoreManager,
     updateSystemBar: () -> Unit,
-    currentChapter : (Int,Int) -> Unit
+    currentChapter : (Int,Int,Boolean) -> Unit,
+    launchAlertDialog : (Boolean) -> Unit
 ){
     val lazyListStates = remember { mutableStateMapOf<Int, LazyListState>() }
     val chapterContents = remember { mutableStateMapOf<Int, List<String>>() }
     var triggerLoadChapter by remember { mutableStateOf(false) }
     var callbackLoadChapter by remember { mutableStateOf(false) }
-
-    var currentLazyColumnState by remember { mutableStateOf<LazyListState?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    var lazyListState by remember { mutableStateOf<LazyListState?>(LazyListState()) }
 //    val currentReadingItemIndex by rememberUpdatedState(newValue = contentState.firstVisibleItemIndex)
 //    val isFocused by rememberUpdatedState(newValue = ttsState.isFocused)
-
+    if(autoScrollState.isStart)
+        KeepScreenOn(true)
+    else
+        KeepScreenOn(false)
     Surface(
         modifier = Modifier
             .fillMaxSize()
             .then(
-                if (bookContentRootState.enableScaffoldBar)
-                    Modifier.clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() },
-                    ) {
-                        updateSystemBar()
-                    }
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    Modifier.haze(hazeState)
                 else
                     Modifier
             ),
@@ -111,8 +134,12 @@ fun ContentScreen(
                 triggerLoadChapter = false
                 callbackLoadChapter = false
             }
-            currentLazyColumnState = lazyListStates[contentState.currentChapterIndex]
-            ttsViewModel.onAction(TTSAction.UpdateCurrentChapterContent(chapterContents[contentState.currentChapterIndex]))
+            lazyListState = lazyListStates[contentState.currentChapterIndex]
+            ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateCurrentChapterContent(chapterContents[contentState.currentChapterIndex]))
+            if(autoScrollState.isStart && autoScrollState.isPaused){
+                delay(1000)
+                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+            }
         }
         val beyondBoundsPageCount = 1
         HorizontalPager(
@@ -124,12 +151,14 @@ fun ContentScreen(
             key = { page -> page }
         ) { page ->
             val newPage by rememberUpdatedState(newValue = page)
-            val lazyListState = lazyListStates.getOrPut(newPage) { LazyListState() }
             val chapterContent by contentViewModel.chapterContent
             var data by remember { mutableStateOf<Chapter?>(null) }
-            val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean,ColorPalette) -> Unit>())}
+            val listState = lazyListStates.getOrPut(newPage){ LazyListState() }
+            val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean,ColorPalette,FontState) -> Unit>())}
             val density = LocalDensity.current
-            LaunchedEffect(key1 = Unit) {
+            var hasPrintedAtEnd by remember { mutableStateOf(false) }
+            var isAnimationRunning by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
                 snapshotFlow {
                     Pair(
                         pagerState.isScrollInProgress,
@@ -139,28 +168,34 @@ fun ContentScreen(
                     if (!scrollInProgress && (diff in 0..beyondBoundsPageCount)) {
                         if (diff > 0) delay(1000)
                         triggerLoadChapter = true
+                        isAnimationRunning = false
                         cancel()
                     }
                 }
             }
             LaunchedEffect(triggerLoadChapter) {
                 if (triggerLoadChapter && data == null) {
-                    contentViewModel.getChapter((page))
-                    data = chapterContent
-                    parseListToUsableLists(textStyle, data!!.content).also{
-                        contentList.value = it.first
-                        chapterContents[page] = it.second
+                    try{
+                        contentViewModel.getChapter((page))
+                        data = chapterContent
+                        parseListToUsableLists(data!!.content).also{
+                            contentList.value = it.first
+                            chapterContents[page] = it.second
+                        }
+                        callbackLoadChapter = true
+                    }catch (e: Exception){
+                        e.printStackTrace()
+                        launchAlertDialog(true)
                     }
-                    callbackLoadChapter = true
                 }
             }
             LaunchedEffect(pagerState.targetPage) {
                 contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                currentChapter(pagerState.targetPage,0)
+                currentChapter(pagerState.targetPage,0,autoScrollState.isStart)
             }
-            LaunchedEffect(currentLazyColumnState) {
-                if (currentLazyColumnState != null) {
-                    snapshotFlow { currentLazyColumnState!!.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            LaunchedEffect(lazyListState) {
+                lazyListState?.let {
+                    snapshotFlow { it.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
                                 contentViewModel.onAction(ContentAction.UpdateLastVisibleItemIndex(index))
@@ -169,35 +204,45 @@ fun ContentScreen(
                 }
             }
 
-            LaunchedEffect(currentLazyColumnState) {
-                if (currentLazyColumnState != null) {
-                    snapshotFlow { currentLazyColumnState!!.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
+            LaunchedEffect(lazyListState) {
+                lazyListState?.let {
+                    snapshotFlow { it.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
                                 contentViewModel.onAction(ContentAction.UpdateFirstVisibleItemIndex(index))
                             }
                         }
                 }
+
             }
-            LaunchedEffect(currentLazyColumnState){
-                if (currentLazyColumnState != null) {
-                    snapshotFlow { currentLazyColumnState!!.isScrollInProgress && !pagerState.isScrollInProgress }.collect { scrolling ->
+            LaunchedEffect(lazyListState){
+                lazyListState?.let {
+                    snapshotFlow { it.isScrollInProgress && !pagerState.isScrollInProgress }.collect { scrolling ->
                         if (scrolling && (ttsState.isSpeaking || ttsState.isPaused) && ttsState.currentReadingParagraph == contentState.firstVisibleItemIndex) {
-                            contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(true))
+                            contentViewModel.onAction(
+                                ContentAction.UpdateFlagTriggerAdjustScroll(
+                                    true
+                                )
+                            )
                         }
                     }
                 }
             }
 
             LaunchedEffect(ttsState.currentReadingParagraph) {
-                if ((ttsState.currentReadingParagraph >= contentState.lastVisibleItemIndex
-                            || ttsState.currentReadingParagraph <= contentState.firstVisibleItemIndex)
-                    && !contentState.flagTriggerScrolling
-                ) {
-                    if(ttsState.isSpeaking)
-                    {
-                        currentLazyColumnState?.animateScrollToItem(ttsState.currentReadingParagraph)
-                        contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                lazyListState?.let {
+                    if ((ttsState.currentReadingParagraph >= contentState.lastVisibleItemIndex
+                                || ttsState.currentReadingParagraph <= contentState.firstVisibleItemIndex)
+                        && !contentState.flagTriggerScrolling
+                    ) {
+                        if (ttsState.isSpeaking) {
+                            it.animateScrollToItem(ttsState.currentReadingParagraph)
+                            contentViewModel.onAction(
+                                ContentAction.UpdateFlagTriggerAdjustScroll(
+                                    false
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -208,68 +253,134 @@ fun ContentScreen(
             }
 
             LaunchedEffect(contentState.flagStartScrolling){
-                if(contentState.flagStartScrolling){
-                    if(ttsState.currentReadingParagraph != contentState.firstVisibleItemIndex){
-                        currentLazyColumnState?.animateScrollToItem(ttsState.currentReadingParagraph)
-                        contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                        contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(true))
+                lazyListState?.let {
+                    if (contentState.flagStartScrolling) {
+                        if (ttsState.currentReadingParagraph != contentState.firstVisibleItemIndex) {
+                            it.animateScrollToItem(ttsState.currentReadingParagraph)
+                            contentViewModel.onAction(
+                                ContentAction.UpdateFlagTriggerAdjustScroll(
+                                    false
+                                )
+                            )
+                            contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(true))
 
-                    }else if(!contentState.flagTriggerAdjustScroll){
-                        currentLazyColumnState?.animateScrollBy(value = contentState.screenHeight.toFloat())
-                        contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                        contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(false))
-                    }else{
-                        contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(true))
+                        } else if (!contentState.flagTriggerAdjustScroll) {
+                            it.animateScrollBy(value = contentState.screenHeight.toFloat())
+                            contentViewModel.onAction(
+                                ContentAction.UpdateFlagTriggerAdjustScroll(
+                                    false
+                                )
+                            )
+                            contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(false))
+                        } else {
+                            contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(true))
+                        }
                     }
                 }
             }
 
             LaunchedEffect(contentState.flagStartAdjustScroll){
-                if (contentState.flagStartAdjustScroll) {
-                    currentLazyColumnState?.animateScrollToItem(ttsState.currentReadingParagraph)
-                    contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                    contentViewModel.onAction(ContentAction.UpdateFlagStartAdjustScroll(false))
-                    contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(true))
+                lazyListState?.let {
+                    if (contentState.flagStartAdjustScroll) {
+                        it.animateScrollToItem(ttsState.currentReadingParagraph)
+                        contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                        contentViewModel.onAction(ContentAction.UpdateFlagStartAdjustScroll(false))
+                        contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(true))
+                    }
                 }
             }
 
             LaunchedEffect(contentState.flagScrollAdjusted){
-                if (contentState.flagScrollAdjusted) {
-                    currentLazyColumnState?.animateScrollBy(value = contentState.screenHeight.toFloat() * ttsState.scrollTime)
-                    contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                    contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(false))
-                    contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(false))
+                lazyListState?.let {
+                    if (contentState.flagScrollAdjusted) {
+                        it.animateScrollBy(value = contentState.screenHeight.toFloat() * ttsState.scrollTime)
+                        contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                        contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(false))
+                        contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(false))
+                    }
+                }
+            }
+            LaunchedEffect(pagerState.currentPage,autoScrollState.isPaused,autoScrollState.isStart) {
+                lazyListState?.let {
+                    if (!autoScrollState.isPaused && autoScrollState.isStart) {
+                        while (true) {
+                            isAnimationRunning = true
+                            coroutineScope.launch {
+                                it.animateScrollBy(
+                                    value = contentState.screenHeight.toFloat(),
+                                    animationSpec = tween(
+                                        durationMillis = autoScrollState.currentSpeed,
+                                        delayMillis = 0,
+                                        easing = LinearEasing
+                                    )
+                                )
+                            }.invokeOnCompletion {
+                                isAnimationRunning = false
+                            }
+                            delay(autoScrollState.currentSpeed.toLong())
+                        }
+                    }
+                }
+            }
+            LaunchedEffect(lazyListState?.isScrollInProgress) {
+                lazyListState?.let {
+                    if (!it.isScrollInProgress && autoScrollState.isStart && !autoScrollState.isPaused) {
+                        autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
+                    }
+                }
+            }
+            LaunchedEffect(lazyListState?.isScrollInProgress){
+                if(autoScrollState.isStart && !autoScrollState.isPaused) {
+                    lazyListState?.let {
+                        snapshotFlow { it.layoutInfo }
+                            .collect { layoutInfo ->
+                                if (layoutInfo.visibleItemsInfo.isNotEmpty()) {
+                                    val lastVisibleItem = layoutInfo.visibleItemsInfo.last()
+                                    if (lastVisibleItem.index == layoutInfo.totalItemsCount - 1 &&
+                                        lastVisibleItem.offset + lastVisibleItem.size <= layoutInfo.viewportEndOffset + 1
+                                    ) {
+                                        if (!isAnimationRunning && !hasPrintedAtEnd && contentState.previousChapterIndex <= contentState.currentChapterIndex) {
+                                            delay(1000)
+                                            currentChapter(contentState.currentChapterIndex + 1,0,true)
+                                            hasPrintedAtEnd = true
+                                        }
+                                    } else {
+                                        hasPrintedAtEnd = false
+                                    }
+                                }
+                            }
+                    }
                 }
             }
             Column(
                 modifier = Modifier
-                    .navigationBarsPadding()
                     .fillMaxSize()
-                    .onGloballyPositioned { coordinates ->
-                        contentViewModel.onAction(ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
-                        contentViewModel.onAction(ContentAction.UpdateScreenHeight(coordinates.size.height - (with(density) { 40.dp.toPx() }.toInt())))
-                    },
             ) {
                 Row(
                     modifier = Modifier
-                        .statusBarsPadding()
                         .fillMaxWidth()
-                        .height(24.dp),
+                        .wrapContentHeight()
+                        .background(color = colorPaletteState.containerColor),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     drawerContainerState.currentTOC?.title?.let {
                         Text(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .statusBarsPadding(),
                             text = it,
                             overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
                             style = TextStyle(
                                 color = colorPaletteState.textColor,
                             )
                         )
                     }
                     Text(
-                        modifier = Modifier.wrapContentWidth(),
-                        text = "${pagerState.currentPage + 1} / ${drawerContainerState.tableOfContents.size}",
+                        modifier = Modifier
+                            .statusBarsPadding()
+                            .wrapContentWidth(),
+                        text = "${pagerState.currentPage + 1} / ${contentState.totalChapter}",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             textAlign = TextAlign.Right
@@ -279,15 +390,66 @@ fun ContentScreen(
                 }
                 LazyColumn(
                     modifier = Modifier
-                        .fillMaxSize(),
-                    state = lazyListState,
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .then(
+                            if(!autoScrollState.isStart){
+                                Modifier.clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    onClick = {
+                                        updateSystemBar()
+                                    },
+                                )
+                            }else{
+                                Modifier.combinedClickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    onClick = {
+                                        updateSystemBar()
+                                    },
+                                    onDoubleClick = {
+                                        autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(!autoScrollState.isPaused))
+                                    }
+                                )
+                            }
+                        )
+                        .onGloballyPositioned { coordinates ->
+                            contentViewModel.onAction(ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
+                            contentViewModel.onAction(ContentAction.UpdateScreenHeight(coordinates.size.height))
+                        },
+                    state = listState,
                 ) {
                     itemsIndexed(
                         items = contentList.value,
                         key = { index, _ -> index }
                     ) { index, composable ->
-                        composable(index == ttsState.currentReadingParagraph, ttsState.isFocused,colorPaletteState)
+                        composable(
+                            index == ttsState.currentReadingParagraph,
+                            ttsState.isFocused,
+                            colorPaletteState,
+                            fontState
+                        )
                     }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .background(color = colorPaletteState.containerColor),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        modifier = Modifier
+                            .navigationBarsPadding()
+                            .padding(start = 4.dp),
+                        text = "${contentState.lastVisibleItemIndex + 1} / ${contentList.value.size}",
+                        style = TextStyle(
+                            color = colorPaletteState.textColor,
+                            textAlign = TextAlign.Right
+                        ),
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -295,10 +457,9 @@ fun ContentScreen(
 }
 @SuppressLint("SdCardPath")
 private fun parseListToUsableLists(
-    textStyle: TextStyle,
     paragraphs: List<String>,
-): Pair<List<@Composable (Boolean, Boolean, ColorPalette) -> Unit>,List<String>> {
-    val composable = mutableListOf<@Composable (Boolean,Boolean,ColorPalette) -> Unit>()
+): Pair<List<@Composable (Boolean, Boolean, ColorPalette, FontState) -> Unit>,List<String>> {
+    val composable = mutableListOf<@Composable (Boolean,Boolean,ColorPalette,FontState) -> Unit>()
     val ttsParagraph = mutableListOf<String>()
     paragraphs.forEach {
         val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
@@ -307,7 +468,7 @@ private fun parseListToUsableLists(
         val htmlTagPattern = Regex(pattern = """<[^>]+>""")
         if(it.isNotEmpty()){
             if(linkPattern.containsMatchIn(it)) {
-                composable.add{ _, _,_ ->
+                composable.add{ _, _,_, _->
                     ImageComponent(
                         content = ImageContent(
                             content = it
@@ -317,14 +478,15 @@ private fun parseListToUsableLists(
                 ttsParagraph.add(linkPattern.replace(it, replacement = " "))
             }else if(headerPatten.containsMatchIn(it)) {
                 if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
-                    composable.add {isHighlighted, isSpeaking, colorPaletteState ->
+                    composable.add {isHighlighted, isSpeaking, colorPaletteState, fontState ->
                         HeaderText(
                             colorPaletteState = colorPaletteState,
+                            fontState = fontState,
                             content = HeaderContent(
-                                content = htmlTagPattern.replace(it, replacement = "")
+                                content = htmlTagPattern.replace(it, replacement = ""),
+                                fontState = fontState,
+                                level = headerLevel.find(it)!!.groupValues[1].toInt(),
                             ),
-                            level = headerLevel.find(it)!!.groupValues[1].toInt(),
-                            style = textStyle,
                             isHighlighted = isHighlighted,
                             isSpeaking = isSpeaking
                         )
@@ -333,13 +495,14 @@ private fun parseListToUsableLists(
                 }
             } else{
                 if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
-                    composable.add { isHighlighted,isSpeaking, colorPaletteState->
+                    composable.add { isHighlighted,isSpeaking, colorPaletteState, fontState->
                         ParagraphText(
                             colorPaletteState = colorPaletteState,
+                            fontState = fontState,
                             content = ParagraphContent(
-                                content = it
+                                content = it,
+                                fontState = fontState,
                             ),
-                            style = textStyle,
                             isHighlighted = isHighlighted,
                             isSpeaking = isSpeaking
                         )

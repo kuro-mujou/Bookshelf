@@ -21,25 +21,28 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupPositionProvider
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.NoteDialog
+import com.capstone.bookshelf.presentation.bookcontent.component.font.FontState
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HeaderText(
     colorPaletteState: ColorPalette,
+    fontState: FontState,
     content: HeaderContent,
-    level: Int,
-    style: TextStyle,
     isHighlighted: Boolean,
     isSpeaking: Boolean
 ) {
@@ -47,15 +50,6 @@ fun HeaderText(
         colorPaletteState.textBackgroundColor
     else
         Color.Transparent
-    val size = when(level){
-        1 -> style.fontSize*2
-        2 -> style.fontSize*1.5
-        3 -> style.fontSize*1.17
-        4 -> style.fontSize*1
-        5 -> style.fontSize*0.83
-        6 -> style.fontSize*0.67
-        else -> style.fontSize
-    }
     var isOpenDialog by remember { mutableStateOf(false) }
     val tooltipState = rememberTooltipState()
     if(isOpenDialog){
@@ -73,7 +67,7 @@ fun HeaderText(
             IconButton(
                 modifier = Modifier
                     .background(
-                        color = style.background,
+                        color = colorPaletteState.textBackgroundColor,
                         shape = CircleShape
                     ),
                 onClick = {
@@ -94,11 +88,13 @@ fun HeaderText(
                 .padding(start = 16.dp, end = 16.dp),
             text = content.content,
             style = TextStyle(
-                fontSize = size,
+                fontSize = content.fontSize.floatValue.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = fontState.fontFamilies[fontState.selectedFontFamilyIndex],
                 textAlign = TextAlign.Center,
                 color = colorPaletteState.textColor,
-                background = color
+                background = color,
+                lineHeight = (content.fontSize.floatValue + content.fontState.lineSpacing).sp
             )
         )
     }
@@ -107,8 +103,8 @@ fun HeaderText(
 @Composable
 fun ParagraphText(
     colorPaletteState: ColorPalette,
+    fontState: FontState,
     content: ParagraphContent,
-    style: TextStyle,
     isHighlighted: Boolean,
     isSpeaking: Boolean,
 ) {
@@ -133,7 +129,7 @@ fun ParagraphText(
             IconButton(
                 modifier = Modifier
                     .background(
-                        color = style.background,
+                        color = colorPaletteState.textBackgroundColor,
                         shape = CircleShape
                     ),
                 onClick = {
@@ -154,12 +150,17 @@ fun ParagraphText(
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp),
             text = content.text.value,
             style = TextStyle(
-                textIndent = style.textIndent,
-                textAlign = style.textAlign,
-                fontSize = style.fontSize,
+                textIndent = if(content.fontState.textIndent)
+                                TextIndent(firstLine = (content.fontState.fontSize * 2).sp)
+                            else
+                                TextIndent.None,
+                textAlign = if(content.fontState.textAlign) TextAlign.Justify else TextAlign.Left,
+                fontSize = content.fontState.fontSize.sp,
+                fontFamily = fontState.fontFamilies[fontState.selectedFontFamilyIndex],
                 color = colorPaletteState.textColor,
                 background = color,
-                lineBreak = style.lineBreak,
+                lineBreak = LineBreak.Paragraph,
+                lineHeight = (content.fontState.fontSize + content.fontState.lineSpacing).sp
             ),
         )
     }

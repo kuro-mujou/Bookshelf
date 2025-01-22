@@ -4,6 +4,7 @@ import com.capstone.bookshelf.domain.wrapper.Chapter
 
 data class ContentState(
     val currentChapterIndex: Int = 0,
+    val previousChapterIndex: Int = 0,
     val totalChapter : Int = 0,
     val flagTriggerScrolling : Boolean = false,
     val flagStartScrolling : Boolean = false,

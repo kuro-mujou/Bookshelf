@@ -3,17 +3,15 @@ package com.capstone.bookshelf.presentation.bookcontent.component.tts
 import android.speech.tts.TextToSpeech
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.capstone.bookshelf.data.book.database.entity.BookSettingEntity
-import com.capstone.bookshelf.domain.book.BookSettingRepository
+import com.capstone.bookshelf.util.DataStoreManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-class TTSViewModel(
-    private val bookSettingRepository: BookSettingRepository
-) : ViewModel() {
+class TTSViewModel : ViewModel() {
     private val _state = MutableStateFlow(TTSState())
     val state = _state
         .stateIn(
@@ -21,7 +19,7 @@ class TTSViewModel(
             SharingStarted.WhileSubscribed(5000L),
             _state.value
         )
-    fun onAction(action: TTSAction) {
+    fun onAction(dataStoreManager: DataStoreManager, action: TTSAction) {
         when (action) {
             is TTSAction.UpdateIsSpeaking -> {
                 _state.value = _state.value.copy(
@@ -44,7 +42,7 @@ class TTSViewModel(
                     currentLanguage = action.currentLanguage
                 )
                 viewModelScope.launch {
-                    bookSettingRepository.updateBookSettingLocale(0,action.currentLanguage.displayName)
+                    dataStoreManager.setTTSLocale(action.currentLanguage.displayName)
                 }
             }
             is TTSAction.UpdateTTSPitch -> {
@@ -52,7 +50,7 @@ class TTSViewModel(
                     currentPitch = action.currentPitch
                 )
                 viewModelScope.launch {
-                    bookSettingRepository.updateBookSettingPitch(0,action.currentPitch)
+                    dataStoreManager.setTTSPitch(action.currentPitch)
                 }
             }
             is TTSAction.UpdateTTSSpeed -> {
@@ -60,15 +58,17 @@ class TTSViewModel(
                     currentSpeed = action.currentSpeed
                 )
                 viewModelScope.launch {
-                    bookSettingRepository.updateBookSettingSpeed(0,action.currentSpeed)
+                    dataStoreManager.setTTSSpeed(action.currentSpeed)
                 }
             }
             is TTSAction.UpdateTTSVoice -> {
                 _state.value = _state.value.copy(
                     currentVoice = action.currentVoice
                 )
-                viewModelScope.launch {
-                    bookSettingRepository.updateBookSettingVoice(0,action.currentVoice.name)
+                if(action.currentVoice != null) {
+                    viewModelScope.launch {
+                        dataStoreManager.setTTSVoice(action.currentVoice.name)
+                    }
                 }
             }
 
@@ -84,45 +84,39 @@ class TTSViewModel(
                 )
             }
         }
-        fun loadTTSSetting(textToSpeech: TextToSpeech) {
-            viewModelScope.launch {
-                val setting = bookSettingRepository.getBookSetting(0)
-                if (setting != null) {
-                    val selectedLocale = textToSpeech.availableLanguages.find {
-                        it.displayName == setting.ttsLocale
-                    } ?: Locale.getDefault()
+    }
+    fun loadTTSSetting(dataStoreManager: DataStoreManager, textToSpeech: TextToSpeech) {
+        viewModelScope.launch {
+            val selectedLocale = textToSpeech.availableLanguages.find {
+                it.displayName == dataStoreManager.ttsLocale.first()
+            } ?: Locale.getDefault()
 
-                    var selectedVoice = textToSpeech.voices.find {
-                        it.name == setting.ttsVoice && it.locale == selectedLocale
-                    }
-
-                    if (selectedVoice == null) {
-                        selectedVoice = textToSpeech.voices.firstOrNull {
-                            it.locale == selectedLocale
-                        } ?: textToSpeech.defaultVoice
-                    }
-                    onAction(TTSAction.UpdateTTSPitch(setting.pitch ?: 1f))
-                    onAction(TTSAction.UpdateTTSSpeed(setting.speed ?: 1f))
-                    onAction(TTSAction.UpdateTTSLanguage(selectedLocale))
-                    onAction(TTSAction.UpdateTTSVoice(selectedVoice!!))
-                } else {
-                    val newSetting = BookSettingEntity(settingId = 0)
-                    bookSettingRepository.saveBookSetting(newSetting)
-                }
+            var selectedVoice = textToSpeech.voices.find {
+                it.name == dataStoreManager.ttsVoice.first() && it.locale == selectedLocale
             }
+
+            if (selectedVoice == null) {
+                selectedVoice = textToSpeech.voices.firstOrNull {
+                    it.locale == selectedLocale
+                } ?: textToSpeech.defaultVoice
+            }
+            onAction(dataStoreManager,TTSAction.UpdateTTSPitch(dataStoreManager.ttsPitch.first()))
+            onAction(dataStoreManager,TTSAction.UpdateTTSSpeed(dataStoreManager.ttsSpeed.first()))
+            onAction(dataStoreManager,TTSAction.UpdateTTSLanguage(selectedLocale))
+            onAction(dataStoreManager,TTSAction.UpdateTTSVoice(selectedVoice!!))
         }
-        fun fixNullVoice(textToSpeech: TextToSpeech){
-            viewModelScope.launch {
-                var selectedVoice = textToSpeech.voices.find {
-                    it.locale == _state.value.currentLanguage
-                }
-                if (selectedVoice == null) {
-                    selectedVoice = textToSpeech.voices.firstOrNull {
-                        it.locale == _state.value.currentLanguage
-                    } ?: textToSpeech.defaultVoice
-                }
-                onAction(TTSAction.UpdateTTSVoice(selectedVoice!!))
+    }
+    fun fixNullVoice(dataStoreManager: DataStoreManager, textToSpeech: TextToSpeech){
+        viewModelScope.launch {
+            var selectedVoice = textToSpeech.voices.find {
+                it.locale == _state.value.currentLanguage
             }
+            if (selectedVoice == null) {
+                selectedVoice = textToSpeech.voices.firstOrNull {
+                    it.locale == _state.value.currentLanguage
+                } ?: textToSpeech.defaultVoice
+            }
+            onAction(dataStoreManager, TTSAction.UpdateTTSVoice(selectedVoice!!))
         }
     }
 }

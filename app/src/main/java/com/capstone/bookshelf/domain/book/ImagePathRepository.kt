@@ -1,6 +1,6 @@
 package com.capstone.bookshelf.domain.book
 
-import com.capstone.bookshelf.data.book.database.entity.ImagePathEntity
+import com.capstone.bookshelf.data.database.entity.ImagePathEntity
 import kotlinx.coroutines.flow.Flow
 
 interface ImagePathRepository {

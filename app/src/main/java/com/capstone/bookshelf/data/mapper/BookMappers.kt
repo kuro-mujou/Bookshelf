@@ -1,27 +1,7 @@
 package com.capstone.bookshelf.data.mapper
 
-import com.capstone.bookshelf.data.book.database.entity.BookEntity
+import com.capstone.bookshelf.data.database.entity.BookEntity
 import com.capstone.bookshelf.domain.wrapper.Book
-
-//fun SearchedBookDto.toBook(): Book {
-//    return Book(
-//        id = id.substringAfterLast("/"),
-//        title = title,
-//        imageUrl = if(coverKey != null) {
-//            "https://covers.openlibrary.org/b/olid/${coverKey}-L.jpg"
-//        } else {
-//            "https://covers.openlibrary.org/b/id/${coverAlternativeKey}-L.jpg"
-//        },
-//        authors = authorNames ?: emptyList(),
-//        description = null,
-//        languages = languages ?: emptyList(),
-//        firstPublishYear = firstPublishYear.toString(),
-//        averageRating = ratingsAverage,
-//        ratingCount = ratingsCount,
-//        numPages = numPagesMedian,
-//        numEditions = numEditions ?: 0
-//    )
-//}
 
 fun Book.toEntity(): BookEntity {
     return BookEntity(
@@ -32,7 +12,9 @@ fun Book.toEntity(): BookEntity {
         categories = categories,
         description = description,
         totalChapter = totalChapter,
+        currentChapter = currentChapter,
         isFavorite = isFavorite,
+        storagePath = storagePath,
         ratingsAverage = ratingsAverage,
         ratingsCount = ratingsCount,
     )
@@ -47,7 +29,9 @@ fun BookEntity.toDataClass(): Book {
         categories = categories,
         description = description,
         totalChapter = totalChapter,
+        currentChapter = currentChapter,
         isFavorite = isFavorite,
+        storagePath = storagePath,
         ratingsAverage = ratingsAverage,
         ratingsCount = ratingsCount,
     )

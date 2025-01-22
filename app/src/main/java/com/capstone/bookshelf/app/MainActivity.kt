@@ -16,7 +16,9 @@ class MainActivity : ComponentActivity() {
             BookShelfTheme {
                 Surface {
                     val navController = rememberNavController()
-                    SetupNavGraph(navController)
+                    SetupNavGraph(
+                        navController = navController
+                    )
                 }
             }
         }

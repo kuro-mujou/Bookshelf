@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BookShelf</string>
+    <string name="app_name">Bookshelf</string>
     <string name="CleanText">Clean text</string>
     <string name="search_hint">Search...</string>
     <string name="close_hint">Clear search</string>

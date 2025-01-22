@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar.component
 
+import android.os.Build
 import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,13 +23,22 @@ import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.VoiceMenuDialog
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
+import com.capstone.bookshelf.util.DataStoreManager
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.hazeChild
 
 @Composable
 fun BottomBarTTS(
+    hazeState: HazeState,
+    style: HazeStyle,
+    ttsViewModel: TTSViewModel,
     bottomBarState: BottomBarState,
     ttsState: TTSState,
     colorPaletteState: ColorPalette,
     textToSpeech: TextToSpeech,
+    dataStoreManager: DataStoreManager,
     onPreviousChapterIconClick: () -> Unit,
     onPreviousParagraphIconClick: () -> Unit,
     onPlayPauseIconClick: () -> Unit,
@@ -52,7 +62,16 @@ fun BottomBarTTS(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(colorPaletteState.backgroundColor),
+            .then(
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                    Modifier.hazeChild(
+                        state = hazeState,
+                        style = style
+                    )
+                }else{
+                    Modifier.background(colorPaletteState.containerColor)
+                }
+            ),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -185,10 +204,12 @@ fun BottomBarTTS(
 
     if(bottomBarState.openTTSVoiceMenu){
         VoiceMenuDialog(
+            ttsViewModel = ttsViewModel,
             bottomBarState = bottomBarState,
             ttsState = ttsState,
             colorPaletteState = colorPaletteState,
             textToSpeech = textToSpeech,
+            dataStoreManager = dataStoreManager,
             onDismiss = {
 
             },

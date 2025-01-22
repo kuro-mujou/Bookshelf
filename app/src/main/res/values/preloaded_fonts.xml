@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <array name="preloaded_fonts" translatable="false">
+        <item>@font/cormorant</item>
+        <item>@font/ibm_plex_serif</item>
         <item>@font/literata</item>
+        <item>@font/noto_sans</item>
+        <item>@font/noto_serif</item>
         <item>@font/open_sans</item>
+        <item>@font/playfair_display</item>
+        <item>@font/roboto</item>
         <item>@font/source_sans_pro</item>
+        <item>@font/source_serif_4</item>
+        <item>@font/source_serif_pro</item>
     </array>
 </resources>

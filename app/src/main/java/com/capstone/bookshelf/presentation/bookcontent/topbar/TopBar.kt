@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookcontent.topbar
 
+import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -16,9 +17,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun TopBar(
+    hazeState: HazeState,
     topBarState: Boolean,
     colorPaletteState: ColorPalette,
     onMenuIconClick: () -> Unit,
@@ -29,11 +36,21 @@ fun TopBar(
         enter = slideInVertically(initialOffsetY = { -it }),
         exit = slideOutVertically(targetOffsetY = { -it }),
     ) {
+        val style = HazeMaterials.ultraThin(colorPaletteState.containerColor)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-                .background(colorPaletteState.backgroundColor)
+                .then(
+                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                        Modifier.hazeChild(
+                            state = hazeState,
+                            style = style
+                        )
+                    }else{
+                        Modifier.background(colorPaletteState.containerColor)
+                    }
+                ),
         ) {
             IconButton(
                 modifier = Modifier
