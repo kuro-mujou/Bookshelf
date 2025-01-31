@@ -47,13 +47,6 @@ class BottomBarViewModel : ViewModel(){
                     bottomBarThemeState = action.theme
                 ) }
             }
-
-            is BottomBarAction.UpdateKeepScreenOn -> {
-                _state.update { it.copy(
-                    screenShallBeKeptOn = action.keepScreenOn
-                ) }
-            }
-
             is BottomBarAction.OpenVoiceMenuSetting -> {
                 _state.update { it.copy(
                     openTTSVoiceMenu = action.open

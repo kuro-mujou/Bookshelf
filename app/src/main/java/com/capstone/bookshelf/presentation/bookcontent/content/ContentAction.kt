@@ -1,6 +1,13 @@
 package com.capstone.bookshelf.presentation.bookcontent.content
 
+import android.speech.tts.Voice
+import com.capstone.bookshelf.domain.wrapper.Book
+import java.util.Locale
+
 sealed interface ContentAction {
+    data class SelectedBook(val book: Book): ContentAction
+
+    data class UpdateFlagTriggerScrolling(val value: Boolean) : ContentAction
     data class UpdateFlagTriggerAdjustScroll(val value: Boolean) : ContentAction
     data class UpdateFlagStartScrolling(val value: Boolean): ContentAction
     data class UpdateFlagScrollAdjusted(val value: Boolean): ContentAction
@@ -11,6 +18,23 @@ sealed interface ContentAction {
     data class UpdatePreviousChapterIndex(val index: Int) : ContentAction
     data class UpdateScreenWidth(val value: Int) : ContentAction
     data class UpdateScreenHeight(val value: Int) : ContentAction
-    data class UpdateTotalChapter(val value: Int) : ContentAction
-    data class UpdateChapterIndexForBook(val index: Int) : ContentAction
+    data class UpdateBookInfo(val index: Int) : ContentAction
+    data class UpdateChapterHeader(val header: String) : ContentAction
+
+    data class UpdateIsSpeaking(val isSpeaking: Boolean) : ContentAction
+    data class UpdateIsPaused(val isPaused: Boolean) : ContentAction
+    data class UpdateIsFocused(val isFocused: Boolean) : ContentAction
+    data class UpdateTTSLanguage(val currentLanguage: Locale) : ContentAction
+    data class UpdateTTSVoice(val currentVoice: Voice?) : ContentAction
+    data class UpdateTTSSpeed(val currentSpeed: Float) : ContentAction
+    data class UpdateTTSPitch(val currentPitch: Float) : ContentAction
+    data class UpdateCurrentReadingParagraph(val pos: Int): ContentAction
+    data class UpdateScrollTime(val scrollTimes: Int): ContentAction
+
+    data class UpdateSelectedFontFamilyIndex(val index: Int) : ContentAction
+    data class UpdateFontSize(val fontSize: Int) : ContentAction
+    data class UpdateTextAlign(val textAlign: Boolean) : ContentAction
+    data class UpdateTextIndent(val textIndent: Boolean) : ContentAction
+    data class UpdateLineSpacing(val lineSpacing: Int) : ContentAction
+    data class UpdateKeepScreenOn(val keepScreenOn: Boolean) : ContentAction
 }

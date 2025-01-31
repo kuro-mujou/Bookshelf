@@ -119,9 +119,3 @@ private fun calculateAngleFomLocalCoordinates(center: Offset, position: Offset):
     val dx = position.x - center.x
     return ((360 + ((atan2(dy, dx) * 180 / PI))) % 360).roundToInt()
 }
-private fun calculateAngleFromRootCoordinates(center: Offset, position: Offset): Int {
-    if (center == Offset.Unspecified || position == Offset.Unspecified) return -1
-    val dy = (position.y - center.y)
-    val dx = (center.x - position.x)
-    return ((360 + ((atan2(dy, dx) * 180 / PI))) % 360).roundToInt()
-}

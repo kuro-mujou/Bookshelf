@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,12 +30,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.capstone.bookshelf.presentation.SelectedBookViewModel
-import com.capstone.bookshelf.presentation.bookcontent.BookContentRootAction
-import com.capstone.bookshelf.presentation.bookcontent.BookContentRootViewModel
 import com.capstone.bookshelf.presentation.bookcontent.BookContentScreenRoot
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontAction
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontViewModel
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookdetail.BookDetailAction
 import com.capstone.bookshelf.presentation.bookdetail.BookDetailScreenRoot
@@ -148,13 +144,10 @@ fun SetupNavGraph(
                 var isContentLoading by remember { mutableStateOf(true) }
                 val selectedBookViewModel =
                     nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
-                val viewModel = koinViewModel<BookContentRootViewModel>()
                 val colorPaletteViewModel = koinViewModel<ColorPaletteViewModel>()
-                val contentViewModel = koinViewModel<ContentViewModel>()
-                val fontViewModel = koinViewModel<FontViewModel>()
+                val viewModel = koinViewModel<ContentViewModel>()
                 val dataStoreManager = DataStoreManager(LocalContext.current)
                 val selectedBook by selectedBookViewModel.selectedBook.collectAsStateWithLifecycle()
-                var currentChapterIndex by remember { mutableIntStateOf(0) }
                 if(isContentLoading){
                     LoadingAnimation()
                 }
@@ -162,31 +155,23 @@ fun SetupNavGraph(
 
                 }
                 LaunchedEffect(selectedBook) {
-                    selectedBook?.let { sbook->
-                        viewModel.onAction(BookContentRootAction.SelectedBook(sbook))
-//                        val book = sbook.storagePath?.let { loadEpubFile(it) }
-//                        if (book != null) {
-//                            importBookViewModel.processAndSaveBook(book, context, sbook.storagePath)
-//                        }
+                    selectedBook?.let {
+                        viewModel.onContentAction(dataStoreManager,ContentAction.SelectedBook(it))
                     }
-                    currentChapterIndex = contentViewModel.getChapterIndex()
                     colorPaletteViewModel.updateBackgroundColor(Color(dataStoreManager.backgroundColor.first()))
                     colorPaletteViewModel.updateTextColor(Color(dataStoreManager.textColor.first()))
                     colorPaletteViewModel.updateSelectedColorSet(dataStoreManager.selectedColorSet.first())
-                    fontViewModel.onAction(FontAction.UpdateFontSize(dataStoreManager.fontSize.first()))
-                    fontViewModel.onAction(FontAction.UpdateTextAlign(dataStoreManager.textAlign.first()))
-                    fontViewModel.onAction(FontAction.UpdateTextIndent(dataStoreManager.textIndent.first()))
-                    fontViewModel.onAction(FontAction.UpdateLineSpacing(dataStoreManager.lineSpacing.first()))
-                    fontViewModel.onAction(FontAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
+                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFontSize(dataStoreManager.fontSize.first()))
+                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTextAlign(dataStoreManager.textAlign.first()))
+                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTextIndent(dataStoreManager.textIndent.first()))
+                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateLineSpacing(dataStoreManager.lineSpacing.first()))
+                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
                     yield()
                     isContentLoading = false
                 }
                 BookContentScreenRoot(
                     viewModel = viewModel,
-                    currentChapterIndex = currentChapterIndex,
-                    contentViewModel = contentViewModel,
                     colorPaletteViewModel = colorPaletteViewModel,
-                    fontViewModel = fontViewModel,
                     dataStoreManager = dataStoreManager,
                     onBackClick = {
                         navController.navigateUp()
@@ -194,10 +179,6 @@ fun SetupNavGraph(
                     launchAlertDialog = { state ->
                         navController.navigateUp()
                         launchAlertDialog = state
-//                        val book = selectedBook?.storagePath?.let { loadEpubFile(it) }
-//                        if (book != null) {
-//                            importBookViewModel.processAndSaveBook(book, context, selectedBook?.storagePath!!)
-//                        }
                     }
                 )
             }

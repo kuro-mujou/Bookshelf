@@ -44,7 +44,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -60,8 +59,8 @@ import coil.request.SuccessResult
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookdetail.component.BookChip
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -135,7 +134,7 @@ fun BookDetailScreenRoot(
                         .then(
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                 Modifier
-                                    .haze(state = hazeState)
+                                    .hazeSource(state = hazeState)
                             }
                             else
                                 Modifier
@@ -173,7 +172,7 @@ fun BookDetailScreenRoot(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.go_back),
+                                contentDescription = null,
                                 tint = Color.White
                             )
                         }
@@ -221,7 +220,7 @@ fun BookDetailScreenRoot(
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                         Modifier
                                             .background(Color.Transparent)
-                                            .hazeChild(
+                                            .hazeEffect(
                                                 state = hazeState,
                                                 style = style
                                             )

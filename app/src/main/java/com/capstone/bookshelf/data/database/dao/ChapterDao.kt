@@ -6,7 +6,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChapterDao {
@@ -16,7 +15,4 @@ interface ChapterDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertChapterContent(chapterContent: ChapterContentEntity)
-
-    @Query("SELECT COUNT(*) FROM chapter_content WHERE bookId = :bookId")
-    fun getPageSize(bookId: Int): Flow<Int>
 }

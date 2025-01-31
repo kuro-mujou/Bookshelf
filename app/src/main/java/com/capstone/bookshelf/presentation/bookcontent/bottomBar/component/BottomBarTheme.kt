@@ -46,32 +46,30 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.model.ColorSample
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPicker
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontAction
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontState
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontViewModel
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomBarTheme(
+    viewModel : ContentViewModel,
+    colorPaletteViewModel: ColorPaletteViewModel,
+    contentState : ContentState,
+    colorPaletteState: ColorPalette,
     hazeState: HazeState,
     style: HazeStyle,
-    colorPaletteViewModel: ColorPaletteViewModel,
-    fontViewModel: FontViewModel,
-    bottomBarState: BottomBarState,
     dataStore: DataStoreManager,
-    colorPaletteState: ColorPalette,
-    fontState: FontState
 ) {
     var openColorPickerForBackground by remember { mutableStateOf(false) }
     var openColorPickerForText by remember { mutableStateOf(false) }
@@ -115,7 +113,7 @@ fun BottomBarTheme(
             .wrapContentHeight()
             .then(
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                    Modifier.hazeChild(
+                    Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
@@ -225,18 +223,18 @@ fun BottomBarTheme(
             modifier = Modifier.fillMaxWidth().wrapContentHeight(),
         ) {
             itemsIndexed(
-                items = fontState.fontFamilies,
+                items = contentState.fontFamilies,
             ) {index, sample->
                 SampleFontItem(
                     fontSample = sample,
-                    fontName = fontState.fontNames[index],
-                    selected = fontState.selectedFontFamilyIndex == index,
+                    fontName = contentState.fontNames[index],
+                    selected = contentState.selectedFontFamilyIndex == index,
                     colorPaletteState = colorPaletteState,
                     onClick = {
                         scope.launch {
                             dataStore.setFontFamily(index)
                         }
-                        fontViewModel.onAction(FontAction.UpdateSelectedFontFamilyIndex(index))
+                        viewModel.onContentAction(dataStore,ContentAction.UpdateSelectedFontFamilyIndex(index))
                     }
                 )
             }
@@ -254,13 +252,13 @@ fun BottomBarTheme(
             )
             Slider(
                 modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
-                value = fontState.fontSize.toFloat(),
+                value = contentState.fontSize.toFloat(),
                 onValueChange = { value ->
-                    fontViewModel.onAction(FontAction.UpdateFontSize(value.roundToInt()))
+                    viewModel.onContentAction(dataStore,ContentAction.UpdateFontSize(value.roundToInt()))
                 },
                 onValueChangeFinished = {
                     scope.launch {
-                        dataStore.setFontSize(fontState.fontSize)
+                        dataStore.setFontSize(contentState.fontSize)
                     }
                 },
                 colors = SliderDefaults.colors(
@@ -281,7 +279,7 @@ fun BottomBarTheme(
                         contentAlignment = Alignment.Center
                     ){
                         Text(
-                            text = "${fontState.fontSize}",
+                            text = "${contentState.fontSize}",
                             style = TextStyle(color = colorPaletteState.containerColor)
                         )
                     }
@@ -302,13 +300,13 @@ fun BottomBarTheme(
             )
             Slider(
                 modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
-                value = fontState.lineSpacing.toFloat(),
+                value = contentState.lineSpacing.toFloat(),
                 onValueChange = { value ->
-                    fontViewModel.onAction(FontAction.UpdateLineSpacing(value.roundToInt()))
+                    viewModel.onContentAction(dataStore,ContentAction.UpdateLineSpacing(value.roundToInt()))
                 },
                 onValueChangeFinished = {
                     scope.launch {
-                        dataStore.setLineSpacing(fontState.lineSpacing)
+                        dataStore.setLineSpacing(contentState.lineSpacing)
                     }
                 },
                 colors = SliderDefaults.colors(
@@ -329,7 +327,7 @@ fun BottomBarTheme(
                         contentAlignment = Alignment.Center
                     ){
                         Text(
-                            text = "${fontState.lineSpacing}",
+                            text = "${contentState.lineSpacing}",
                             style = TextStyle(color = colorPaletteState.containerColor)
                         )
                     }
@@ -353,15 +351,15 @@ fun BottomBarTheme(
                     .background(color = colorPaletteState.containerColor)
                     .clickable(
                         onClick = {
-                            fontViewModel.onAction(FontAction.UpdateTextAlign(!fontState.textAlign))
+                            viewModel.onContentAction(dataStore,ContentAction.UpdateTextAlign(!contentState.textAlign))
                             scope.launch {
-                                dataStore.setTextAlign(!fontState.textAlign)
+                                dataStore.setTextAlign(!contentState.textAlign)
                             }
                         }
                     ),
                 contentAlignment = Alignment.Center
             ){
-                val displayState = if(fontState.textAlign) "Justify" else "Left"
+                val displayState = if(contentState.textAlign) "Justify" else "Left"
                 Text(
                     text = "Align: $displayState",
                     style = TextStyle(color = colorPaletteState.textColor)
@@ -376,15 +374,15 @@ fun BottomBarTheme(
                     .background(color = colorPaletteState.containerColor)
                     .clickable(
                         onClick = {
-                            fontViewModel.onAction(FontAction.UpdateTextIndent(!fontState.textIndent))
+                            viewModel.onContentAction(dataStore,ContentAction.UpdateTextIndent(!contentState.textIndent))
                             scope.launch {
-                                dataStore.setTextIndent(!fontState.textIndent)
+                                dataStore.setTextIndent(!contentState.textIndent)
                             }
                         }
                     ),
                 contentAlignment = Alignment.Center
             ){
-                val displayState = if(fontState.textIndent) "Indent" else "No Indent"
+                val displayState = if(contentState.textIndent) "Indent" else "No Indent"
                 Text(
                     text = displayState,
                     style = TextStyle(color = colorPaletteState.textColor)

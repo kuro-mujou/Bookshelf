@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 class DrawerContainerViewModel(
     private val tableOfContentRepository: TableOfContentRepository,
-    private val savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val bookId = savedStateHandle.toRoute<Route.BookContent>().bookId

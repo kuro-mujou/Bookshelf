@@ -45,17 +45,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.domain.wrapper.Chapter
-import com.capstone.bookshelf.presentation.bookcontent.BookContentRootState
-import com.capstone.bookshelf.presentation.bookcontent.KeepScreenOn
-import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontState
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.HeaderContent
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.HeaderText
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ImageComponent
@@ -65,7 +58,7 @@ import com.capstone.bookshelf.presentation.bookcontent.content.content_component
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -75,18 +68,13 @@ import kotlin.math.abs
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContentScreen(
-    ttsViewModel: TTSViewModel,
-    contentViewModel: ContentViewModel,
+    viewModel: ContentViewModel,
     autoScrollViewModel: AutoScrollViewModel,
-    bottomBarState: BottomBarState,
     hazeState: HazeState,
     pagerState : PagerState,
-    bookContentRootState : BookContentRootState,
     drawerContainerState: DrawerContainerState,
     contentState : ContentState,
-    ttsState : TTSState,
     colorPaletteState: ColorPalette,
-    fontState: FontState,
     autoScrollState: AutoScrollState,
     dataStoreManager: DataStoreManager,
     updateSystemBar: () -> Unit,
@@ -99,18 +87,12 @@ fun ContentScreen(
     var callbackLoadChapter by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var lazyListState by remember { mutableStateOf<LazyListState?>(LazyListState()) }
-//    val currentReadingItemIndex by rememberUpdatedState(newValue = contentState.firstVisibleItemIndex)
-//    val isFocused by rememberUpdatedState(newValue = ttsState.isFocused)
-    if(autoScrollState.isStart)
-        KeepScreenOn(true)
-    else
-        KeepScreenOn(false)
     Surface(
         modifier = Modifier
             .fillMaxSize()
             .then(
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                    Modifier.haze(hazeState)
+                    Modifier.hazeSource(hazeState)
                 else
                     Modifier
             ),
@@ -135,7 +117,7 @@ fun ContentScreen(
                 callbackLoadChapter = false
             }
             lazyListState = lazyListStates[contentState.currentChapterIndex]
-            ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateCurrentChapterContent(chapterContents[contentState.currentChapterIndex]))
+            contentState.service?.setChapterParagraphs(chapterContents)
             if(autoScrollState.isStart && autoScrollState.isPaused){
                 delay(1000)
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
@@ -147,14 +129,14 @@ fun ContentScreen(
             modifier = Modifier
                 .fillMaxSize(),
             beyondViewportPageCount = beyondBoundsPageCount,
-            userScrollEnabled = bookContentRootState.enablePagerScroll,
+            userScrollEnabled = contentState.enablePagerScroll,
             key = { page -> page }
         ) { page ->
             val newPage by rememberUpdatedState(newValue = page)
-            val chapterContent by contentViewModel.chapterContent
+            val chapterContent by viewModel.chapterContent
             var data by remember { mutableStateOf<Chapter?>(null) }
             val listState = lazyListStates.getOrPut(newPage){ LazyListState() }
-            val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean,ColorPalette,FontState) -> Unit>())}
+            val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean,ColorPalette,ContentState) -> Unit>())}
             val density = LocalDensity.current
             var hasPrintedAtEnd by remember { mutableStateOf(false) }
             var isAnimationRunning by remember { mutableStateOf(false) }
@@ -176,7 +158,7 @@ fun ContentScreen(
             LaunchedEffect(triggerLoadChapter) {
                 if (triggerLoadChapter && data == null) {
                     try{
-                        contentViewModel.getChapter((page))
+                        viewModel.getChapter((page))
                         data = chapterContent
                         parseListToUsableLists(data!!.content).also{
                             contentList.value = it.first
@@ -190,7 +172,7 @@ fun ContentScreen(
                 }
             }
             LaunchedEffect(pagerState.targetPage) {
-                contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
                 currentChapter(pagerState.targetPage,0,autoScrollState.isStart)
             }
             LaunchedEffect(lazyListState) {
@@ -198,7 +180,7 @@ fun ContentScreen(
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
-                                contentViewModel.onAction(ContentAction.UpdateLastVisibleItemIndex(index))
+                                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateLastVisibleItemIndex(index))
                             }
                         }
                 }
@@ -209,7 +191,7 @@ fun ContentScreen(
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
-                                contentViewModel.onAction(ContentAction.UpdateFirstVisibleItemIndex(index))
+                                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFirstVisibleItemIndex(index))
                             }
                         }
                 }
@@ -218,8 +200,9 @@ fun ContentScreen(
             LaunchedEffect(lazyListState){
                 lazyListState?.let {
                     snapshotFlow { it.isScrollInProgress && !pagerState.isScrollInProgress }.collect { scrolling ->
-                        if (scrolling && (ttsState.isSpeaking || ttsState.isPaused) && ttsState.currentReadingParagraph == contentState.firstVisibleItemIndex) {
-                            contentViewModel.onAction(
+                        if (scrolling && (contentState.isSpeaking || contentState.isPaused) && contentState.currentReadingParagraph == contentState.firstVisibleItemIndex) {
+                            viewModel.onContentAction(
+                                dataStoreManager,
                                 ContentAction.UpdateFlagTriggerAdjustScroll(
                                     true
                                 )
@@ -229,15 +212,16 @@ fun ContentScreen(
                 }
             }
 
-            LaunchedEffect(ttsState.currentReadingParagraph) {
+            LaunchedEffect(contentState.currentReadingParagraph) {
                 lazyListState?.let {
-                    if ((ttsState.currentReadingParagraph >= contentState.lastVisibleItemIndex
-                                || ttsState.currentReadingParagraph <= contentState.firstVisibleItemIndex)
+                    if ((contentState.currentReadingParagraph >= contentState.lastVisibleItemIndex
+                                || contentState.currentReadingParagraph <= contentState.firstVisibleItemIndex)
                         && !contentState.flagTriggerScrolling
                     ) {
-                        if (ttsState.isSpeaking) {
-                            it.animateScrollToItem(ttsState.currentReadingParagraph)
-                            contentViewModel.onAction(
+                        if (contentState.isSpeaking) {
+                            it.animateScrollToItem(contentState.currentReadingParagraph)
+                            viewModel.onContentAction(
+                                dataStoreManager,
                                 ContentAction.UpdateFlagTriggerAdjustScroll(
                                     false
                                 )
@@ -249,31 +233,32 @@ fun ContentScreen(
 
             LaunchedEffect(contentState.flagTriggerScrolling){
                 if(contentState.flagTriggerScrolling)
-                    contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(true))
+                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartScrolling(true))
             }
 
             LaunchedEffect(contentState.flagStartScrolling){
                 lazyListState?.let {
                     if (contentState.flagStartScrolling) {
-                        if (ttsState.currentReadingParagraph != contentState.firstVisibleItemIndex) {
-                            it.animateScrollToItem(ttsState.currentReadingParagraph)
-                            contentViewModel.onAction(
+                        if (contentState.currentReadingParagraph != contentState.firstVisibleItemIndex) {
+                            it.animateScrollToItem(contentState.currentReadingParagraph)
+                            viewModel.onContentAction(
+                                dataStoreManager,
                                 ContentAction.UpdateFlagTriggerAdjustScroll(
                                     false
                                 )
                             )
-                            contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(true))
+                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagScrollAdjusted(true))
 
                         } else if (!contentState.flagTriggerAdjustScroll) {
                             it.animateScrollBy(value = contentState.screenHeight.toFloat())
-                            contentViewModel.onAction(
+                            viewModel.onContentAction(dataStoreManager,
                                 ContentAction.UpdateFlagTriggerAdjustScroll(
                                     false
                                 )
                             )
-                            contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(false))
+                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartScrolling(false))
                         } else {
-                            contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(true))
+                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartScrolling(true))
                         }
                     }
                 }
@@ -282,10 +267,10 @@ fun ContentScreen(
             LaunchedEffect(contentState.flagStartAdjustScroll){
                 lazyListState?.let {
                     if (contentState.flagStartAdjustScroll) {
-                        it.animateScrollToItem(ttsState.currentReadingParagraph)
-                        contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                        contentViewModel.onAction(ContentAction.UpdateFlagStartAdjustScroll(false))
-                        contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(true))
+                        it.animateScrollToItem(contentState.currentReadingParagraph)
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartAdjustScroll(false))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagScrollAdjusted(true))
                     }
                 }
             }
@@ -293,10 +278,10 @@ fun ContentScreen(
             LaunchedEffect(contentState.flagScrollAdjusted){
                 lazyListState?.let {
                     if (contentState.flagScrollAdjusted) {
-                        it.animateScrollBy(value = contentState.screenHeight.toFloat() * ttsState.scrollTime)
-                        contentViewModel.onAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                        contentViewModel.onAction(ContentAction.UpdateFlagScrollAdjusted(false))
-                        contentViewModel.onAction(ContentAction.UpdateFlagStartScrolling(false))
+                        it.animateScrollBy(value = contentState.screenHeight.toFloat() * contentState.scrollTime)
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagScrollAdjusted(false))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartScrolling(false))
                     }
                 }
             }
@@ -375,12 +360,13 @@ fun ContentScreen(
                                 color = colorPaletteState.textColor,
                             )
                         )
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateChapterHeader(it))
                     }
                     Text(
                         modifier = Modifier
                             .statusBarsPadding()
                             .wrapContentWidth(),
-                        text = "${pagerState.currentPage + 1} / ${contentState.totalChapter}",
+                        text = "${pagerState.currentPage + 1} / ${contentState.book?.totalChapter}",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             textAlign = TextAlign.Right
@@ -415,8 +401,8 @@ fun ContentScreen(
                             }
                         )
                         .onGloballyPositioned { coordinates ->
-                            contentViewModel.onAction(ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
-                            contentViewModel.onAction(ContentAction.UpdateScreenHeight(coordinates.size.height))
+                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
+                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateScreenHeight(coordinates.size.height))
                         },
                     state = listState,
                 ) {
@@ -425,10 +411,10 @@ fun ContentScreen(
                         key = { index, _ -> index }
                     ) { index, composable ->
                         composable(
-                            index == ttsState.currentReadingParagraph,
-                            ttsState.isFocused,
+                            index == contentState.currentReadingParagraph,
+                            contentState.isFocused,
                             colorPaletteState,
-                            fontState
+                            contentState
                         )
                     }
                 }
@@ -458,8 +444,8 @@ fun ContentScreen(
 @SuppressLint("SdCardPath")
 private fun parseListToUsableLists(
     paragraphs: List<String>,
-): Pair<List<@Composable (Boolean, Boolean, ColorPalette, FontState) -> Unit>,List<String>> {
-    val composable = mutableListOf<@Composable (Boolean,Boolean,ColorPalette,FontState) -> Unit>()
+): Pair<List<@Composable (Boolean, Boolean, ColorPalette, ContentState) -> Unit>,List<String>> {
+    val composable = mutableListOf<@Composable (Boolean,Boolean,ColorPalette,ContentState) -> Unit>()
     val ttsParagraph = mutableListOf<String>()
     paragraphs.forEach {
         val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
@@ -475,16 +461,16 @@ private fun parseListToUsableLists(
                         )
                     )
                 }
-                ttsParagraph.add(linkPattern.replace(it, replacement = " "))
+                ttsParagraph.add(" ")
             }else if(headerPatten.containsMatchIn(it)) {
                 if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
                     composable.add {isHighlighted, isSpeaking, colorPaletteState, fontState ->
                         HeaderText(
                             colorPaletteState = colorPaletteState,
-                            fontState = fontState,
+                            contentState = fontState,
                             content = HeaderContent(
                                 content = htmlTagPattern.replace(it, replacement = ""),
-                                fontState = fontState,
+                                contentState = fontState,
                                 level = headerLevel.find(it)!!.groupValues[1].toInt(),
                             ),
                             isHighlighted = isHighlighted,
@@ -498,10 +484,10 @@ private fun parseListToUsableLists(
                     composable.add { isHighlighted,isSpeaking, colorPaletteState, fontState->
                         ParagraphText(
                             colorPaletteState = colorPaletteState,
-                            fontState = fontState,
+                            contentState = fontState,
                             content = ParagraphContent(
                                 content = it,
-                                fontState = fontState,
+                                contentState = fontState,
                             ),
                             isHighlighted = isHighlighted,
                             isSpeaking = isSpeaking

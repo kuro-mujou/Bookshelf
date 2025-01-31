@@ -44,7 +44,4 @@ class BookRepositoryImpl(
         }
         bookDao.deleteBooks(bookEntities)
     }
-    override suspend fun getBookById(bookId: String): Book {
-        return bookDao.getBookById(bookId).toDataClass()
-    }
 }

@@ -23,21 +23,21 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.AutoScrollMenuDialog
+import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun BottomBarAutoScroll(
+    dataStoreManager: DataStoreManager,
     hazeState: HazeState,
     style: HazeStyle,
     autoScrollViewModel : AutoScrollViewModel,
     bottomBarState: BottomBarState,
     autoScrollState: AutoScrollState,
     colorPaletteState: ColorPalette,
-    onPreviousChapterIconClick: () -> Unit,
     onPlayPauseIconClick: () -> Unit,
-    onNextChapterIconClick: () -> Unit,
     onStopIconClick: () -> Unit,
     onSettingIconClick: () -> Unit,
     onDismissDialogRequest: () -> Unit,
@@ -48,7 +48,7 @@ fun BottomBarAutoScroll(
         R.drawable.ic_pause,
         R.drawable.ic_next_chapter,
         R.drawable.ic_stop,
-        //R.drawable.ic_setting
+        R.drawable.ic_settings
     )
     Column(
         modifier = Modifier
@@ -56,7 +56,7 @@ fun BottomBarAutoScroll(
             .wrapContentHeight()
             .then(
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                    Modifier.hazeChild(
+                    Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
@@ -73,19 +73,6 @@ fun BottomBarAutoScroll(
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ){
-            IconButton(
-                modifier = Modifier.size(50.dp),
-                onClick = {
-                    onPreviousChapterIconClick()
-                }
-            ) {
-                Icon(
-                    modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[0]),
-                    tint = colorPaletteState.textColor,
-                    contentDescription = "previous chapter"
-                )
-            }
             IconButton(
                 modifier = Modifier.size(50.dp),
                 onClick = {
@@ -107,19 +94,6 @@ fun BottomBarAutoScroll(
                         contentDescription = "play/pause"
                     )
                 }
-            }
-            IconButton(
-                modifier = Modifier.size(50.dp),
-                onClick = {
-                    onNextChapterIconClick()
-                }
-            ) {
-                Icon(
-                    modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[3]),
-                    tint = colorPaletteState.textColor,
-                    contentDescription = "next chapter"
-                )
             }
         }
         Row(
@@ -150,7 +124,7 @@ fun BottomBarAutoScroll(
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[4]),
+                    painter = painterResource(id = iconList[5]),
                     tint = colorPaletteState.textColor,
                     contentDescription = "setting"
                 )
@@ -162,6 +136,7 @@ fun BottomBarAutoScroll(
                 autoScrollState = autoScrollState,
                 autoScrollViewModel = autoScrollViewModel,
                 colorPaletteState = colorPaletteState,
+                dataStoreManager = dataStoreManager,
                 onDismissRequest = {
                     onDismissDialogRequest()
                 }

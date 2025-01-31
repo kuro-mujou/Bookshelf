@@ -22,7 +22,7 @@ object PreferencesKeys {
     val TTS_PITCH = floatPreferencesKey("TTS_PITCH")
     val TTS_LOCALE = stringPreferencesKey("TTS_LOCALE")
     val TTS_VOICE = stringPreferencesKey("TTS_VOICE")
-    val AUTO_SCROLL_SPEED = floatPreferencesKey("AUTO_SCROLL_SPEED")
+    val AUTO_SCROLL_SPEED = intPreferencesKey("AUTO_SCROLL_SPEED")
     val BACKGROUND_COLOR = intPreferencesKey("BACKGROUND_COLOR")
     val TEXT_COLOR = intPreferencesKey("TEXT_COLOR")
     val SELECTED_COLOR_SET = intPreferencesKey("SELECTED_COLOR_SET")
@@ -50,8 +50,8 @@ class DataStoreManager(val context: Context) {
     val ttsVoice: Flow<String> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.TTS_VOICE] ?: ""
     }
-    val autoScrollSpeed: Flow<Float> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.AUTO_SCROLL_SPEED] ?: 1f
+    val autoScrollSpeed: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.AUTO_SCROLL_SPEED] ?: 10000
     }
     val backgroundColor: Flow<Int> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.BACKGROUND_COLOR] ?: Color.White.toArgb()
@@ -105,7 +105,7 @@ class DataStoreManager(val context: Context) {
             preferences[PreferencesKeys.TTS_VOICE] = value
         }
     }
-    suspend fun setAutoScrollSpeed(value: Float) {
+    suspend fun setAutoScrollSpeed(value: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.AUTO_SCROLL_SPEED] = value
         }

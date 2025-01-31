@@ -3,7 +3,6 @@ package com.capstone.bookshelf.presentation.bookcontent.component.colorpicker
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,7 +16,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -266,13 +264,6 @@ fun getPointsInRhombus(length: Float): MutableList<ColorPoint> {
 }
 
 fun rhombusPath(size: Size) = Path().apply {
-    moveTo(size.width / 2f, 0f)
-    lineTo(size.width, size.height / 2f)
-    lineTo(size.width / 2f, size.height)
-    lineTo(0f, size.height / 2f)
-}
-
-val rhombusShape = GenericShape { size: Size, _: LayoutDirection ->
     moveTo(size.width / 2f, 0f)
     lineTo(size.width, size.height / 2f)
     lineTo(size.width / 2f, size.height)

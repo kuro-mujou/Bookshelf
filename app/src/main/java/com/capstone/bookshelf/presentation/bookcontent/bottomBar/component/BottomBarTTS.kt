@@ -19,25 +19,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.capstone.bookshelf.R
+import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
+import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.VoiceMenuDialog
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun BottomBarTTS(
+    viewModel : ContentViewModel,
+    bottomBarViewModel: BottomBarViewModel,
+    contentState : ContentState,
     hazeState: HazeState,
     style: HazeStyle,
-    ttsViewModel: TTSViewModel,
     bottomBarState: BottomBarState,
-    ttsState: TTSState,
     colorPaletteState: ColorPalette,
-    textToSpeech: TextToSpeech,
+    tts: TextToSpeech,
     dataStoreManager: DataStoreManager,
     onPreviousChapterIconClick: () -> Unit,
     onPreviousParagraphIconClick: () -> Unit,
@@ -57,6 +60,7 @@ fun BottomBarTTS(
         R.drawable.ic_next_chapter,
         R.drawable.ic_timer,
         R.drawable.ic_stop,
+        R.drawable.ic_settings
     )
     Column(
         modifier = Modifier
@@ -64,7 +68,7 @@ fun BottomBarTTS(
             .wrapContentHeight()
             .then(
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                    Modifier.hazeChild(
+                    Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
@@ -109,7 +113,7 @@ fun BottomBarTTS(
                     onPlayPauseIconClick()
                 }
             ) {
-                if(ttsState.isSpeaking) {
+                if(contentState.isSpeaking && !contentState.isPaused) {
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[3]),
@@ -193,7 +197,7 @@ fun BottomBarTTS(
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[7]),
+                    painter = painterResource(id = iconList[8]),
                     tint = colorPaletteState.textColor,
                     contentDescription = "tts setting"
                 )
@@ -204,14 +208,15 @@ fun BottomBarTTS(
 
     if(bottomBarState.openTTSVoiceMenu){
         VoiceMenuDialog(
-            ttsViewModel = ttsViewModel,
+            viewModel = viewModel,
             bottomBarState = bottomBarState,
-            ttsState = ttsState,
+            contentState = contentState,
             colorPaletteState = colorPaletteState,
-            textToSpeech = textToSpeech,
+            tts = tts,
             dataStoreManager = dataStoreManager,
             onDismiss = {
-
+                bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))
+                bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(false))
             },
             testVoiceButtonClicked = {
 

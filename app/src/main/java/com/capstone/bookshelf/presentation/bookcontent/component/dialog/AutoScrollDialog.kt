@@ -14,12 +14,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +34,8 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.util.DataStoreManager
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 
@@ -41,6 +45,7 @@ fun AutoScrollMenuDialog(
     autoScrollState: AutoScrollState,
     autoScrollViewModel: AutoScrollViewModel,
     colorPaletteState: ColorPalette,
+    dataStoreManager: DataStoreManager,
     onDismissRequest: () -> Unit,
 ){
     Dialog(
@@ -49,8 +54,10 @@ fun AutoScrollMenuDialog(
         }
     ) {
         var speedSliderValue by remember { mutableIntStateOf(autoScrollState.currentSpeed) }
+        val scope = rememberCoroutineScope()
         Surface(
             shape = RoundedCornerShape(8.dp),
+            color = colorPaletteState.containerColor,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight(),
@@ -97,6 +104,9 @@ fun AutoScrollMenuDialog(
                     },
                     onValueChangeFinished = {
                         autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(speedSliderValue))
+                        scope.launch {
+                            dataStoreManager.setAutoScrollSpeed(speedSliderValue)
+                        }
                     },
                     valueRange = 0.5f..1.5f,
                     steps = 5,
@@ -109,7 +119,11 @@ fun AutoScrollMenuDialog(
                                     shape = CircleShape
                                 )
                         )
-                    }
+                    },
+                    colors = SliderDefaults.colors(
+                        activeTrackColor = colorPaletteState.textColor,
+                        inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f)
+                    ),
                 )
             }
         }

@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar.component
 
-import android.content.Context
 import android.os.Build
 import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.background
@@ -30,43 +29,62 @@ import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
+import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.presentation.bookcontent.component.dialog.AutoScrollMenuDialog
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.VoiceMenuDialog
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun BottomBarSetting(
-    hazeState: HazeState,
-    style: HazeStyle,
+    viewModel : ContentViewModel,
     bottomBarViewModel: BottomBarViewModel,
-    ttsViewModel : TTSViewModel,
+    autoScrollViewModel: AutoScrollViewModel,
+    contentState: ContentState,
     bottomBarState: BottomBarState,
-    ttsState: TTSState,
     colorPaletteState: ColorPalette,
-    textToSpeech: TextToSpeech,
+    hazeState: HazeState,
+    autoScrollState: AutoScrollState,
+    style: HazeStyle,
     dataStoreManager: DataStoreManager,
-    context: Context,
+    tts : TextToSpeech,
     onSwitchChange: (Boolean) -> Unit
 ) {
     if(bottomBarState.openTTSVoiceMenu){
         VoiceMenuDialog(
-            ttsViewModel = ttsViewModel,
+            viewModel = viewModel,
             bottomBarState = bottomBarState,
-            ttsState = ttsState,
+            contentState = contentState,
             colorPaletteState = colorPaletteState,
-            textToSpeech = textToSpeech,
+            tts = tts,
             dataStoreManager = dataStoreManager,
             onDismiss = {
                 bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))
                 bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(false))
             },
             testVoiceButtonClicked = {
-                textToSpeech.speak("This is an example of a voice", TextToSpeech.QUEUE_FLUSH, null, "utteranceId")
+                tts.setLanguage(contentState.currentLanguage)
+                tts.setVoice(contentState.currentVoice)
+                contentState.currentPitch?.let { tts.setPitch(it) }
+                contentState.currentSpeed?.let { tts.setSpeechRate(it) }
+                tts.speak("xin chào", TextToSpeech.QUEUE_FLUSH, null, "utteranceId")
+            }
+        )
+    }
+    if(bottomBarState.openAutoScrollMenu){
+        AutoScrollMenuDialog(
+            autoScrollState = autoScrollState,
+            autoScrollViewModel = autoScrollViewModel,
+            colorPaletteState = colorPaletteState,
+            dataStoreManager = dataStoreManager,
+            onDismissRequest = {
+                bottomBarViewModel.onAction(BottomBarAction.OpenAutoScrollMenu(false))
             }
         )
     }
@@ -76,7 +94,7 @@ fun BottomBarSetting(
             .height(300.dp)
             .then(
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                    Modifier.hazeChild(
+                    Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
@@ -110,10 +128,8 @@ fun BottomBarSetting(
                 )
             )
             Switch(
-                checked = bottomBarState.screenShallBeKeptOn,
+                checked = contentState.keepScreenOn,
                 onCheckedChange = {
-//                    viewModel.updateKeepScreenOn(it)
-//                    viewModel.updateBookSettingKeepScreenOn(it)
                     onSwitchChange(it)
                 },
                 colors = SwitchDefaults.colors(
@@ -133,7 +149,7 @@ fun BottomBarSetting(
                 .height(50.dp)
                 .clickable {
                     bottomBarViewModel.onAction(BottomBarAction.OpenSetting(true))
-                    ttsViewModel.loadTTSSetting(dataStoreManager,textToSpeech)
+                    viewModel.loadTTSSetting(dataStoreManager,tts)
                     bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
                 },
             verticalAlignment = Alignment.CenterVertically,
@@ -159,7 +175,7 @@ fun BottomBarSetting(
                 .fillMaxWidth()
                 .height(50.dp)
                 .clickable{
-
+                    bottomBarViewModel.onAction(BottomBarAction.OpenAutoScrollMenu(true))
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween

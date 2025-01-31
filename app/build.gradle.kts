@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.capstone.bookshelf"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -77,6 +77,8 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.paging)
+    implementation(libs.androidx.lifecycle.service)
+    implementation(libs.androidx.media)
     annotationProcessor(libs.androidx.room.compiler)
     ksp(libs.androidx.room.compiler)
     //palette
@@ -111,6 +113,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     //glass effect
     implementation(libs.haze.materials)
+    //media3
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

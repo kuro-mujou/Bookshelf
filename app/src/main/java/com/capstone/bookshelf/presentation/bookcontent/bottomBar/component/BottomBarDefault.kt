@@ -1,7 +1,9 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar.component
 
 import android.os.Build
+import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,7 +30,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.Col
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
 
 
 @Composable
@@ -54,7 +56,7 @@ fun BottomBarDefault(
             .wrapContentHeight()
             .then(
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                    Modifier.hazeChild(
+                    Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
@@ -68,7 +70,13 @@ fun BottomBarDefault(
         Spacer(modifier = Modifier.height(10.dp))
         drawerContainerState.currentTOC?.let {
             Text(
-                modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+                modifier = Modifier
+                    .padding(start = 10.dp, end = 10.dp)
+                    .basicMarquee(
+                        animationMode = MarqueeAnimationMode.Immediately,
+                        initialDelayMillis = 0,
+                        repeatDelayMillis = 0
+                    ),
                 text = it.title,
                 overflow = TextOverflow.Ellipsis,
                 style = TextStyle(

@@ -34,14 +34,14 @@ import androidx.compose.ui.window.PopupPositionProvider
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.NoteDialog
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontState
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HeaderText(
     colorPaletteState: ColorPalette,
-    fontState: FontState,
+    contentState: ContentState,
     content: HeaderContent,
     isHighlighted: Boolean,
     isSpeaking: Boolean
@@ -90,11 +90,11 @@ fun HeaderText(
             style = TextStyle(
                 fontSize = content.fontSize.floatValue.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = fontState.fontFamilies[fontState.selectedFontFamilyIndex],
+                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                 textAlign = TextAlign.Center,
                 color = colorPaletteState.textColor,
                 background = color,
-                lineHeight = (content.fontSize.floatValue + content.fontState.lineSpacing).sp
+                lineHeight = (content.fontSize.floatValue + content.contentState.lineSpacing).sp
             )
         )
     }
@@ -103,7 +103,7 @@ fun HeaderText(
 @Composable
 fun ParagraphText(
     colorPaletteState: ColorPalette,
-    fontState: FontState,
+    contentState: ContentState,
     content: ParagraphContent,
     isHighlighted: Boolean,
     isSpeaking: Boolean,
@@ -150,17 +150,17 @@ fun ParagraphText(
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp),
             text = content.text.value,
             style = TextStyle(
-                textIndent = if(content.fontState.textIndent)
-                                TextIndent(firstLine = (content.fontState.fontSize * 2).sp)
+                textIndent = if(content.contentState.textIndent)
+                                TextIndent(firstLine = (content.contentState.fontSize * 2).sp)
                             else
                                 TextIndent.None,
-                textAlign = if(content.fontState.textAlign) TextAlign.Justify else TextAlign.Left,
-                fontSize = content.fontState.fontSize.sp,
-                fontFamily = fontState.fontFamilies[fontState.selectedFontFamilyIndex],
+                textAlign = if(content.contentState.textAlign) TextAlign.Justify else TextAlign.Left,
+                fontSize = content.contentState.fontSize.sp,
+                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                 color = colorPaletteState.textColor,
                 background = color,
                 lineBreak = LineBreak.Paragraph,
-                lineHeight = (content.fontState.fontSize + content.fontState.lineSpacing).sp
+                lineHeight = (content.contentState.fontSize + content.contentState.lineSpacing).sp
             ),
         )
     }

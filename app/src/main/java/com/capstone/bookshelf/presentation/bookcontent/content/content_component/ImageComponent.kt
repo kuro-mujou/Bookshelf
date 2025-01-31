@@ -50,7 +50,7 @@ fun ImageComponent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
-                            val zoom = content.zoom.value
+                            val zoom = content.zoom.floatValue
                             val offset = content.offset.value
                             translationX = offset.x
                             translationY = offset.y
@@ -62,10 +62,10 @@ fun ImageComponent(
                                 awaitFirstDown()
                                 do {
                                     val event = awaitPointerEvent()
-                                    var zoom = content.zoom.value
+                                    var zoom = content.zoom.floatValue
                                     zoom *= event.calculateZoom()
                                     zoom = zoom.coerceIn(1f, 3f)
-                                    content.zoom.value = zoom
+                                    content.zoom.floatValue = zoom
                                     val pan = event.calculatePan()
                                     val currentOffset = if (zoom == 1f) {
                                         Offset.Zero

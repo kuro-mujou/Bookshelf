@@ -11,5 +11,4 @@ data class BottomBarState (
     val openAutoScrollMenu : Boolean = false,
     val openSetting : Boolean = false,
     val currentChapterHeader : String? = "test",
-    val screenShallBeKeptOn : Boolean = false,
 )

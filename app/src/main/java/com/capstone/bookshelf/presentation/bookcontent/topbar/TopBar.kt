@@ -18,7 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -43,7 +43,7 @@ fun TopBar(
                 .wrapContentHeight()
                 .then(
                     if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                        Modifier.hazeChild(
+                        Modifier.hazeEffect(
                             state = hazeState,
                             style = style
                         )

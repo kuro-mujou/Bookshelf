@@ -1,7 +1,5 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar
 
-import android.content.Context
-import android.speech.tts.TextToSpeech
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -17,11 +15,9 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontState
-import com.capstone.bookshelf.presentation.bookcontent.component.font.FontViewModel
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
@@ -33,27 +29,25 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun BottomBarManager(
+    viewModel: ContentViewModel,
     topBarViewModel: TopBarViewModel,
     bottomBarViewModel: BottomBarViewModel,
     autoScrollViewModel: AutoScrollViewModel,
-    ttsViewModel: TTSViewModel,
     colorPaletteViewModel: ColorPaletteViewModel,
-    fontViewModel: FontViewModel,
     hazeState: HazeState,
-    bottomBarState : BottomBarState,
-    ttsState: TTSState,
+    bottomBarState: BottomBarState,
+    contentState: ContentState,
     autoScrollState: AutoScrollState,
     drawerContainerState: DrawerContainerState,
-    dataStoreManager : DataStoreManager,
+    dataStoreManager: DataStoreManager,
     colorPaletteState: ColorPalette,
-    fontState: FontState,
-    textToSpeech: TextToSpeech,
-    context: Context,
+    connectToService: () -> Unit,
+    onSwitchChange: (Boolean) -> Unit
 ){
     val style = HazeMaterials.ultraThin(colorPaletteState.containerColor)
     LaunchedEffect(bottomBarState.visibility){
         if(!bottomBarState.visibility) {
-            if(!ttsState.isSpeaking && !ttsState.isPaused && !autoScrollState.isStart && !autoScrollState.isPaused){
+            if(!contentState.isSpeaking && !contentState.isPaused && !autoScrollState.isStart && !autoScrollState.isPaused){
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(true))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(false))
@@ -77,9 +71,19 @@ fun BottomBarManager(
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(true))
             },
             onTTSIconClick = {
-                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
-                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
-                ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateIsSpeaking(true))
+//                if (ttsController.audioFocusRequest == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+//                    ttsController.updateTTS()
+                    connectToService()
+                    viewModel.loadTTSSetting(dataStoreManager,contentState.tts!!)
+                    bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
+                    bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
+                    viewModel.onContentAction(dataStoreManager, ContentAction.UpdateIsSpeaking(true))
+                    viewModel.onContentAction(
+                        dataStoreManager,
+                        ContentAction.UpdateCurrentReadingParagraph(contentState.firstVisibleItemIndex)
+                    )
+//                    ttsController.startReading()
+//                }
             },
             onAutoScrollIconClick = {
                 topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
@@ -101,22 +105,17 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarAutoScroll(
+            dataStoreManager = dataStoreManager,
             hazeState = hazeState,
             style = style,
             autoScrollViewModel = autoScrollViewModel,
             bottomBarState = bottomBarState,
             autoScrollState = autoScrollState,
             colorPaletteState = colorPaletteState,
-            onPreviousChapterIconClick = {
-
-            },
             onPlayPauseIconClick = {
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(!autoScrollState.isPaused))
-//                bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
-//                topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
-            },
-            onNextChapterIconClick = {
-
+                bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
+                topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
             },
             onStopIconClick = {
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(false))
@@ -138,18 +137,20 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarSetting(
-            hazeState = hazeState,
-            style = style,
+            viewModel = viewModel,
             bottomBarViewModel = bottomBarViewModel,
-            ttsViewModel = ttsViewModel,
+            autoScrollViewModel = autoScrollViewModel,
+            contentState = contentState,
             bottomBarState = bottomBarState,
-            ttsState = ttsState,
             colorPaletteState = colorPaletteState,
-            textToSpeech = textToSpeech,
+            hazeState = hazeState,
+            autoScrollState = autoScrollState,
+            style = style,
             dataStoreManager = dataStoreManager,
-            context = context,
+            tts = contentState.tts!!,
             onSwitchChange = {
-                bottomBarViewModel.onAction(BottomBarAction.UpdateKeepScreenOn(it))
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(it))
+                onSwitchChange(it)
             }
         )
     }
@@ -161,37 +162,49 @@ fun BottomBarManager(
         BottomBarTTS(
             hazeState = hazeState,
             style = style,
-            ttsViewModel = ttsViewModel,
+            viewModel = viewModel,
+            bottomBarViewModel = bottomBarViewModel,
             bottomBarState = bottomBarState,
-            ttsState = ttsState,
+            contentState = contentState,
             colorPaletteState = colorPaletteState,
-            textToSpeech = textToSpeech,
+            tts = contentState.tts!!,
             dataStoreManager = dataStoreManager,
             onPreviousChapterIconClick = {
-
+                contentState.service?.previousChapter()
             },
             onPreviousParagraphIconClick = {
-
+                contentState.service?.previousParagraph()
             },
             onPlayPauseIconClick = {
-
+                contentState.service?.resumePausePlayback()
+                if(contentState.isSpeaking){
+                    if(!contentState.isPaused){
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsPaused(true))
+                    } else {
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsPaused(false))
+                    }
+                }
             },
             onNextParagraphIconClick = {
-
+                contentState.service?.nextParagraph()
             },
             onNextChapterIconClick = {
-
+                contentState.service?.nextChapter()
             },
             onTimerIconClick = {
 
             },
             onStopIconClick = {
-                ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateIsSpeaking(false))
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsSpeaking(false))
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsPaused(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                 topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
+                contentState.service?.cancelPlayback()
             },
             onTTSSettingIconClick = {
-
+                bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))
+                viewModel.loadTTSSetting(dataStoreManager,contentState.tts)
+                bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
             }
         )
     }
@@ -201,313 +214,13 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarTheme(
+            viewModel = viewModel,
+            colorPaletteViewModel = colorPaletteViewModel,
+            contentState = contentState,
+            colorPaletteState = colorPaletteState,
             hazeState = hazeState,
             style = style,
-            colorPaletteViewModel = colorPaletteViewModel,
-            fontViewModel = fontViewModel,
-            bottomBarState = bottomBarState,
             dataStore = dataStoreManager,
-            colorPaletteState = colorPaletteState,
-            fontState = fontState
         )
     }
-//
-//    when(state.bottomBarIndex) {
-//        0 -> {
-//            BottomBarDefault(
-//                state = state,
-//                onThemeIconClick = {
-//                    scope.launch {
-////                                viewModel.updateBottomBarState(false)
-//                        delay(200)
-////                                viewModel.updateBottomBarIndex(1)
-////                                viewModel.updateBottomBarState(true)
-//                    }
-//                },
-//                onTTSIconClick = {
-//                    scope.launch {
-////                                viewModel.loadTTSSetting(textToSpeech)
-////                                viewModel.updateIsPaused(false)
-////                                viewModel.updateIsSpeaking(true)
-////                                viewModel.updateBottomBarState(false)
-//                        delay(200)
-////                                viewModel.updateBottomBarIndex(3)
-////                                viewModel.updateBottomBarState(true)
-////                                viewModel.updateEnablePagerScroll(false)
-//                        readNextParagraph(
-//                            tts = textToSpeech,
-//                            state = state,
-//                            chapterContents = chapterContents,
-//                            targetParagraphIndex = currentLazyColumnState?.firstVisibleItemIndex!!,
-//                            currentChapterIndex = state.currentChapterIndex,
-//                            currentPosition = 0,
-//                            isReading = true,
-//                            maxWidth = state.screenWidth,
-//                            maxHeight = state.screenHeight,
-//                            textStyle = textStyle,
-//                            textMeasurer = textMeasurer,
-//                            shouldScroll = state.flagTriggerScrolling
-//                        ) { index,chapterIndex,currentPos,scroll,times,stopReading ->
-//                            updateVariable(
-//                                false,
-//                                stopReading,
-//                                index,
-//                                chapterIndex,
-//                                currentPos,
-//                                scroll,
-//                                times
-//                            )
-//                        }
-//                    }
-//                },
-//                onAutoScrollIconClick = {
-//                    scope.launch {
-////                                viewModel.loadTTSSetting(textToSpeech)
-////                                viewModel.updateBottomBarState(false)
-//                        delay(200)
-////                                viewModel.updateBottomBarIndex(4)
-////                                viewModel.updateBottomBarState(true)
-////                                viewModel.updateIsAutoScroll(true)
-//                    }
-//                },
-//                onSettingIconClick = {
-//                    scope.launch {
-////                                viewModel.loadTTSSetting(textToSpeech)
-////                                viewModel.updateBottomBarState(false)
-//                        delay(200)
-////                                viewModel.updateBottomBarIndex(2)
-////                                viewModel.updateBottomBarState(true)
-////                                viewModel.changeMenuTriggerSetting(true)
-//                    }
-//                },
-//            )
-//        }
-//
-//        1 -> {
-//            BottomBarTheme(
-//                state = state,
-//            )
-//        }
-//        2 -> {
-//            BottomBarSetting(
-//                viewModel = viewModel,
-//                state = state,
-//                textToSpeech = textToSpeech,
-//                context = context
-//            )
-//        }
-//        3 -> {
-//            BottomBarTTS(
-//                viewModel = viewModel,
-//                textToSpeech = textToSpeech,
-//                state = state,
-//                onPreviousChapterIconClick = {
-//                    stopReading(textToSpeech)
-//                    updateVariable(
-//                        true,
-//                        false,
-//                        0,
-//                        maxOf(state.currentChapterIndex-1,0),
-//                        0,
-//                        false,
-//                        0
-//                    )
-//                },
-//                onPreviousParagraphIconClick = {
-//                    if (state.isSpeaking) {
-////                                viewModel.updateIsSpeaking(true)
-////                                viewModel.updateCurrentReadingPosition(0)
-//                        readNextParagraph(
-//                            tts = textToSpeech,
-//                            state = state,
-//                            chapterContents = chapterContents,
-//                            targetParagraphIndex = maxOf(state.currentReadingParagraph - 1,0),
-//                            currentChapterIndex = state.currentChapterIndex,
-//                            currentPosition = 0,
-//                            isReading = true,
-//                            maxWidth = state.screenWidth,
-//                            maxHeight = state.screenHeight,
-//                            textStyle = textStyle,
-//                            textMeasurer = textMeasurer,
-//                            shouldScroll = state.flagTriggerScrolling,
-//                        ) { index, chapterIndex, currentPos,scroll,times,stopReading ->
-//                            updateVariable(
-//                                false,
-//                                stopReading,
-//                                index,
-//                                chapterIndex,
-//                                currentPos,
-//                                scroll,
-//                                times
-//                            )
-//                        }
-//                    } else if(state.isPaused){
-//                        updateVariable(
-//                            true,
-//                            false,
-//                            maxOf(state.currentReadingParagraph - 1,0),
-//                            state.currentChapterIndex,
-//                            0,
-//                            state.flagTriggerScrolling,
-//                            0
-//                        )
-//                    }
-//                },
-//                onPlayPauseIconClick = {
-//                    if (state.isSpeaking){
-//                        stopReading(tts = textToSpeech)
-//                        updateVariable(
-//                            true,
-//                            false,
-//                            state.currentReadingParagraph,
-//                            state.currentChapterIndex,
-//                            state.currentReadingPosition,
-//                            state.flagTriggerScrolling,
-//                            0
-//                        )
-//                    } else if(state.isPaused){
-////                                viewModel.updateIsSpeaking(true)
-////                                viewModel.updateIsPaused(false)
-//                        readNextParagraph(
-//                            tts = textToSpeech,
-//                            state = state,
-//                            chapterContents = chapterContents,
-//                            targetParagraphIndex = state.currentReadingParagraph,
-//                            currentChapterIndex = state.currentChapterIndex,
-//                            currentPosition = state.currentReadingPosition,
-//                            isReading = true,
-//                            maxWidth = state.screenWidth,
-//                            maxHeight = state.screenHeight,
-//                            textStyle = textStyle,
-//                            textMeasurer = textMeasurer,
-//                            shouldScroll = state.flagTriggerScrolling
-//                        ) { index, chapterIndex, currentPos,scroll,times,stopReading ->
-//                            updateVariable(
-//                                false,
-//                                stopReading,
-//                                index,
-//                                chapterIndex,
-//                                currentPos,
-//                                scroll,
-//                                times
-//                            )
-//                        }
-//                    }
-//                },
-//                onNextParagraphIconClick = {
-//                    if (state.isSpeaking) {
-////                                viewModel.updateIsPaused(false)
-////                                viewModel.updateIsSpeaking(true)
-//                        readNextParagraph(
-//                            tts = textToSpeech,
-//                            state = state,
-//                            chapterContents = chapterContents,
-//                            targetParagraphIndex = minOf(state.currentReadingParagraph + 1,currentLazyColumnState?.layoutInfo?.totalItemsCount!! - 1),
-//                            currentChapterIndex = state.currentChapterIndex,
-//                            currentPosition = 0,
-//                            isReading = true,
-//                            maxWidth = state.screenWidth,
-//                            maxHeight = state.screenHeight,
-//                            textStyle = textStyle,
-//                            textMeasurer = textMeasurer,
-//                            shouldScroll = state.flagTriggerScrolling
-//                        ) { index, chapterIndex, currentPos,scroll,times,stopReading ->
-//                            updateVariable(
-//                                false,
-//                                stopReading,
-//                                index,
-//                                chapterIndex,
-//                                currentPos,
-//                                scroll,
-//                                times
-//                            )
-//                        }
-//                    }else if (state.isPaused){
-//                        updateVariable(
-//                            true,
-//                            false,
-//                            minOf(state.currentReadingParagraph + 1,currentLazyColumnState?.layoutInfo?.totalItemsCount!! - 1),
-//                            state.currentChapterIndex,
-//                            0,
-//                            state.flagTriggerScrolling,
-//                            0
-//                        )
-//                    }
-//                },
-//                onNextChapterIconClick = {
-//                    stopReading(textToSpeech)
-//                    updateVariable(
-//                        true,
-//                        false,
-//                        0,
-//                        minOf(state.currentChapterIndex+1,state.totalChapter-1),
-//                        0,
-//                        false,
-//                        0
-//                    )
-//                },
-//                onTimerIconClick = {
-//
-//                },
-//                onStopIconClick = {
-//                    stopReading(textToSpeech)
-//                    updateVariable(
-//                        false,
-//                        false,
-//                        state.currentReadingParagraph,
-//                        state.currentChapterIndex,
-//                        0,
-//                        state.flagTriggerScrolling,
-//                        0
-//                    )
-////                            viewModel.updateEnablePagerScroll(true)
-////                            viewModel.updateBottomBarState(false)
-////                            viewModel.updateTopBarState(false)
-//                },
-//                onTTSSettingIconClick = {
-////                            viewModel.changeMenuTriggerVoice(!state.openTTSVoiceMenu)
-//                    stopReading(tts = textToSpeech)
-//                    updateVariable(
-//                        true,
-//                        false,
-//                        state.currentReadingParagraph,
-//                        state.currentChapterIndex,
-//                        state.currentReadingPosition,
-//                        state.flagTriggerScrolling,
-//                        0
-//                    )
-//                }
-//            )
-//        }
-//        4 ->{
-//            BottomBarAutoScroll(
-//                viewModel = viewModel,
-//                state = state,
-//                onPreviousChapterIconClick ={
-////                            viewModel.updateCurrentChapterIndex(maxOf(state.currentChapterIndex-1,0))
-//                },
-//                onPlayPauseIconClick = {
-//                    if(state.isAutoScroll){
-////                                viewModel.updateIsAutoScroll(false)
-////                                viewModel.updateIsAutoScrollPaused(true)
-//                    }else if(state.isAutoScrollPaused){
-////                                viewModel.updateIsAutoScroll(true)
-////                                viewModel.updateIsAutoScrollPaused(false)
-//                    }
-//                },
-//                onNextChapterIconClick = {
-////                            viewModel.updateCurrentChapterIndex(minOf(state.currentChapterIndex+1,state.totalChapter-1))
-//                },
-//                onStopIconClick = {
-////                            viewModel.updateIsAutoScroll(false)
-////                            viewModel.updateIsAutoScrollPaused(false)
-////                            viewModel.updateBottomBarState(false)
-////                            viewModel.updateTopBarState(false)
-//                },
-//                onSettingIconClick = {
-////                            viewModel.changeMenuTriggerAutoScroll(true)
-//                },
-//            )
-//        }
-//    }
 }

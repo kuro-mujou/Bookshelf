@@ -37,12 +37,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
-import com.capstone.bookshelf.domain.wrapper.Book
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContents
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeChild
+import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
@@ -55,7 +54,6 @@ fun DrawerScreen(
     drawerLazyColumnState: LazyListState,
     colorPaletteState: ColorPalette,
     hazeState: HazeState,
-    book: Book?,
     onDrawerItemClick: (Int) -> Unit,
     content: @Composable () -> Unit
 ){
@@ -83,7 +81,7 @@ fun DrawerScreen(
                     .width(300.dp)
                     .then(
                         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                            Modifier.hazeChild(
+                            Modifier.hazeEffect(
                                 state = hazeState,
                                 style = style
                             )
@@ -101,10 +99,10 @@ fun DrawerScreen(
                 ) {
                     AsyncImage(
                         model =
-                        if(book?.coverImagePath=="error")
+                        if(contentState.book?.coverImagePath=="error")
                             R.mipmap.book_cover_not_available
                         else
-                            book?.coverImagePath,
+                            contentState.book?.coverImagePath,
                         contentDescription = null,
                         contentScale = ContentScale.FillBounds,
                         modifier = Modifier
@@ -118,7 +116,7 @@ fun DrawerScreen(
                             .wrapContentHeight()
                             .padding(8.dp)
                     ) {
-                        book?.title?.let {
+                        contentState.book?.title?.let {
                             Text(
                                 text = it,
                                 color = colorPaletteState.textColor,
@@ -126,7 +124,7 @@ fun DrawerScreen(
                                 fontWeight = FontWeight.Medium
                             )
                         }
-                        book?.authors?.joinToString(",")?.let {
+                        contentState.book?.authors?.joinToString(",")?.let {
                             Text(
                                 text = it,
                                 color = colorPaletteState.textColor,

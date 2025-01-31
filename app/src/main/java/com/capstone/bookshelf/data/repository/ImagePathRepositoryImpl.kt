@@ -3,14 +3,10 @@ package com.capstone.bookshelf.data.repository
 import com.capstone.bookshelf.data.database.dao.ImagePathDao
 import com.capstone.bookshelf.data.database.entity.ImagePathEntity
 import com.capstone.bookshelf.domain.book.ImagePathRepository
-import kotlinx.coroutines.flow.Flow
 
 class ImagePathRepositoryImpl(
     private val imageDao: ImagePathDao
 ) : ImagePathRepository {
-    override fun getAllImage(): Flow<List<ImagePathEntity>> {
-        return imageDao.getAllImage()
-    }
     override suspend fun getImagePathsByBookId(bookId: List<String>): List<ImagePathEntity> {
         return imageDao.getImagePathsByBookId(bookId)
     }

@@ -104,13 +104,6 @@ class BookListViewModel(
                     )
                 }
             }
-            is BookListAction.OnSaveBook -> {
-                _state.update {
-                    it.copy(
-                        isSavingBook = action.save
-                    )
-                }
-            }
 
             is BookListAction.OnBookCheckBoxClick -> {
                 if(action.checked){

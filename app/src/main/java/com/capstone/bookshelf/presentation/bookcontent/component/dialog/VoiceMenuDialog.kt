@@ -46,47 +46,46 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSAction
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSState
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSViewModel
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceMenuDialog(
-    ttsViewModel: TTSViewModel,
+    viewModel: ContentViewModel,
+    contentState: ContentState,
     bottomBarState: BottomBarState,
-    ttsState: TTSState,
     colorPaletteState: ColorPalette,
-    textToSpeech: TextToSpeech,
+    tts: TextToSpeech,
     dataStoreManager: DataStoreManager,
     onDismiss: () -> Unit,
     testVoiceButtonClicked: () -> Unit
 ){
-    var speedSliderValue by remember { mutableFloatStateOf(ttsState.currentSpeed?:1f) }
-    var pitchSliderValue by remember { mutableFloatStateOf(ttsState.currentPitch?:1f) }
-    val locales = textToSpeech.availableLanguages.toList().sortedBy { it.displayName }
-    val voices = textToSpeech.voices
-        .filter{ !it.isNetworkConnectionRequired }
-        .sortedBy { it.name }
+    var speedSliderValue by remember { mutableFloatStateOf(contentState.currentSpeed?:1f) }
+    var pitchSliderValue by remember { mutableFloatStateOf(contentState.currentPitch?:1f) }
+    val locales = tts.availableLanguages?.toList()?.sortedBy { it.displayName }
+    val voices = tts.voices
+        ?.filter{ !it.isNetworkConnectionRequired }
+        ?.sortedBy { it.name }
     var languageMenuExpanded by remember { mutableStateOf(false) }
     var voiceMenuExpanded by remember { mutableStateOf(false) }
-    val filteredVoices = voices.filter { it.locale == ttsState.currentLanguage }
+    val filteredVoices = voices?.filter { it.locale == contentState.currentLanguage }
     Dialog(
         onDismissRequest = {
-            if(ttsState.currentVoice == null){
-                ttsViewModel.fixNullVoice(dataStoreManager,textToSpeech)
+            if(contentState.currentVoice == null){
+                viewModel.fixNullVoice(dataStoreManager,tts)
             }
-//            viewModel.changeMenuTriggerVoice(false)
             onDismiss()
         }
     ) {
-        LaunchedEffect (ttsState.currentSpeed){
-            speedSliderValue = ttsState.currentSpeed?:1f
+        LaunchedEffect (contentState.currentSpeed){
+            speedSliderValue = contentState.currentSpeed?:1f
         }
-        LaunchedEffect (ttsState.currentPitch){
-            pitchSliderValue = ttsState.currentPitch?:1f
+        LaunchedEffect (contentState.currentPitch){
+            pitchSliderValue = contentState.currentPitch?:1f
         }
         Surface(
             color = colorPaletteState.backgroundColor,
@@ -137,7 +136,7 @@ fun VoiceMenuDialog(
                     ) {
                         OutlinedTextField(
                             shape = RoundedCornerShape(8.dp),
-                            value = ttsState.currentLanguage?.displayName.toString(),
+                            value = contentState.currentLanguage?.displayName.toString(),
                             onValueChange = {
 
                             },
@@ -164,15 +163,15 @@ fun VoiceMenuDialog(
                             onDismissRequest = { languageMenuExpanded = false },
                             containerColor = colorPaletteState.backgroundColor,
                         ) {
-                            locales.forEach { locale ->
+                            locales?.forEach { locale ->
                                 DropdownMenuItem(
                                     text = {
                                         Text(text = locale.displayName)
                                     },
                                     onClick = {
-                                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSLanguage(locale))
+                                        viewModel.onContentAction(dataStoreManager, ContentAction.UpdateTTSLanguage(locale))
                                         languageMenuExpanded = false
-                                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSVoice(null))
+                                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSVoice(null))
                                     },
                                     colors = MenuItemColors(
                                         textColor = colorPaletteState.textColor,
@@ -213,7 +212,7 @@ fun VoiceMenuDialog(
                     ) {
                         OutlinedTextField(
                             shape = RoundedCornerShape(8.dp),
-                            value = ttsState.currentVoice?.name.toString(),
+                            value = contentState.currentVoice?.name.toString(),
                             onValueChange = {
 
                             },
@@ -240,7 +239,7 @@ fun VoiceMenuDialog(
                             onDismissRequest = { voiceMenuExpanded = false },
                             containerColor = colorPaletteState.backgroundColor,
                         ) {
-                            filteredVoices.forEach{voice ->
+                            filteredVoices?.forEach{voice ->
                                 DropdownMenuItem(
                                     text = {
                                         Column {
@@ -259,7 +258,7 @@ fun VoiceMenuDialog(
                                         }
                                     },
                                     onClick = {
-                                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSVoice(voice))
+                                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSVoice(voice))
                                         voiceMenuExpanded = false
                                     },
                                 )
@@ -293,7 +292,7 @@ fun VoiceMenuDialog(
                         speedSliderValue = (value * 100).roundToInt() / 100f
                     },
                     onValueChangeFinished = {
-                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSSpeed(speedSliderValue))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSSpeed(speedSliderValue))
                     },
                     colors = SliderDefaults.colors(
                         activeTrackColor = colorPaletteState.textColor,
@@ -336,7 +335,7 @@ fun VoiceMenuDialog(
                         pitchSliderValue = (value * 100).roundToInt() / 100f
                     },
                     onValueChangeFinished = {
-                        ttsViewModel.onAction(dataStoreManager,TTSAction.UpdateTTSPitch(pitchSliderValue))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSPitch(pitchSliderValue))
                     },
                     colors = SliderDefaults.colors(
                         activeTrackColor = colorPaletteState.textColor,
@@ -354,8 +353,7 @@ fun VoiceMenuDialog(
                         )
                     }
                 )
-                if(bottomBarState.openSetting)
-                {
+                if(bottomBarState.openSetting) {
                     OutlinedButton(
                         onClick = {
                             testVoiceButtonClicked()
