@@ -34,6 +34,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -62,6 +64,8 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -79,14 +83,23 @@ fun ContentScreen(
     dataStoreManager: DataStoreManager,
     updateSystemBar: () -> Unit,
     currentChapter : (Int,Int,Boolean) -> Unit,
-    launchAlertDialog : (Boolean) -> Unit
 ){
-    val lazyListStates = remember { mutableStateMapOf<Int, LazyListState>() }
+    val lazyListStates = rememberSaveable(
+        saver = mapSaver(
+            save = { map -> map.mapKeys { it.key.toString() }.mapValues { it.value.firstVisibleItemIndex } },
+            restore = { savedMap ->
+                savedMap.mapKeys { it.key.toInt() }
+                    .mapValues { LazyListState(firstVisibleItemIndex = it.value as Int) }
+                    .toMutableMap()
+            }
+        )
+    ) { mutableStateMapOf() }
     val chapterContents = remember { mutableStateMapOf<Int, List<String>>() }
     var triggerLoadChapter by remember { mutableStateOf(false) }
     var callbackLoadChapter by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var lazyListState by remember { mutableStateOf<LazyListState?>(LazyListState()) }
+    var isInitial by rememberSaveable { mutableStateOf(true) }
     Surface(
         modifier = Modifier
             .fillMaxSize()
@@ -135,7 +148,15 @@ fun ContentScreen(
             val newPage by rememberUpdatedState(newValue = page)
             val chapterContent by viewModel.chapterContent
             var data by remember { mutableStateOf<Chapter?>(null) }
-            val listState = lazyListStates.getOrPut(newPage){ LazyListState() }
+            val listState = lazyListStates.getOrPut(newPage) {
+                if (page == contentState.book?.currentChapter && isInitial) {
+                    LazyListState(firstVisibleItemIndex = contentState.book.currentParagraph)
+                } else {
+                    LazyListState()
+                }
+            }.also {
+                isInitial = false
+            }
             val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean,ColorPalette,ContentState) -> Unit>())}
             val density = LocalDensity.current
             var hasPrintedAtEnd by remember { mutableStateOf(false) }
@@ -157,18 +178,13 @@ fun ContentScreen(
             }
             LaunchedEffect(triggerLoadChapter) {
                 if (triggerLoadChapter && data == null) {
-                    try{
-                        viewModel.getChapter((page))
-                        data = chapterContent
-                        parseListToUsableLists(data!!.content).also{
-                            contentList.value = it.first
-                            chapterContents[page] = it.second
-                        }
-                        callbackLoadChapter = true
-                    }catch (e: Exception){
-                        e.printStackTrace()
-                        launchAlertDialog(true)
+                    viewModel.getChapter((page))
+                    data = chapterContent
+                    parseListToUsableLists(data!!.content).also{
+                        contentList.value = it.first
+                        chapterContents[page] = it.second
                     }
+                    callbackLoadChapter = true
                 }
             }
             LaunchedEffect(pagerState.targetPage) {
@@ -285,25 +301,30 @@ fun ContentScreen(
                     }
                 }
             }
-            LaunchedEffect(pagerState.currentPage,autoScrollState.isPaused,autoScrollState.isStart) {
-                lazyListState?.let {
-                    if (!autoScrollState.isPaused && autoScrollState.isStart) {
-                        while (true) {
-                            isAnimationRunning = true
-                            coroutineScope.launch {
-                                it.animateScrollBy(
-                                    value = contentState.screenHeight.toFloat(),
-                                    animationSpec = tween(
-                                        durationMillis = autoScrollState.currentSpeed,
-                                        delayMillis = 0,
-                                        easing = LinearEasing
-                                    )
-                                )
-                            }.invokeOnCompletion {
-                                isAnimationRunning = false
+            LaunchedEffect(lazyListState, autoScrollState.currentSpeed, autoScrollState.isStart) {
+                lazyListState?.let { lazyListState ->
+                    if(autoScrollState.isStart){
+                        flow {
+                            while(true) {
+                                emit(Unit)
+                                delay(autoScrollState.currentSpeed.toLong())
                             }
-                            delay(autoScrollState.currentSpeed.toLong())
-                        }
+                        }.filter { !autoScrollState.isPaused }
+                            .collect {
+                                isAnimationRunning = true
+                                coroutineScope.launch {
+                                    lazyListState.animateScrollBy(
+                                        value = contentState.screenHeight.toFloat(),
+                                        animationSpec = tween(
+                                            durationMillis = autoScrollState.currentSpeed,
+                                            delayMillis = 0,
+                                            easing = LinearEasing
+                                        )
+                                    )
+                                }.invokeOnCompletion {
+                                    isAnimationRunning = false
+                                }
+                            }
                     }
                 }
             }

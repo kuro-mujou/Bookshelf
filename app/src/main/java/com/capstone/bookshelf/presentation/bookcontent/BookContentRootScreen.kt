@@ -2,7 +2,6 @@ package com.capstone.bookshelf.presentation.bookcontent
 
 
 import android.annotation.SuppressLint
-import android.util.Log
 import android.view.View
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.PagerState
@@ -50,7 +49,6 @@ fun BookContentScreenRoot(
     colorPaletteViewModel : ColorPaletteViewModel,
     dataStoreManager : DataStoreManager,
     onBackClick: () -> Unit,
-    launchAlertDialog : (Boolean) -> Unit
 ){
     val bottomBarViewModel = koinViewModel<BottomBarViewModel>()
     val topBarViewModel = koinViewModel<TopBarViewModel>()
@@ -78,6 +76,7 @@ fun BookContentScreenRoot(
     }
     DisposableEffect(Unit) {
         onDispose {
+            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
             viewModel.stopTTSService(context)
             viewModel.stopTTS()
         }
@@ -114,6 +113,7 @@ fun BookContentScreenRoot(
         }
         LaunchedEffect(contentState.isSpeaking) {
             viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsFocused(!contentState.isSpeaking && contentState.isPaused || contentState.isSpeaking && !contentState.isPaused))
+            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateEnablePagerScroll(!contentState.isSpeaking))
         }
         LaunchedEffect(contentState.isPaused) {
             viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsFocused(!(!contentState.isSpeaking && !contentState.isPaused)))
@@ -125,7 +125,6 @@ fun BookContentScreenRoot(
             }
         }
         LaunchedEffect(contentState.currentChapterIndex) {
-            Log.d("debug tts", "launch effect to scroll to next chapter")
             drawerLazyColumnState.scrollToItem(contentState.currentChapterIndex)
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
             pagerState?.animateScrollToPage(contentState.currentChapterIndex)
@@ -141,25 +140,21 @@ fun BookContentScreenRoot(
         }
         LaunchedEffect(contentState.currentLanguage) {
             if(contentState.currentLanguage != null){
-//                ttsController.setLanguage(contentState.currentLanguage!!)
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSLanguage(contentState.currentLanguage!!))
             }
         }
         LaunchedEffect(contentState.currentVoice) {
             if(contentState.currentVoice != null){
-//                ttsController.setVoice(contentState.currentVoice!!)
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSVoice(contentState.currentVoice!!))
             }
         }
         LaunchedEffect(contentState.currentSpeed){
             if(contentState.currentSpeed != null){
-//                ttsController.setSpeechRate(contentState.currentSpeed!!)
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSSpeed(contentState.currentSpeed!!))
             }
         }
         LaunchedEffect(contentState.currentPitch){
             if(contentState.currentPitch != null){
-//                ttsController.setPitch(contentState.currentPitch!!)
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSPitch(contentState.currentPitch!!))
             }
         }
@@ -176,10 +171,10 @@ fun BookContentScreenRoot(
                     },
                     onBackIconClick = {
                         onBackClick()
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfo(contentState.currentChapterIndex))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
                         viewModel.stopTTSService(context)
                         viewModel.stopTTS()
-//                        ttsController.shutdownTts()
                     }
                 )
             },
@@ -238,14 +233,11 @@ fun BookContentScreenRoot(
                                 )
                             }
                             viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(index))
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfo(index))
+                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(index))
                             viewModel.onContentAction(
                                 dataStoreManager,
                                 ContentAction.UpdateCurrentReadingParagraph(pos)
                             )
-                        },
-                        launchAlertDialog = { state->
-                            launchAlertDialog(state)
                         }
                     )
                 }

@@ -35,8 +35,11 @@ class BookRepositoryImpl(
     override suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean) {
         bookDao.setBookAsFavorite(bookId, isFavorite)
     }
-    override suspend fun saveBookInfo(bookId: String, chapterIndex: Int) {
-        bookDao.saveBookInfo(bookId,chapterIndex)
+    override suspend fun saveBookInfoChapterIndex(bookId: String, chapterIndex: Int) {
+        bookDao.saveBookInfoChapterIndex(bookId,chapterIndex)
+    }
+    override suspend fun saveBookInfoParagraphIndex(bookId: String, paragraphIndex: Int) {
+        bookDao.saveBookInfoParagraphIndex(bookId,paragraphIndex)
     }
     override suspend fun deleteBooks(books: List<Book>) {
         val bookEntities = books.map {

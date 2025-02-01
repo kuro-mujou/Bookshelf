@@ -103,16 +103,15 @@ class ContentViewModel(
                     previousChapterIndex = action.index
                 )
             }
-            is ContentAction.UpdateBookInfo -> {
+            is ContentAction.UpdateBookInfoCurrentChapterIndex -> {
                 viewModelScope.launch {
-                    bookRepository.saveBookInfo(bookId, action.index)
+                    bookRepository.saveBookInfoChapterIndex(bookId, action.index)
                 }
             }
-            is ContentAction.UpdateFlagTriggerScrolling -> {
-                _state.value = _state.value.copy(
-                    flagTriggerScrolling = action.value
-                )
-                serviceBinder?.setFlagTriggerScroll(action.value)
+            is ContentAction.UpdateBookInfoFirstParagraphIndex -> {
+                viewModelScope.launch {
+                    bookRepository.saveBookInfoParagraphIndex(bookId, action.index)
+                }
             }
             is ContentAction.UpdateChapterHeader -> {
                 serviceBinder?.setChapterTitle(action.header)
@@ -182,12 +181,6 @@ class ContentViewModel(
                 )
                 serviceBinder?.setCurrentParagraphIndex(action.pos)
             }
-            is ContentAction.UpdateScrollTime -> {
-                _state.value = _state.value.copy(
-                    scrollTime = action.scrollTimes
-                )
-                serviceBinder?.setScrollTimes(action.scrollTimes)
-            }
             is ContentAction.UpdateFontSize -> {
                 _state.value = _state.value.copy(
                     fontSize = action.fontSize
@@ -223,10 +216,14 @@ class ContentViewModel(
                     book = action.book
                 )}
             }
-
             is ContentAction.UpdateKeepScreenOn -> {
                 _state.value = _state.value.copy(
                     keepScreenOn = action.keepScreenOn
+                )
+            }
+            is ContentAction.UpdateEnablePagerScroll -> {
+                _state.value = _state.value.copy(
+                    enablePagerScroll = action.enable
                 )
             }
         }
@@ -330,7 +327,7 @@ class ContentViewModel(
                                     }
                                 }
                             )
-                            jobs.joinAll() // Wait for all collectLatest blocks to start
+                            jobs.joinAll()
                         }
                     }
                 }

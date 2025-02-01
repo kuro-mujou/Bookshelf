@@ -6,8 +6,6 @@ import java.util.Locale
 
 sealed interface ContentAction {
     data class SelectedBook(val book: Book): ContentAction
-
-    data class UpdateFlagTriggerScrolling(val value: Boolean) : ContentAction
     data class UpdateFlagTriggerAdjustScroll(val value: Boolean) : ContentAction
     data class UpdateFlagStartScrolling(val value: Boolean): ContentAction
     data class UpdateFlagScrollAdjusted(val value: Boolean): ContentAction
@@ -18,8 +16,10 @@ sealed interface ContentAction {
     data class UpdatePreviousChapterIndex(val index: Int) : ContentAction
     data class UpdateScreenWidth(val value: Int) : ContentAction
     data class UpdateScreenHeight(val value: Int) : ContentAction
-    data class UpdateBookInfo(val index: Int) : ContentAction
+    data class UpdateBookInfoCurrentChapterIndex(val index: Int) : ContentAction
+    data class UpdateBookInfoFirstParagraphIndex(val index: Int) : ContentAction
     data class UpdateChapterHeader(val header: String) : ContentAction
+    data class UpdateEnablePagerScroll(val enable: Boolean) : ContentAction
 
     data class UpdateIsSpeaking(val isSpeaking: Boolean) : ContentAction
     data class UpdateIsPaused(val isPaused: Boolean) : ContentAction
@@ -29,7 +29,6 @@ sealed interface ContentAction {
     data class UpdateTTSSpeed(val currentSpeed: Float) : ContentAction
     data class UpdateTTSPitch(val currentPitch: Float) : ContentAction
     data class UpdateCurrentReadingParagraph(val pos: Int): ContentAction
-    data class UpdateScrollTime(val scrollTimes: Int): ContentAction
 
     data class UpdateSelectedFontFamilyIndex(val index: Int) : ContentAction
     data class UpdateFontSize(val fontSize: Int) : ContentAction

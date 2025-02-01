@@ -17,6 +17,7 @@ data class BookEntity(
     val description: String?,
     val totalChapter: Int,
     val currentChapter: Int = 0,
+    val currentParagraph: Int = 0,
     val isFavorite: Boolean = false,
     val storagePath: String?,
     val ratingsAverage: Double?,

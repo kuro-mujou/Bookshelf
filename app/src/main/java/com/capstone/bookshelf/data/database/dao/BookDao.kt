@@ -23,10 +23,6 @@ interface BookDao {
     fun readAllBooksSortByFavorite(): Flow<List<BookEntity>>
 
     @Transaction
-    @Query("SELECT * FROM books WHERE bookId = :bookId")
-    suspend fun getBookById(bookId: String): BookEntity
-
-    @Transaction
     @Query("SELECT * FROM books WHERE title = :title LIMIT 1")
     suspend fun isBookExist(title: String): BookEntity?
 
@@ -34,7 +30,10 @@ interface BookDao {
     suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean)
 
     @Query("UPDATE books SET currentChapter = :chapterIndex WHERE bookId = :bookId")
-    suspend fun saveBookInfo(bookId: String, chapterIndex: Int)
+    suspend fun saveBookInfoChapterIndex(bookId: String, chapterIndex: Int)
+
+    @Query("UPDATE books SET currentParagraph = :paragraphIndex WHERE bookId = :bookId")
+    suspend fun saveBookInfoParagraphIndex(bookId: String, paragraphIndex: Int)
 
     @Transaction
     @Delete

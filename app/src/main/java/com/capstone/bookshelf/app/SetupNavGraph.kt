@@ -3,24 +3,14 @@ package com.capstone.bookshelf.app
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -52,26 +42,6 @@ fun SetupNavGraph(
     navController: NavHostController,
 ) {
     val importBookViewModel = koinViewModel<AsyncImportBookViewModel>()
-    var launchAlertDialog by remember{ mutableStateOf(false)}
-    if(launchAlertDialog){
-        Dialog(
-            onDismissRequest = {
-                launchAlertDialog = false
-            }
-        ) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(width = 2.dp, color = MaterialTheme.colorScheme.primary)
-            ) {
-                Column {
-                    Text(
-                        modifier = Modifier.padding(16.dp),
-                        text = "Please wait about few second to load remaining chapters"
-                    )
-                }
-            }
-        }
-    }
     NavHost(
         navController = navController,
         startDestination = Route.BookGraph
@@ -176,10 +146,6 @@ fun SetupNavGraph(
                     onBackClick = {
                         navController.navigateUp()
                     },
-                    launchAlertDialog = { state ->
-                        navController.navigateUp()
-                        launchAlertDialog = state
-                    }
                 )
             }
         }

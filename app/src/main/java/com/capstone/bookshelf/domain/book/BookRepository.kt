@@ -11,6 +11,7 @@ interface BookRepository {
     suspend fun insertBook(book: BookEntity): Long
     suspend fun isBookExist(title: String): Boolean
     suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean)
-    suspend fun saveBookInfo(bookId: String, chapterIndex: Int)
+    suspend fun saveBookInfoChapterIndex(bookId: String, chapterIndex: Int)
+    suspend fun saveBookInfoParagraphIndex(bookId: String, paragraphIndex: Int)
     suspend fun deleteBooks(books: List<Book>)
 }

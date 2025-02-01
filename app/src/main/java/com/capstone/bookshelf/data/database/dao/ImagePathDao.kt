@@ -6,13 +6,9 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.capstone.bookshelf.data.database.entity.ImagePathEntity
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ImagePathDao {
-
-    @Query("SELECT * FROM image_path")
-    fun getAllImage(): Flow<List<ImagePathEntity>>
 
     @Transaction
     @Query("SELECT * FROM image_path WHERE bookId IN (:bookId)")
