@@ -112,7 +112,7 @@ class TTSService : Service() {
                 }
             }
         }
-    private var audioFocusRequest : Int = 0
+    var audioFocusRequest : Int = 0
     private var focusRequest : AudioFocusRequest? = null
 
     inner class TTSBinder : Binder() {

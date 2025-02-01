@@ -323,6 +323,7 @@ fun ContentScreen(
                                     )
                                 }.invokeOnCompletion {
                                     isAnimationRunning = false
+                                    hasPrintedAtEnd = false
                                 }
                             }
                     }
@@ -347,7 +348,7 @@ fun ContentScreen(
                                     ) {
                                         if (!isAnimationRunning && !hasPrintedAtEnd && contentState.previousChapterIndex <= contentState.currentChapterIndex) {
                                             delay(1000)
-                                            currentChapter(contentState.currentChapterIndex + 1,0,true)
+                                            currentChapter(minOf(contentState.currentChapterIndex + 1,contentState.book?.totalChapter!!),0,true)
                                             hasPrintedAtEnd = true
                                         }
                                     } else {

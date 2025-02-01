@@ -1,7 +1,6 @@
 package com.capstone.bookshelf.domain.book
 
 import com.capstone.bookshelf.data.database.entity.ImagePathEntity
-import kotlinx.coroutines.flow.Flow
 
 interface ImagePathRepository {
     suspend fun getImagePathsByBookId(bookId: List<String>): List<ImagePathEntity>
