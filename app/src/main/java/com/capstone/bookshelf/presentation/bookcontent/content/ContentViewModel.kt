@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 class ContentViewModel(
     private val bookRepository: BookRepository,
@@ -141,7 +140,6 @@ class ContentViewModel(
                     dataStoreManager.setTTSLocale(action.currentLanguage.displayName)
                 }
                 serviceBinder?.setCurrentLanguage(action.currentLanguage)
-                serviceBinder?.updateTTS()
             }
             is ContentAction.UpdateTTSPitch -> {
                 _state.value = _state.value.copy(
@@ -151,7 +149,6 @@ class ContentViewModel(
                     dataStoreManager.setTTSPitch(action.currentPitch)
                 }
                 serviceBinder?.setCurrentPitch(action.currentPitch)
-                serviceBinder?.updateTTS()
             }
             is ContentAction.UpdateTTSSpeed -> {
                 _state.value = _state.value.copy(
@@ -161,7 +158,6 @@ class ContentViewModel(
                     dataStoreManager.setTTSSpeed(action.currentSpeed)
                 }
                 serviceBinder?.setCurrentSpeed(action.currentSpeed)
-                serviceBinder?.updateTTS()
             }
             is ContentAction.UpdateTTSVoice -> {
                 _state.value = _state.value.copy(
@@ -173,7 +169,6 @@ class ContentViewModel(
                     }
                 }
                 serviceBinder?.setCurrentVoice(action.currentVoice)
-                serviceBinder?.updateTTS()
             }
             is ContentAction.UpdateCurrentReadingParagraph -> {
                 _state.value = _state.value.copy(
@@ -236,21 +231,21 @@ class ContentViewModel(
         viewModelScope.launch {
             val selectedLocale = tts.availableLanguages?.find {
                 it.displayName == dataStoreManager.ttsLocale.first()
-            } ?: Locale.getDefault()
-
-            var selectedVoice = tts.voices?.find {
-                it.name == dataStoreManager.ttsVoice.first() && it.locale == selectedLocale
             }
 
-            if (selectedVoice == null) {
-                selectedVoice = tts.voices?.firstOrNull {
-                    it.locale == selectedLocale
-                } ?: tts.defaultVoice
+            val selectedVoice = tts.voices?.find {
+                it.name == dataStoreManager.ttsVoice.first() && it.locale == selectedLocale
+            } ?: tts.voices?.firstOrNull {
+                it.locale == selectedLocale
             }
             onContentAction(dataStoreManager, ContentAction.UpdateTTSPitch(dataStoreManager.ttsPitch.first()))
             onContentAction(dataStoreManager, ContentAction.UpdateTTSSpeed(dataStoreManager.ttsSpeed.first()))
-            onContentAction(dataStoreManager, ContentAction.UpdateTTSLanguage(selectedLocale))
-            onContentAction(dataStoreManager, ContentAction.UpdateTTSVoice(selectedVoice!!))
+            selectedLocale?.let { ContentAction.UpdateTTSLanguage(it) }?.let {
+                onContentAction(dataStoreManager,
+                    it
+                )
+            }
+            onContentAction(dataStoreManager, ContentAction.UpdateTTSVoice(selectedVoice))
         }
     }
     fun fixNullVoice(dataStoreManager: DataStoreManager, textToSpeech: TextToSpeech){
@@ -293,8 +288,18 @@ class ContentViewModel(
                         binder.setFlagTriggerScroll(_state.value.flagTriggerScrolling)
                         binder.setTotalChapter(_state.value.book?.totalChapter!!)
                         binder.setBookTitle(_state.value.book?.title!!)
+                        binder.setFirstVisibleItemIndex(_state.value.firstVisibleItemIndex)
+                        binder.setTextIndent(_state.value.textIndent)
+                        binder.setTextAlign(_state.value.textAlign)
+                        binder.setFontSize(_state.value.fontSize)
+                        binder.setLineSpacing(_state.value.lineSpacing)
+                        binder.setFontFamily(_state.value.fontFamilies[_state.value.selectedFontFamilyIndex])
                         binder.setScreenWidth(_state.value.screenWidth)
                         binder.setScreenHeight(_state.value.screenHeight)
+                        binder.setCurrentLanguage(_state.value.currentLanguage)
+                        binder.setCurrentVoice(_state.value.currentVoice)
+                        binder.setCurrentPitch(_state.value.currentPitch)
+                        binder.setCurrentSpeed(_state.value.currentSpeed)
                         coroutineScope {
                             val jobs = listOf(
                                 launch {
@@ -366,9 +371,10 @@ class ContentViewModel(
 
     fun setupTTS(context : Context){
         viewModelScope.launch {
+            val tts = TextToSpeech(context,null)
             _state.update {
                 it.copy(
-                    tts = TextToSpeech(context,null)
+                    tts = tts
                 )
             }
         }

@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar
 
-import android.media.AudioManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -72,17 +71,7 @@ fun BottomBarManager(
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(true))
             },
             onTTSIconClick = {
-                if (contentState.service?.audioFocusRequest == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                    connectToService()
-                    viewModel.loadTTSSetting(dataStoreManager,contentState.tts!!)
-                    bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
-                    bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
-                    viewModel.onContentAction(dataStoreManager, ContentAction.UpdateIsSpeaking(true))
-                    viewModel.onContentAction(
-                        dataStoreManager,
-                        ContentAction.UpdateCurrentReadingParagraph(contentState.firstVisibleItemIndex)
-                    )
-                }
+                connectToService()
             },
             onAutoScrollIconClick = {
                 topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))

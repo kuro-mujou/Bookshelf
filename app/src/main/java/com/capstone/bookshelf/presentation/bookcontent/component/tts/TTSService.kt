@@ -18,7 +18,9 @@ import android.os.IBinder
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
+import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -112,13 +114,12 @@ class TTSService : Service() {
                 }
             }
         }
-    var audioFocusRequest : Int = 0
+    private var audioFocusRequest : Int = 0
     private var focusRequest : AudioFocusRequest? = null
 
     inner class TTSBinder : Binder() {
         fun getService() = this@TTSService
         fun initializeTts() = this@TTSService.initializeTts()
-        fun updateTTS() = this@TTSService.updateTTS()
         fun currentParagraphIndex() = this@TTSService.currentParagraphIndex.asStateFlow()
         fun currentChapterIndex() = this@TTSService.currentChapterIndex.asStateFlow()
         fun isSpeaking() = this@TTSService.isSpeaking.asStateFlow()
@@ -148,15 +149,20 @@ class TTSService : Service() {
         }
         fun setCurrentLanguage(value: Locale?) {
             this@TTSService.currentLanguage = value
+            textToSpeech?.language = value ?: Locale.getDefault()
+            Log.d("debug TTS","load from set current language in TTS Service")
         }
         fun setCurrentVoice(value: Voice?) {
             this@TTSService.currentVoice = value
+            textToSpeech?.voice = value ?: textToSpeech?.defaultVoice
         }
         fun setCurrentPitch(value: Float?) {
             this@TTSService.currentPitch = value
+            textToSpeech?.setPitch(value?:1f)
         }
         fun setCurrentSpeed(value: Float?) {
             this@TTSService.currentSpeed = value
+            textToSpeech?.setSpeechRate(value?:1f)
         }
         fun setTotalChapter(value: Int) {
             this@TTSService.totalChapter = value
@@ -359,7 +365,7 @@ class TTSService : Service() {
         val channel = NotificationChannel(
             "TTS_CHANNEL_ID",
             "TTS Playback Notifications",
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_DEFAULT
         )
         val notificationManager: NotificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -369,7 +375,11 @@ class TTSService : Service() {
         if (session == null) {
             return NotificationCompat.Builder(this, "TTS_CHANNEL_ID").build()
         }
-
+        val metadata = MediaMetadataCompat.Builder()
+            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, bookTitle)
+            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, chapterTitle)
+            .build()
+        session?.setMetadata(metadata)
         val style = if(Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)
             MediaStyle()
                 .setShowActionsInCompactView(1,3)
@@ -394,7 +404,7 @@ class TTSService : Service() {
             )
             .addAction(R.drawable.ic_next_chapter, null, createNextChapterIntent())
             .addAction(R.drawable.ic_stop, "Stop", createCancelIntent())
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setSilent(true)
             .setOngoing(!isPaused.value)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -440,9 +450,12 @@ class TTSService : Service() {
         }
 
         textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {}
+            override fun onStart(utteranceId: String?) {
+                flagTriggerScroll.value = false
+            }
             override fun onDone(utteranceId: String?) {
                 playNextParagraphOrChapter()
+                flagTriggerScroll.value = false
                 currentReadingPositionInParagraph = 0
             }
             @Deprecated("Deprecated in Java")
@@ -451,11 +464,13 @@ class TTSService : Service() {
                 super.onRangeStart(utteranceId, start, end, frame)
                 if(isSpeaking.value) {
                     val currentPos = textToSpeakNow.substring(0, end).length
+                    flagTriggerScroll.value = false
                     currentReadingPositionInParagraph = oldPos + currentPos
                     if (flowTextLength.size > 1) {
                         if (oldPos + currentPos > sumLength) {
                             flagTriggerScroll.value = true
-                            sumLength += flowTextLength[scrollTimes.value++]
+                            scrollTimes.value += 1
+                            sumLength += flowTextLength[scrollTimes.value]
                             currentReadingPositionInParagraph = oldPos + currentPos
                         }
                     }
@@ -468,12 +483,11 @@ class TTSService : Service() {
             .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
             .build()
-        focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+        focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
             .setAudioAttributes(playbackAttributes!!)
             .setAcceptsDelayedFocusGain(true)
             .setOnAudioFocusChangeListener(audioFocusChangeListener)
             .build()
-        audioFocusRequest = audioManager!!.requestAudioFocus(focusRequest!!)
     }
     fun setChapterParagraphs(chapterParagraphs: Map<Int, List<String>>) {
         chapterParagraphsMap = chapterParagraphs
@@ -486,11 +500,14 @@ class TTSService : Service() {
         if (chapterParagraphsMap.isEmpty()) {
             return
         }
+        audioFocusRequest = audioManager!!.requestAudioFocus(focusRequest!!)
         isSpeaking.value = true
         isPaused.value = false
         currentReadingPositionInParagraph = 0
         currentParagraphIndex.value = firstVisibleItemIndex
-        startSpeakCurrentParagraph()
+        if(audioFocusRequest == AudioManager.AUDIOFOCUS_REQUEST_GRANTED){
+            startSpeakCurrentParagraph()
+        }
     }
 
     private fun pauseReading() {
@@ -504,25 +521,25 @@ class TTSService : Service() {
     }
 
     private fun stopReading() {
-        if (textToSpeech?.isSpeaking == true) {
-            textToSpeech?.stop()
-            currentParagraphIndex.value = 0
-            currentReadingPositionInParagraph = 0
-            isSpeaking.value = false
-            isPaused.value = false
-            stopForegroundService()
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.cancel(1)
-        }
+        textToSpeech?.stop()
+        currentParagraphIndex.value = 0
+        currentReadingPositionInParagraph = 0
+        isSpeaking.value = false
+        isPaused.value = false
+        stopForegroundService()
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(1)
+        audioFocusRequest = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
     }
 
     private fun startSpeakCurrentParagraph() {
         if (currentChapterIndex.value != -1) {
             val currentChapterParagraphs = chapterParagraphsMap[currentChapterIndex.value]
             if (currentChapterParagraphs != null && currentParagraphIndex.value < currentChapterParagraphs.size) {
-                scrollTimes.value = 0
                 val text = currentChapterParagraphs[currentParagraphIndex.value]
                 textToSpeakNow = text.substring(currentReadingPositionInParagraph)
+                oldPos = text.length - textToSpeakNow.length
+                scrollTimes.value = 0
                 flowTextLength = processTextLength(
                     text = text,
                     maxWidth = screenWidth,
@@ -540,7 +557,6 @@ class TTSService : Service() {
                     ),
                     textMeasurer = textMeasurer!!
                 )
-                oldPos = text.length - textToSpeakNow.length
                 sumLength = flowTextLength[scrollTimes.value]
                 textToSpeech?.speak(textToSpeakNow, TextToSpeech.QUEUE_FLUSH, null, "paragraph_${currentChapterIndex.value}_${currentParagraphIndex.value}")
             } else {
@@ -604,10 +620,8 @@ class TTSService : Service() {
     fun shutdownTts() {
         textToSpeech?.stop()
         textToSpeech?.shutdown()
-        audioManager?.abandonAudioFocusRequest(focusRequest!!)
         isTtsInitialized = false
     }
-
     private fun processTextLength(
         text: String,
         maxWidth: Int,
@@ -615,11 +629,11 @@ class TTSService : Service() {
         textStyle: TextStyle,
         textMeasurer: TextMeasurer,
     ): SnapshotStateList<Int> {
-        var longText = text
+        var remainingText = text
         val subStringLength = mutableStateListOf<Int>()
-        while (longText.isNotEmpty()) {
+        while (remainingText.isNotEmpty()) {
             val measuredLayoutResult = textMeasurer.measure(
-                text = longText,
+                text = remainingText,
                 style = textStyle,
                 overflow = TextOverflow.Ellipsis,
                 constraints = Constraints(
@@ -627,26 +641,20 @@ class TTSService : Service() {
                     maxHeight = maxHeight
                 ),
             )
-            if(measuredLayoutResult.hasVisualOverflow){
+            if (measuredLayoutResult.hasVisualOverflow) {
                 val lastVisibleCharacterIndex = measuredLayoutResult.getLineEnd(
                     lineIndex = measuredLayoutResult.lineCount - 1,
                     visibleEnd = true
                 )
-                val endIndex = minOf(lastVisibleCharacterIndex, longText.length)
-                val endSubString = longText.substring(0, endIndex)
+                val endIndex = minOf(lastVisibleCharacterIndex, remainingText.length)
+                val endSubString = remainingText.substring(0, endIndex)
                 subStringLength.add(endSubString.trim().length)
-                longText = longText.replaceFirst(endSubString, "", true)
-            }else{
-                subStringLength.add(longText.trim().length)
-                longText = ""
+                remainingText = remainingText.substring(endIndex)
+            } else {
+                subStringLength.add(remainingText.trim().length)
+                remainingText = ""
             }
         }
         return subStringLength
-    }
-    private fun updateTTS(){
-        textToSpeech?.language = currentLanguage?: Locale.getDefault()
-        textToSpeech?.voice = currentVoice?: textToSpeech?.defaultVoice
-        textToSpeech?.setSpeechRate(currentSpeed?: 1f)
-        textToSpeech?.setPitch(currentPitch?: 1f)
     }
 }

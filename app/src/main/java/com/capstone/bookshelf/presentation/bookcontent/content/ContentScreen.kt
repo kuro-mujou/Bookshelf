@@ -98,7 +98,6 @@ fun ContentScreen(
     var triggerLoadChapter by remember { mutableStateOf(false) }
     var callbackLoadChapter by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    var lazyListState by remember { mutableStateOf<LazyListState?>(LazyListState()) }
     var isInitial by rememberSaveable { mutableStateOf(true) }
     Surface(
         modifier = Modifier
@@ -129,10 +128,9 @@ fun ContentScreen(
                 triggerLoadChapter = false
                 callbackLoadChapter = false
             }
-            lazyListState = lazyListStates[contentState.currentChapterIndex]
             contentState.service?.setChapterParagraphs(chapterContents)
             if(autoScrollState.isStart && autoScrollState.isPaused){
-                delay(1000)
+                delay(5000)
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
             }
         }
@@ -172,6 +170,7 @@ fun ContentScreen(
                         if (diff > 0) delay(1000)
                         triggerLoadChapter = true
                         isAnimationRunning = false
+                        hasPrintedAtEnd = false
                         cancel()
                     }
                 }
@@ -191,8 +190,8 @@ fun ContentScreen(
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
                 currentChapter(pagerState.targetPage,0,autoScrollState.isStart)
             }
-            LaunchedEffect(lazyListState) {
-                lazyListState?.let {
+            LaunchedEffect(lazyListStates[contentState.currentChapterIndex]) {
+                lazyListStates[contentState.currentChapterIndex]?.let {
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
@@ -202,8 +201,8 @@ fun ContentScreen(
                 }
             }
 
-            LaunchedEffect(lazyListState) {
-                lazyListState?.let {
+            LaunchedEffect(lazyListStates[contentState.currentChapterIndex]) {
+                lazyListStates[contentState.currentChapterIndex]?.let {
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
@@ -213,8 +212,8 @@ fun ContentScreen(
                 }
 
             }
-            LaunchedEffect(lazyListState){
-                lazyListState?.let {
+            LaunchedEffect(lazyListStates[contentState.currentChapterIndex]){
+                lazyListStates[contentState.currentChapterIndex]?.let {
                     snapshotFlow { it.isScrollInProgress && !pagerState.isScrollInProgress }.collect { scrolling ->
                         if (scrolling && (contentState.isSpeaking || contentState.isPaused) && contentState.currentReadingParagraph == contentState.firstVisibleItemIndex) {
                             viewModel.onContentAction(
@@ -229,7 +228,7 @@ fun ContentScreen(
             }
 
             LaunchedEffect(contentState.currentReadingParagraph) {
-                lazyListState?.let {
+                lazyListStates[contentState.currentChapterIndex]?.let {
                     if ((contentState.currentReadingParagraph >= contentState.lastVisibleItemIndex
                                 || contentState.currentReadingParagraph <= contentState.firstVisibleItemIndex)
                         && !contentState.flagTriggerScrolling
@@ -253,7 +252,7 @@ fun ContentScreen(
             }
 
             LaunchedEffect(contentState.flagStartScrolling){
-                lazyListState?.let {
+                lazyListStates[contentState.currentChapterIndex]?.let {
                     if (contentState.flagStartScrolling) {
                         if (contentState.currentReadingParagraph != contentState.firstVisibleItemIndex) {
                             it.animateScrollToItem(contentState.currentReadingParagraph)
@@ -281,7 +280,7 @@ fun ContentScreen(
             }
 
             LaunchedEffect(contentState.flagStartAdjustScroll){
-                lazyListState?.let {
+                lazyListStates[contentState.currentChapterIndex]?.let {
                     if (contentState.flagStartAdjustScroll) {
                         it.animateScrollToItem(contentState.currentReadingParagraph)
                         viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
@@ -292,7 +291,7 @@ fun ContentScreen(
             }
 
             LaunchedEffect(contentState.flagScrollAdjusted){
-                lazyListState?.let {
+                lazyListStates[contentState.currentChapterIndex]?.let {
                     if (contentState.flagScrollAdjusted) {
                         it.animateScrollBy(value = contentState.screenHeight.toFloat() * contentState.scrollTime)
                         viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
@@ -301,11 +300,11 @@ fun ContentScreen(
                     }
                 }
             }
-            LaunchedEffect(lazyListState, autoScrollState.currentSpeed, autoScrollState.isStart) {
-                lazyListState?.let { lazyListState ->
-                    if(autoScrollState.isStart){
+            LaunchedEffect(autoScrollState.currentSpeed, autoScrollState.isStart, autoScrollState) {
+                lazyListStates[contentState.currentChapterIndex]?.let { lazyListState ->
+                    if(autoScrollState.isStart) {
                         flow {
-                            while(true) {
+                            while (true) {
                                 emit(Unit)
                                 delay(autoScrollState.currentSpeed.toLong())
                             }
@@ -329,16 +328,16 @@ fun ContentScreen(
                     }
                 }
             }
-            LaunchedEffect(lazyListState?.isScrollInProgress) {
-                lazyListState?.let {
+            LaunchedEffect(lazyListStates[contentState.currentChapterIndex]?.isScrollInProgress) {
+                lazyListStates[contentState.currentChapterIndex]?.let {
                     if (!it.isScrollInProgress && autoScrollState.isStart && !autoScrollState.isPaused) {
                         autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
                     }
                 }
             }
-            LaunchedEffect(lazyListState?.isScrollInProgress){
+            LaunchedEffect(lazyListStates[contentState.currentChapterIndex]?.isScrollInProgress,autoScrollState.isPaused){
                 if(autoScrollState.isStart && !autoScrollState.isPaused) {
-                    lazyListState?.let {
+                    lazyListStates[contentState.currentChapterIndex]?.let {
                         snapshotFlow { it.layoutInfo }
                             .collect { layoutInfo ->
                                 if (layoutInfo.visibleItemsInfo.isNotEmpty()) {

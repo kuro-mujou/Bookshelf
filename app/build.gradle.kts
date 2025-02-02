@@ -99,22 +99,12 @@ dependencies {
     implementation(libs.navigation.compose)
     //coil
     implementation(libs.coil.compose)
-    //paging 3
-    implementation(libs.androidx.paging.compose)
-    implementation(libs.androidx.paging.runtime.ktx)
-    //ktor
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.android)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.client.logging)
-    implementation(libs.ktor.client.content.negotiation)
     //serialization
     implementation(libs.gson)
     implementation(libs.kotlinx.serialization.json)
     //glass effect
     implementation(libs.haze.materials)
     //media3
-
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

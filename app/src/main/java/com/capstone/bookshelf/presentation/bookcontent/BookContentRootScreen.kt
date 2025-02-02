@@ -38,6 +38,7 @@ import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -105,8 +106,8 @@ fun BookContentScreenRoot(
     ) {
         LaunchedEffect(contentState.book) {
             if (contentState.book != null) {
-                viewModel.startTTSService(context,textMeasurer)
                 viewModel.setupTTS(context)
+                viewModel.startTTSService(context,textMeasurer)
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(dataStoreManager.autoScrollSpeed.first()))
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
             }
@@ -193,7 +194,18 @@ fun BookContentScreenRoot(
                     colorPaletteState = colorPaletteState,
                     dataStoreManager = dataStoreManager,
                     connectToService = {
-                        contentState.service?.startPlayback()
+                        scope.launch {
+                            viewModel.loadTTSSetting(dataStoreManager, contentState.tts!!)
+                            bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
+                            bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
+                            viewModel.onContentAction(dataStoreManager, ContentAction.UpdateIsSpeaking(true))
+                            viewModel.onContentAction(
+                                dataStoreManager,
+                                ContentAction.UpdateCurrentReadingParagraph(contentState.firstVisibleItemIndex)
+                            )
+                            delay(1000)
+                            contentState.service?.startPlayback()
+                        }
                     },
                     onSwitchChange = {
                         scope.launch {
