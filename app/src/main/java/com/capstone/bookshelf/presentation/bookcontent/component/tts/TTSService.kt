@@ -14,12 +14,14 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Binder
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -91,6 +93,7 @@ class TTSService : Service() {
     private var isTtsInitialized by mutableStateOf(false)
     private var isForegroundService by mutableStateOf(false)
     private var currentReadingPositionInParagraph by mutableIntStateOf(0)
+    private var totalParagraphs by mutableIntStateOf(0)
 
     private val currentParagraphIndex = MutableStateFlow(0)
     private val currentChapterIndex = MutableStateFlow(0)
@@ -100,6 +103,26 @@ class TTSService : Service() {
     private val flagTriggerScroll = MutableStateFlow(false)
 
     private var bitmap : Bitmap? = null
+    private val customActionPreviousChapter = PlaybackStateCompat.CustomAction.Builder(
+        PREVIOUS_CHAPTER,
+        "Previous Chapter",
+        R.drawable.ic_previous_chapter
+    )
+    private val customActionPlayPause = PlaybackStateCompat.CustomAction.Builder(
+        RESUME_PAUSE,
+        if (isPaused.value) "Resume" else "Pause",
+        if (isPaused.value) R.drawable.ic_play else R.drawable.ic_pause
+    )
+    private val customActionNextChapter = PlaybackStateCompat.CustomAction.Builder(
+        NEXT_CHAPTER,
+        "Next Chapter",
+        R.drawable.ic_next_chapter
+    )
+    private val customActionCancel = PlaybackStateCompat.CustomAction.Builder(
+        CANCEL,
+        "Cancel",
+        R.drawable.ic_stop
+    )
     private var audioFocusChangeListener =
         AudioManager.OnAudioFocusChangeListener { focusChange ->
             when (focusChange) {
@@ -110,10 +133,39 @@ class TTSService : Service() {
                     pauseReading()
                 }
                 AudioManager.AUDIOFOCUS_LOSS -> {
-                    stopReading()
+                    pauseReading()
+                }
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                    pauseReading()
                 }
             }
         }
+    private val mediaSessionCallback = object : MediaSessionCompat.Callback() {
+        override fun onPlay() {
+            resumePausePlayback()
+        }
+        override fun onPause() {
+            resumePausePlayback()
+        }
+        override fun onStop() {
+            cancelPlayback()
+        }
+        override fun onSkipToNext() {
+            nextChapter()
+        }
+        override fun onSkipToPrevious() {
+            previousChapter()
+        }
+        override fun onCustomAction(action: String?, extras: Bundle?) {
+            super.onCustomAction(action, extras)
+            when (action) {
+                PREVIOUS_CHAPTER -> previousChapter()
+                RESUME_PAUSE -> resumePausePlayback()
+                NEXT_CHAPTER -> nextChapter()
+                CANCEL -> cancelPlayback()
+            }
+        }
+    }
     private var audioFocusRequest : Int = 0
     private var focusRequest : AudioFocusRequest? = null
 
@@ -208,7 +260,12 @@ class TTSService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        session = MediaSessionCompat(this, "TTS_SERVICE")
+        session = MediaSessionCompat(this, "TTS_SERVICE").apply {
+            setFlags(
+                MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS
+            )
+            setCallback(mediaSessionCallback)
+        }
         createNotificationChannel()
     }
 
@@ -235,25 +292,6 @@ class TTSService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         MediaButtonReceiver.handleIntent(session, intent)
-        session?.setCallback(
-            object : MediaSessionCompat.Callback() {
-                override fun onPlay() {
-                    resumePausePlayback()
-                }
-                override fun onPause() {
-                    resumePausePlayback()
-                }
-                override fun onStop() {
-                    cancelPlayback()
-                }
-                override fun onFastForward() {
-                    nextChapter()
-                }
-                override fun onRewind() {
-                    previousChapter()
-                }
-            }
-        )
         intent?.let {
             when (intent.action) {
                 PREVIOUS_CHAPTER -> {
@@ -358,6 +396,7 @@ class TTSService : Service() {
         }
         val notification = buildNotification()
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
         notificationManager.notify(1, notification)
     }
 
@@ -371,48 +410,145 @@ class TTSService : Service() {
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
-    private fun buildNotification(): Notification {
-        if (session == null) {
-            return NotificationCompat.Builder(this, "TTS_CHANNEL_ID").build()
-        }
-        val metadata = MediaMetadataCompat.Builder()
-            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, bookTitle)
-            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, chapterTitle)
-            .build()
-        session?.setMetadata(metadata)
-        val style = if(Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)
-            MediaStyle()
-                .setShowActionsInCompactView(1,3)
-        else
-            MediaStyle()
-                .setMediaSession(session?.sessionToken)
+//    private fun buildNotification(): Notification {
+//        if (session == null) {
+//            return NotificationCompat.Builder(this, "TTS_CHANNEL_ID").build()
+//        }
+//        val durationMs = totalParagraphs * 1000L
+//        val currentPositionMs = currentParagraphIndex.value * 1000L + 1000L
+//        val metadata = MediaMetadataCompat.Builder()
+//            .putString(MediaMetadataCompat.METADATA_KEY_TITLE, bookTitle)
+//            .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, chapterTitle)
+//            .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs)
+//            .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+//            .build()
+//        val playbackState = PlaybackStateCompat.Builder()
+//            .setState(PlaybackStateCompat.STATE_PAUSED, currentPositionMs, 1f)
+//            .setActions(getAvailableActions())
+////            .addCustomAction(customActionPlayPause.build())
+////            .addCustomAction(customActionNextChapter.build())
+//            .addCustomAction(customActionCancel.build())
+////            .addCustomAction(customActionPreviousChapter.build())
+//            .setBufferedPosition(currentPositionMs)
+//            .build()
+//        session?.setMetadata(metadata)
+//        session?.setPlaybackState(playbackState)
+//        val style = MediaStyle()
+//            .setShowActionsInCompactView(1,3)
+//            .setMediaSession(session?.sessionToken)
+//
+//        val builder = NotificationCompat.Builder(this, "TTS_CHANNEL_ID")
+//            .setStyle(style)
+//            .setSmallIcon(R.drawable.ic_launcher_foreground)
+//            .addAction(R.drawable.ic_previous_chapter, null, createPreviousChapterIntent())
+//            .addAction(
+//                if (isPaused.value)
+//                    R.drawable.ic_play
+//                else
+//                    R.drawable.ic_pause,
+//                null,
+//                createResumePauseIntent()
+//            )
+//            .addAction(R.drawable.ic_stop, "Stop", createCancelIntent())
+//            .addAction(R.drawable.ic_next_chapter, null, createNextChapterIntent())
+//            .setPriority(NotificationCompat.PRIORITY_HIGH)
+//            .setSilent(true)
+//            .setOngoing(!isPaused.value)
+//            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+//            .setColor(backgroundColor)
+//            .setColorized(true)
+//        return builder.build()
+//    }
+private fun buildNotification(): Notification {
+    if (session == null) {
+        return NotificationCompat.Builder(this, "TTS_CHANNEL_ID").build()
+    }
+    val builder: NotificationCompat.Builder
+    val durationMs = totalParagraphs * 1000L
+    val currentPositionMs = currentParagraphIndex.value * 1000L + 1000L
+    val metadata = MediaMetadataCompat.Builder()
+        .putString(MediaMetadataCompat.METADATA_KEY_TITLE, bookTitle)
+        .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, chapterTitle)
+        .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, durationMs)
+        .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+        .build()
+    val playbackStateBuilder = PlaybackStateCompat.Builder()
+        .setState(PlaybackStateCompat.STATE_PAUSED, currentPositionMs, 1f) // **Always set STATE_PAUSED for seek bar**
+        .setBufferedPosition(currentPositionMs)
 
-        val builder = NotificationCompat.Builder(this, "TTS_CHANNEL_ID")
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // For Android 13+, use custom actions in PlaybackState and MediaStyle
+
+        playbackStateBuilder.addCustomAction(customActionPlayPause.build())
+        playbackStateBuilder.addCustomAction(customActionNextChapter.build()) // Keep Next Chapter
+        playbackStateBuilder.addCustomAction(customActionCancel.build())     // Keep Stop
+        playbackStateBuilder.addCustomAction(customActionPreviousChapter.build()) // Keep Previous Chapter (add all 4 custom actions)
+        playbackStateBuilder.setActions(getAvailableActions()) // Set available actions (including all 4)
+
+        session?.setPlaybackState(playbackStateBuilder.build())
+
+        val style = MediaStyle()
+            .setShowActionsInCompactView(0, 1, 2) // **Compact view: Play/Pause (index 0), Next Chapter (index 1), Stop (index 2)**
+            .setMediaSession(session?.sessionToken)
+
+        builder = NotificationCompat.Builder(this, "TTS_CHANNEL_ID")
             .setStyle(style)
-            .setContentTitle(bookTitle)
-            .setContentText(chapterTitle)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setLargeIcon(bitmap)
-            .addAction(R.drawable.ic_previous_chapter, null, createPreviousChapterIntent())
-            .addAction(
-                if (isPaused.value)
-                    R.drawable.ic_play
-                else
-                    R.drawable.ic_pause,
+            .setContentTitle(bookTitle)
+            .setContentText(chapterTitle)
+            // **No addAction() calls here for Android 13+ as we are using custom actions**
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setSilent(true)
+            .setOngoing(!isPaused.value)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setColor(backgroundColor)
+            .setColorized(true)
+
+
+    } else {
+        // For Android 12 and below, use addAction on NotificationCompat.Builder
+
+        session?.setPlaybackState(playbackStateBuilder.build())
+
+        val style = MediaStyle()
+            .setShowActionsInCompactView(1, 2) // Compact view for older versions
+            .setMediaSession(session?.sessionToken)
+
+        builder = NotificationCompat.Builder(this, "TTS_CHANNEL_ID")
+            .setStyle(style)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setLargeIcon(bitmap)
+            .setContentTitle(bookTitle)
+            .setContentText(chapterTitle)
+            .addAction(R.drawable.ic_previous_chapter, null, createPreviousChapterIntent()) // Previous Chapter
+            .addAction( // Play/Pause
+                if (isPaused.value) R.drawable.ic_play else R.drawable.ic_pause,
                 null,
                 createResumePauseIntent()
             )
-            .addAction(R.drawable.ic_next_chapter, null, createNextChapterIntent())
-            .addAction(R.drawable.ic_stop, "Stop", createCancelIntent())
+            .addAction(R.drawable.ic_next_chapter, null, createNextChapterIntent()) // Next Chapter
+            .addAction(R.drawable.ic_stop, "Stop", createCancelIntent()) // Stop Action
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setSilent(true)
             .setOngoing(!isPaused.value)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setColor(backgroundColor)
             .setColorized(true)
-        return builder.build()
     }
 
+
+    session?.setMetadata(metadata)
+
+    return builder.build()
+}
+    private fun getAvailableActions(): Long {
+        return PlaybackStateCompat.ACTION_STOP or // Stop action
+                PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or // Previous action
+                PlaybackStateCompat.ACTION_SKIP_TO_NEXT or    // Next action
+                PlaybackStateCompat.ACTION_PLAY_PAUSE // Play/Pause action
+    }
     private fun createPreviousChapterIntent(): PendingIntent {
         val previousChapterIntent = Intent(this, TTSService::class.java).apply {
             action = PREVIOUS_CHAPTER
@@ -425,17 +561,17 @@ class TTSService : Service() {
         }
         return PendingIntent.getService(this, 1, resumePauseIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
-    private fun createNextChapterIntent(): PendingIntent {
-        val nextChapterIntent = Intent(this, TTSService::class.java).apply {
-            action = NEXT_CHAPTER
-        }
-        return PendingIntent.getService(this, 2, nextChapterIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-    }
     private fun createCancelIntent(): PendingIntent {
         val cancelIntent = Intent(this, TTSService::class.java).apply {
             action = CANCEL
         }
-        return PendingIntent.getService(this, 3, cancelIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        return PendingIntent.getService(this, 2, cancelIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+    }
+    private fun createNextChapterIntent(): PendingIntent {
+        val nextChapterIntent = Intent(this, TTSService::class.java).apply {
+            action = NEXT_CHAPTER
+        }
+        return PendingIntent.getService(this, 3, nextChapterIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
     private fun initializeTts() {
@@ -536,6 +672,7 @@ class TTSService : Service() {
         if (currentChapterIndex.value != -1) {
             val currentChapterParagraphs = chapterParagraphsMap[currentChapterIndex.value]
             if (currentChapterParagraphs != null && currentParagraphIndex.value < currentChapterParagraphs.size) {
+                totalParagraphs = currentChapterParagraphs.size
                 val text = currentChapterParagraphs[currentParagraphIndex.value]
                 textToSpeakNow = text.substring(currentReadingPositionInParagraph)
                 oldPos = text.length - textToSpeakNow.length
@@ -558,6 +695,7 @@ class TTSService : Service() {
                     textMeasurer = textMeasurer!!
                 )
                 sumLength = flowTextLength[scrollTimes.value]
+                sendNotification()
                 textToSpeech?.speak(textToSpeakNow, TextToSpeech.QUEUE_FLUSH, null, "paragraph_${currentChapterIndex.value}_${currentParagraphIndex.value}")
             } else {
                 moveToNextChapterOrStop()
