@@ -46,6 +46,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.domain.wrapper.Chapter
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
@@ -70,6 +71,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @OptIn(ExperimentalFoundationApi::class)
+@UnstableApi
 @Composable
 fun ContentScreen(
     viewModel: ContentViewModel,
@@ -462,6 +464,7 @@ fun ContentScreen(
         }
     }
 }
+@UnstableApi
 @SuppressLint("SdCardPath")
 private fun parseListToUsableLists(
     paragraphs: List<String>,

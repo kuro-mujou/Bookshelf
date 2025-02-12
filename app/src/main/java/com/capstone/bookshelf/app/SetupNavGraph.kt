@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.yield
 import org.koin.androidx.compose.koinViewModel
 
+@UnstableApi
 @Composable
 fun SetupNavGraph(
     navController: NavHostController,
@@ -51,7 +53,7 @@ fun SetupNavGraph(
         ){
             composable<Route.Home>(
                 exitTransition = { slideOutHorizontally() },
-                popEnterTransition = { slideInHorizontally() }
+                popEnterTransition = { slideInHorizontally() },
             ){
                 val bookListViewModel = koinViewModel<BookListViewModel>()
                 val selectedBookViewModel =
@@ -110,7 +112,10 @@ fun SetupNavGraph(
                     }
                 )
             }
-            composable<Route.BookContent>{ nav ->
+            composable<Route.BookContent>(
+                exitTransition = { slideOutHorizontally() },
+                popEnterTransition = { slideInHorizontally() },
+            ){ nav ->
                 var isContentLoading by remember { mutableStateOf(true) }
                 val selectedBookViewModel =
                     nav.sharedKoinViewModel<SelectedBookViewModel>(navController)

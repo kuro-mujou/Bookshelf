@@ -1,6 +1,9 @@
 package com.capstone.bookshelf.presentation.bookcontent
 
 
+//import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSMediaService
+//import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSMediaViewModel
+//import com.capstone.bookshelf.presentation.bookcontent.component.tts.UIEventTTS
 import android.annotation.SuppressLint
 import android.view.View
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -21,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarManager
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewModel
@@ -44,6 +48,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@UnstableApi
 @Composable
 fun BookContentScreenRoot(
     viewModel: ContentViewModel,
@@ -55,6 +60,7 @@ fun BookContentScreenRoot(
     val topBarViewModel = koinViewModel<TopBarViewModel>()
     val drawerContainerViewModel = koinViewModel<DrawerContainerViewModel>()
     val autoScrollViewModel = koinViewModel<AutoScrollViewModel>()
+//    val ttsViewModel = koinViewModel<TTSMediaViewModel>()
 
     val topBarState by topBarViewModel.state.collectAsStateWithLifecycle()
     val bottomBarState by bottomBarViewModel.state.collectAsStateWithLifecycle()
@@ -107,6 +113,7 @@ fun BookContentScreenRoot(
         LaunchedEffect(contentState.book) {
             if (contentState.book != null) {
                 viewModel.setupTTS(context)
+//                viewModel.initialize(context)
                 viewModel.startTTSService(context,textMeasurer)
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(dataStoreManager.autoScrollSpeed.first()))
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
@@ -205,6 +212,19 @@ fun BookContentScreenRoot(
                             )
                             delay(1000)
                             contentState.service?.startPlayback()
+//                            delay(1000)
+//                            viewModel.play(
+//                                MediaItem.Builder()
+//                                    .setMediaMetadata(
+//                                        MediaMetadata.Builder()
+//                                            .setTitle("title from media item")
+//                                            .setArtist("artist from media item")
+//                                            .build()
+//                                    )
+////                                  .setUri("")
+//                                    .setUri("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3")
+//                                    .build()
+//                            )
                         }
                     },
                     onSwitchChange = {

@@ -72,13 +72,13 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.androidx.navigation)
+//    implementation(libs.koin.androidx.viewmodel)
     implementation(libs.koin.core)
     //room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.paging)
     implementation(libs.androidx.lifecycle.service)
-    implementation(libs.androidx.media)
     annotationProcessor(libs.androidx.room.compiler)
     ksp(libs.androidx.room.compiler)
     //palette
@@ -105,6 +105,12 @@ dependencies {
     //glass effect
     implementation(libs.haze.materials)
     //media3
+    implementation(libs.androidx.media)
+    implementation(libs.androidx.media3.common.ktx)
+    implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.exoplayer)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

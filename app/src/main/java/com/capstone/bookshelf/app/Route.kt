@@ -2,6 +2,7 @@ package com.capstone.bookshelf.app
 
 import kotlinx.serialization.Serializable
 
+@Serializable
 sealed interface Route {
 
     @Serializable

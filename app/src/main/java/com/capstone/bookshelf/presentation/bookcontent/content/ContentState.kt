@@ -4,17 +4,21 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.domain.wrapper.Book
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.PlaybackService
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSService
 import java.util.Locale
 
+@UnstableApi
 data class ContentState(
     val book: Book? = null,
     val tts : TextToSpeech? = null,
     val enableScaffoldBar : Boolean = true,
     val enablePagerScroll : Boolean = true,
     val service : TTSService? = null,
+    val playbackService: PlaybackService? = null,
     val isServiceBound : Boolean = false,
     //content
     val currentChapterIndex: Int = 0,

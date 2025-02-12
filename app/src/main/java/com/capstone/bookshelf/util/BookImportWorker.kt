@@ -47,6 +47,7 @@ class BookImportWorker(
         const val BOOK_TITLE_KEY = "book_title"
         const val BOOK_CACHE_PATH_KEY = "book_cache_path"
         const val NOTIFICATION_CHANNEL_ID = "book_import_channel"
+        const val NOTIFICATION_CHANNEL_NAME = "Book Import"
         const val NOTIFICATION_ID = 1234
     }
 
@@ -78,6 +79,9 @@ class BookImportWorker(
             Result.failure()
         } finally {
             deleteCacheFile(cacheFilePath!!)
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(NOTIFICATION_ID)
         }
     }
 
@@ -415,7 +419,7 @@ class BookImportWorker(
 
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            "Book Import",
+            NOTIFICATION_CHANNEL_NAME,
             NotificationManager.IMPORTANCE_DEFAULT
         )
         notificationManager.createNotificationChannel(channel)
