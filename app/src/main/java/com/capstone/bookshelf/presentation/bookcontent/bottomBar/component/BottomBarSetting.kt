@@ -25,6 +25,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
@@ -42,6 +43,7 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 
 @Composable
+@UnstableApi
 fun BottomBarSetting(
     viewModel : ContentViewModel,
     bottomBarViewModel: BottomBarViewModel,
@@ -79,6 +81,7 @@ fun BottomBarSetting(
     }
     if(bottomBarState.openAutoScrollMenu){
         AutoScrollMenuDialog(
+            contentState = contentState,
             autoScrollState = autoScrollState,
             autoScrollViewModel = autoScrollViewModel,
             colorPaletteState = colorPaletteState,
@@ -112,7 +115,8 @@ fun BottomBarSetting(
             style = TextStyle(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = colorPaletteState.textColor
+                color = colorPaletteState.textColor,
+                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
             )
         )
         HorizontalDivider(thickness = 2.dp)
@@ -124,7 +128,8 @@ fun BottomBarSetting(
             Text(
                 text = "Keep Screen On",
                 style = TextStyle(
-                    color = colorPaletteState.textColor
+                    color = colorPaletteState.textColor,
+                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                 )
             )
             Switch(
@@ -158,7 +163,8 @@ fun BottomBarSetting(
             Text(
                 text = "Text to Speech",
                 style = TextStyle(
-                    color = colorPaletteState.textColor
+                    color = colorPaletteState.textColor,
+                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                 )
             )
             Icon(
@@ -183,7 +189,8 @@ fun BottomBarSetting(
             Text(
                 text = "Auto Scroll Up",
                 style = TextStyle(
-                    color = colorPaletteState.textColor
+                    color = colorPaletteState.textColor,
+                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                 )
             )
             Icon(

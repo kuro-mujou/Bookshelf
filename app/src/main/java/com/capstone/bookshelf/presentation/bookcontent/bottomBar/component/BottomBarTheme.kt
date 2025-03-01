@@ -46,6 +46,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.model.ColorSample
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
@@ -62,6 +63,7 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@UnstableApi
 fun BottomBarTheme(
     viewModel : ContentViewModel,
     colorPaletteViewModel: ColorPaletteViewModel,
@@ -146,7 +148,10 @@ fun BottomBarTheme(
                 ){
                     Text(
                         text = "Background",
-                        style = TextStyle(color = colorPaletteState.textColor)
+                        style = TextStyle(
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                        )
                     )
                 }
                 Box(
@@ -165,7 +170,10 @@ fun BottomBarTheme(
                 ){
                     Text(
                         text = "Text",
-                        style = TextStyle(color = colorPaletteState.backgroundColor)
+                        style = TextStyle(
+                            color = colorPaletteState.backgroundColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                        )
                     )
                 }
             }
@@ -185,6 +193,7 @@ fun BottomBarTheme(
                 ) {index, sample->
                     SampleColorItem(
                         colorSample = sample,
+                        contentState = contentState,
                         selected = colorPaletteState.selectedColorSet == index,
                         onClick = {
                             scope.launch {
@@ -248,7 +257,10 @@ fun BottomBarTheme(
             Text(
                 modifier = Modifier.padding(start = 8.dp).width(120.dp),
                 text = "Font Size",
-                style = TextStyle(color = colorPaletteState.textColor)
+                style = TextStyle(
+                    color = colorPaletteState.textColor,
+                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                )
             )
             Slider(
                 modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
@@ -280,7 +292,10 @@ fun BottomBarTheme(
                     ){
                         Text(
                             text = "${contentState.fontSize}",
-                            style = TextStyle(color = colorPaletteState.containerColor)
+                            style = TextStyle(
+                                color = colorPaletteState.containerColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            )
                         )
                     }
                 },
@@ -296,7 +311,10 @@ fun BottomBarTheme(
             Text(
                 modifier = Modifier.padding(start = 8.dp).width(120.dp),
                 text = "Line Spacing",
-                style = TextStyle(color = colorPaletteState.textColor)
+                style = TextStyle(
+                    color = colorPaletteState.textColor,
+                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                )
             )
             Slider(
                 modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
@@ -328,7 +346,10 @@ fun BottomBarTheme(
                     ){
                         Text(
                             text = "${contentState.lineSpacing}",
-                            style = TextStyle(color = colorPaletteState.containerColor)
+                            style = TextStyle(
+                                color = colorPaletteState.containerColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            )
                         )
                     }
                 },
@@ -362,7 +383,10 @@ fun BottomBarTheme(
                 val displayState = if(contentState.textAlign) "Justify" else "Left"
                 Text(
                     text = "Align: $displayState",
-                    style = TextStyle(color = colorPaletteState.textColor)
+                    style = TextStyle(
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    )
                 )
             }
             Box(
@@ -385,7 +409,10 @@ fun BottomBarTheme(
                 val displayState = if(contentState.textIndent) "Indent" else "No Indent"
                 Text(
                     text = displayState,
-                    style = TextStyle(color = colorPaletteState.textColor)
+                    style = TextStyle(
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    )
                 )
             }
         }
@@ -394,9 +421,11 @@ fun BottomBarTheme(
     }
 }
 @Composable
+@UnstableApi
 fun SampleColorItem(
     colorSample: ColorSample,
     selected: Boolean,
+    contentState: ContentState,
     onClick: () -> Unit
 ){
     Box(
@@ -419,7 +448,8 @@ fun SampleColorItem(
             text = "Aa",
             style = TextStyle(
                 fontWeight = FontWeight.Bold,
-                color = colorSample.colorTxt
+                color = colorSample.colorTxt,
+                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
             )
         )
     }
@@ -456,7 +486,7 @@ fun SampleFontItem(
             style = TextStyle(
                 fontFamily = fontSample,
                 fontWeight = FontWeight.Bold,
-                color = colorPaletteState.textColor
+                color = colorPaletteState.textColor,
             )
         )
     }

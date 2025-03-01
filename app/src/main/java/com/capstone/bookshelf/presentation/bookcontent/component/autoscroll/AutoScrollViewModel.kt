@@ -32,6 +32,26 @@ class AutoScrollViewModel : ViewModel() {
                     isPaused = action.isPaused
                 )
             }
+            is AutoScrollAction.UpdateDelayAtEnd -> {
+                _state.value = _state.value.copy(
+                    delayAtEnd = action.delayAtEnd
+                )
+            }
+            is AutoScrollAction.UpdateDelayAtStart -> {
+                _state.value = _state.value.copy(
+                    delayAtStart = action.delayAtStart
+                )
+            }
+            is AutoScrollAction.UpdateAutoResumeScrollMode -> {
+                _state.value = _state.value.copy(
+                    isAutoResumeScrollMode = action.autoResumeScrollMode
+                )
+            }
+            is AutoScrollAction.UpdateDelayResume -> {
+                _state.value = _state.value.copy(
+                    delayResumeMode = action.delayResume
+                )
+            }
         }
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupPositionProvider
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.NoteDialog
@@ -39,6 +40,7 @@ import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@UnstableApi
 fun HeaderText(
     colorPaletteState: ColorPalette,
     contentState: ContentState,
@@ -54,6 +56,7 @@ fun HeaderText(
     val tooltipState = rememberTooltipState()
     if(isOpenDialog){
         NoteDialog(
+            contentState = contentState,
             note = content.content,
             colorPaletteState = colorPaletteState,
             onDismiss = {
@@ -101,6 +104,7 @@ fun HeaderText(
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@UnstableApi
 fun ParagraphText(
     colorPaletteState: ColorPalette,
     contentState: ContentState,
@@ -116,6 +120,7 @@ fun ParagraphText(
     val tooltipState = rememberTooltipState()
     if(isOpenDialog){
         NoteDialog(
+            contentState = contentState,
             note = content.text.value,
             colorPaletteState = colorPaletteState,
             onDismiss = {

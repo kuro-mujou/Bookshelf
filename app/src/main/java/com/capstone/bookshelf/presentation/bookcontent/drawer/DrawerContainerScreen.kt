@@ -32,9 +32,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
@@ -46,6 +48,7 @@ import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
+@UnstableApi
 @Composable
 fun DrawerScreen(
     drawerContainerState : DrawerContainerState,
@@ -57,7 +60,7 @@ fun DrawerScreen(
     onDrawerItemClick: (Int) -> Unit,
     content: @Composable () -> Unit
 ){
-    val style = HazeMaterials.ultraThin(colorPaletteState.containerColor)
+    val style = HazeMaterials.thin(colorPaletteState.containerColor)
     val tabItems = listOf(
         TabItem(
             title = "Table of Contents",
@@ -119,17 +122,23 @@ fun DrawerScreen(
                         contentState.book?.title?.let {
                             Text(
                                 text = it,
-                                color = colorPaletteState.textColor,
-                                fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                                fontWeight = FontWeight.Medium
+                                style = TextStyle(
+                                    fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                                    color = colorPaletteState.textColor,
+                                    fontWeight = FontWeight.Medium,
+                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
+                                )
                             )
                         }
                         contentState.book?.authors?.joinToString(",")?.let {
                             Text(
                                 text = it,
-                                color = colorPaletteState.textColor,
-                                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                fontWeight = FontWeight.Normal
+                                style = TextStyle(
+                                    color = colorPaletteState.textColor,
+                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                    fontWeight = FontWeight.Normal,
+                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
+                                ),
                             )
                         }
                     }
@@ -158,7 +167,12 @@ fun DrawerScreen(
                                     selectedTabIndex = index
                                 },
                                 text = {
-                                    Text(text = item.title)
+                                    Text(
+                                        text = item.title,
+                                        style = TextStyle(
+                                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
+                                        )
+                                    )
                                 },
                             )
                         }

@@ -65,9 +65,6 @@ fun BookList(
                         bookListViewModel.onAction(
                             BookListAction.OnBookListBookmarkClick(!localBookListState.isSortedByFavorite)
                         )
-                        scope.launch {
-                            listState.animateScrollToItem(0)
-                        }
                     }
                 ) {
                     Icon(
@@ -157,9 +154,6 @@ fun BookList(
                             bookListViewModel.onAction(
                                 BookListAction.OnBookBookmarkClick(it)
                             )
-                            scope.launch {
-                                listState.animateScrollToItem(0)
-                            }
                         },
                         onItemCheckBoxClick = { isChecked, book ->
                             bookListViewModel.onAction(

@@ -18,9 +18,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +49,7 @@ fun BookView(
     onItemStarClick: () -> Unit,
     onItemCheckBoxClick: (Boolean, Book) -> Unit
 ){
-    var checkBoxState by remember { mutableStateOf(false) }
+    var checkBoxState by rememberSaveable { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -64,20 +65,41 @@ fun BookView(
                 .fillMaxWidth()
                 .padding(8.dp)
         ){
-            AsyncImage(
-                model =
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+                contentAlignment = Alignment.BottomEnd
+            ){
+                AsyncImage(
+                    model =
                     if(book.coverImagePath=="error")
                         R.mipmap.book_cover_not_available
                     else
                         book.coverImagePath,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .clip(RoundedCornerShape(15.dp))
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .clip(RoundedCornerShape(15.dp))
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(topStart = 5.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        modifier = Modifier.padding(top = 2.dp, start = 4.dp),
+                        text = "${book.currentChapter} / ${book.totalChapter}",
+                        style = TextStyle(
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                            background = MaterialTheme.colorScheme.surfaceContainer,
+                        )
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
             LinearProgressIndicator(
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -126,6 +148,11 @@ fun BookView(
                     else
                         Color.Gray,
                 )
+            }
+        }
+        LaunchedEffect(bookListState.isOnDeleteBooks) {
+            if(!bookListState.isOnDeleteBooks){
+                checkBoxState = false
             }
         }
         if(bookListState.isOnDeleteBooks){

@@ -130,9 +130,8 @@ fun ContentScreen(
                 triggerLoadChapter = false
                 callbackLoadChapter = false
             }
-            contentState.service?.setChapterParagraphs(chapterContents)
             if(autoScrollState.isStart && autoScrollState.isPaused){
-                delay(5000)
+                delay(autoScrollState.delayAtStart.toLong())
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
             }
         }
@@ -302,11 +301,11 @@ fun ContentScreen(
                     }
                 }
             }
-            LaunchedEffect(autoScrollState.currentSpeed, autoScrollState.isStart, autoScrollState) {
+            LaunchedEffect(autoScrollState.currentSpeed, autoScrollState.isStart, autoScrollState.isPaused) {
                 lazyListStates[contentState.currentChapterIndex]?.let { lazyListState ->
                     if(autoScrollState.isStart) {
                         flow {
-                            while (true) {
+                            while (!autoScrollState.isPaused) {
                                 emit(Unit)
                                 delay(autoScrollState.currentSpeed.toLong())
                             }
@@ -334,6 +333,10 @@ fun ContentScreen(
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     if (!it.isScrollInProgress && autoScrollState.isStart && !autoScrollState.isPaused) {
                         autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
+                        if(autoScrollState.isAutoResumeScrollMode) {
+                            delay(autoScrollState.delayResumeMode.toLong())
+                            autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+                        }
                     }
                 }
             }
@@ -348,7 +351,8 @@ fun ContentScreen(
                                         lastVisibleItem.offset + lastVisibleItem.size <= layoutInfo.viewportEndOffset + 1
                                     ) {
                                         if (!isAnimationRunning && !hasPrintedAtEnd && contentState.previousChapterIndex <= contentState.currentChapterIndex) {
-                                            delay(1000)
+                                            delay(autoScrollState.delayAtEnd.toLong())
+                                            autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
                                             currentChapter(minOf(contentState.currentChapterIndex + 1,contentState.book?.totalChapter!!),0,true)
                                             hasPrintedAtEnd = true
                                         }
@@ -381,6 +385,7 @@ fun ContentScreen(
                             maxLines = 1,
                             style = TextStyle(
                                 color = colorPaletteState.textColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                             )
                         )
                         viewModel.onContentAction(dataStoreManager,ContentAction.UpdateChapterHeader(it))
@@ -388,11 +393,13 @@ fun ContentScreen(
                     Text(
                         modifier = Modifier
                             .statusBarsPadding()
+                            .padding(start = 12.dp)
                             .wrapContentWidth(),
                         text = "${pagerState.currentPage + 1} / ${contentState.book?.totalChapter}",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
-                            textAlign = TextAlign.Right
+                            textAlign = TextAlign.Right,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                         ),
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -455,7 +462,8 @@ fun ContentScreen(
                         text = "${contentState.lastVisibleItemIndex + 1} / ${contentList.value.size}",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
-                            textAlign = TextAlign.Right
+                            textAlign = TextAlign.Right,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                         ),
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -466,7 +474,7 @@ fun ContentScreen(
 }
 @UnstableApi
 @SuppressLint("SdCardPath")
-private fun parseListToUsableLists(
+fun parseListToUsableLists(
     paragraphs: List<String>,
 ): Pair<List<@Composable (Boolean, Boolean, ColorPalette, ContentState) -> Unit>,List<String>> {
     val composable = mutableListOf<@Composable (Boolean,Boolean,ColorPalette,ContentState) -> Unit>()
@@ -478,7 +486,7 @@ private fun parseListToUsableLists(
         val htmlTagPattern = Regex(pattern = """<[^>]+>""")
         if(it.isNotEmpty()){
             if(linkPattern.containsMatchIn(it)) {
-                composable.add{ _, _,_, _->
+                composable.add{ _,_,_,_->
                     ImageComponent(
                         content = ImageContent(
                             content = it

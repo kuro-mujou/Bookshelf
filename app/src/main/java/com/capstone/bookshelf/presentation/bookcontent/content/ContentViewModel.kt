@@ -4,34 +4,23 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.Bitmap
 import android.os.IBinder
 import android.speech.tts.TextToSpeech
+import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.session.MediaControllerCompat
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.TextMeasurer
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
 import androidx.navigation.toRoute
-import coil.ImageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
-import com.capstone.bookshelf.R
 import com.capstone.bookshelf.app.Route
 import com.capstone.bookshelf.domain.book.BookRepository
 import com.capstone.bookshelf.domain.book.ChapterRepository
 import com.capstone.bookshelf.domain.wrapper.Chapter
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.PlaybackService
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSNotificationDescriptionHandler
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSService
 import com.capstone.bookshelf.util.DataStoreManager
 import kotlinx.coroutines.coroutineScope
@@ -43,7 +32,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import org.koin.java.KoinJavaComponent.inject
 
 @UnstableApi
 class ContentViewModel(
@@ -131,7 +119,7 @@ class ContentViewModel(
             }
             is ContentAction.UpdateChapterHeader -> {
                 serviceBinder?.setChapterTitle(action.header)
-                ttsNotificationDescriptionHandler.updateContentText(action.header)
+//                ttsNotificationDescriptionHandler.updateContentText(action.header)
             }
             is ContentAction.UpdateIsSpeaking -> {
                 _state.value = _state.value.copy(
@@ -280,8 +268,33 @@ class ContentViewModel(
         }
     }
 
+    private var mediaBrowser: MediaBrowserCompat? = null
+    private var mediaController: MediaControllerCompat? = null
+    var connected = false
     fun startTTSService(context: Context , textMeasurer: TextMeasurer) {
         if (!state.value.isServiceBound) {
+            val connectionCallback = object : MediaBrowserCompat.ConnectionCallback() {
+                override fun onConnected() {
+                    mediaController = MediaControllerCompat(context, mediaBrowser!!.sessionToken)
+                    connected = true;
+                }
+
+                override fun onConnectionSuspended() {
+                    connected = false;
+                }
+
+                override fun onConnectionFailed() {
+                    connected = false;
+                }
+            }
+            mediaBrowser = MediaBrowserCompat(
+                context,
+                ComponentName(context, TTSService::class.java),
+                connectionCallback,
+                null
+            ).apply {
+                connect()
+            }
             val serviceIntent = Intent(context, TTSService::class.java).apply {
                 action = TTSService.ACTION_START_TTS_SERVICE // Use the action constant
             }
@@ -328,6 +341,10 @@ class ContentViewModel(
                                 launch {
                                     binder.currentChapterIndex().collectLatest { currentChapterIndex ->
                                         _state.update { it.copy(currentChapterIndex = currentChapterIndex) }
+                                        val chapter = chapterRepository.getChapterContent(bookId, currentChapterIndex)
+                                        parseListToUsableLists(chapter!!.content).also {
+                                            binder.setChapterParagraphs(it.second)
+                                        }
                                     }
                                 },
                                 launch {
@@ -364,7 +381,7 @@ class ContentViewModel(
                     }
                 }
             }
-            context.startService(serviceIntent)
+//            context.startService(serviceIntent)
             context.bindService(serviceIntent, ttsServiceConnection!!, Context.BIND_AUTO_CREATE)
         }
     }
@@ -372,9 +389,12 @@ class ContentViewModel(
     fun stopTTSService(context: Context) {
         if (_state.value.isServiceBound && ttsServiceConnection != null) {
             _state.value.service?.shutdownTts()
-            val serviceIntent = Intent(context, TTSService::class.java)
+            mediaBrowser?.disconnect()
+            mediaBrowser = null;
+            mediaController = null;
+//            val serviceIntent = Intent(context, TTSService::class.java)
             context.unbindService(ttsServiceConnection!!)
-            context.stopService(serviceIntent)
+//            context.stopService(serviceIntent)
             viewModelScope.launch {
                 _state.update {
                     it.copy(
@@ -402,92 +422,92 @@ class ContentViewModel(
         _state.value.tts?.stop()
         _state.value.tts?.shutdown()
     }
-    private var mediaController: MediaController? = null
-    private val ttsNotificationDescriptionHandler : TTSNotificationDescriptionHandler by inject(TTSNotificationDescriptionHandler::class.java)
-    fun initialize(context: Context) {
-        if (mediaController != null) {
-            return // Already initialized
-        }
-        val serviceIntent = Intent(context, PlaybackService::class.java)
-        viewModelScope.launch {
-//            ContextCompat.startForegroundService(context,serviceIntent)
-            context.startService(serviceIntent)
-        }
-        val serviceComponentName = ComponentName(context, PlaybackService::class.java)
-        val sessionToken = SessionToken(context, serviceComponentName)
-        val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-        controllerFuture.addListener({
-            try {
-                mediaController = controllerFuture.get()
-                Log.d("PlayerViewModel", "MediaController initialized successfully ${mediaController?.connectedToken}")
-            } catch (e: Exception) {
-                Log.e("PlayerViewModel", "Failed to build MediaController", e)
-                mediaController = null
-            }
-        }, ContextCompat.getMainExecutor(context))
-        viewModelScope.launch {
-            ttsNotificationDescriptionHandler.updateTitle(_state.value.book?.title!!)
-            ttsNotificationDescriptionHandler.updateBitmap(loadImage(_state.value.book?.coverImagePath!!,context))
-        }
-    }
-    fun play(mediaItem: MediaItem) {
-        if (mediaController == null) {
-            Log.e("PlayerViewModel", "MediaController is null.  Initialization failed?")
-            return
-        }
-
-//        playBackServiceBinder?.setTitle(_state.value.book?.title!!)
-        mediaController?.apply {
-            Log.d("PlayerViewModel", "Started media item")
-            setMediaItem(mediaItem)
-            prepare()
-            play()
-        }
-    }
-
-    fun togglePlayPause() {
-        mediaController?.let {
-            if (it.isPlaying) it.pause() else it.play()
-        }
-    }
-    fun stop() {
-        mediaController?.stop()
-    }
-    fun release() {
-        mediaController?.release()
-    }
-    fun seekToNext() {
-        mediaController?.seekToNext()
-    }
-    fun seekToPrevious() {
-        mediaController?.seekToPrevious()
-    }
-    fun seekBack() {
-        mediaController?.seekBack()
-    }
-    fun seekForward() {
-        mediaController?.seekForward()
-    }
-
-    suspend fun loadImage(imagePath: String, context: Context) : Bitmap? {
-        val imageUrl =
-            if (imagePath == "error")
-                R.mipmap.book_cover_not_available
-            else
-                imagePath
-        val loader = ImageLoader(context)
-        val request = ImageRequest.Builder(context)
-            .data(imageUrl)
-            .allowHardware(false)
-            .build()
-        val result = (loader.execute(request) as? SuccessResult)?.drawable
-        return result?.toBitmap()
-    }
-    override fun onCleared() {
-        mediaController?.run {
-            stop()
-            release()
-        }
-        super.onCleared()
-    }
+//    private var mediaController: MediaController? = null
+//    private val ttsNotificationDescriptionHandler : TTSNotificationDescriptionHandler by inject(TTSNotificationDescriptionHandler::class.java)
+//    fun initialize(context: Context) {
+//        if (mediaController != null) {
+//            return // Already initialized
+//        }
+//        val serviceIntent = Intent(context, PlaybackService::class.java)
+//        viewModelScope.launch {
+////            ContextCompat.startForegroundService(context,serviceIntent)
+//            context.startService(serviceIntent)
+//        }
+//        val serviceComponentName = ComponentName(context, PlaybackService::class.java)
+//        val sessionToken = SessionToken(context, serviceComponentName)
+//        val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+//        controllerFuture.addListener({
+//            try {
+//                mediaController = controllerFuture.get()
+//                Log.d("PlayerViewModel", "MediaController initialized successfully ${mediaController?.connectedToken}")
+//            } catch (e: Exception) {
+//                Log.e("PlayerViewModel", "Failed to build MediaController", e)
+//                mediaController = null
+//            }
+//        }, ContextCompat.getMainExecutor(context))
+//        viewModelScope.launch {
+//            ttsNotificationDescriptionHandler.updateTitle(_state.value.book?.title!!)
+//            ttsNotificationDescriptionHandler.updateBitmap(loadImage(_state.value.book?.coverImagePath!!,context))
+//        }
+//    }
+//    fun play(mediaItem: MediaItem) {
+//        if (mediaController == null) {
+//            Log.e("PlayerViewModel", "MediaController is null.  Initialization failed?")
+//            return
+//        }
+//
+////        playBackServiceBinder?.setTitle(_state.value.book?.title!!)
+//        mediaController?.apply {
+//            Log.d("PlayerViewModel", "Started media item")
+//            setMediaItem(mediaItem)
+//            prepare()
+//            play()
+//        }
+//    }
+//
+//    fun togglePlayPause() {
+//        mediaController?.let {
+//            if (it.isPlaying) it.pause() else it.play()
+//        }
+//    }
+//    fun stop() {
+//        mediaController?.stop()
+//    }
+//    fun release() {
+//        mediaController?.release()
+//    }
+//    fun seekToNext() {
+//        mediaController?.seekToNext()
+//    }
+//    fun seekToPrevious() {
+//        mediaController?.seekToPrevious()
+//    }
+//    fun seekBack() {
+//        mediaController?.seekBack()
+//    }
+//    fun seekForward() {
+//        mediaController?.seekForward()
+//    }
+//
+//    suspend fun loadImage(imagePath: String, context: Context) : Bitmap? {
+//        val imageUrl =
+//            if (imagePath == "error")
+//                R.mipmap.book_cover_not_available
+//            else
+//                imagePath
+//        val loader = ImageLoader(context)
+//        val request = ImageRequest.Builder(context)
+//            .data(imageUrl)
+//            .allowHardware(false)
+//            .build()
+//        val result = (loader.execute(request) as? SuccessResult)?.drawable
+//        return result?.toBitmap()
+//    }
+//    override fun onCleared() {
+//        mediaController?.run {
+//            stop()
+//            release()
+//        }
+//        super.onCleared()
+//    }
 }

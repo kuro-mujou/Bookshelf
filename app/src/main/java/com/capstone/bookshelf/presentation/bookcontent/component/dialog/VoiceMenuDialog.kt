@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
@@ -54,6 +55,7 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@UnstableApi
 fun VoiceMenuDialog(
     viewModel: ContentViewModel,
     contentState: ContentState,
@@ -106,7 +108,8 @@ fun VoiceMenuDialog(
                     style = TextStyle(
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colorPaletteState.textColor
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
                 )
                 HorizontalDivider(thickness = 2.dp)
@@ -125,7 +128,8 @@ fun VoiceMenuDialog(
                             Text(
                                 text = "Language",
                                 style = TextStyle(
-                                    color = colorPaletteState.textColor
+                                    color = colorPaletteState.textColor,
+                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                                 )
                             )
                         }
@@ -137,6 +141,10 @@ fun VoiceMenuDialog(
                         OutlinedTextField(
                             shape = RoundedCornerShape(8.dp),
                             value = contentState.currentLanguage?.displayName.toString(),
+                            textStyle = TextStyle(
+                                color = colorPaletteState.textColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            ),
                             onValueChange = {
 
                             },
@@ -166,7 +174,13 @@ fun VoiceMenuDialog(
                             locales?.forEach { locale ->
                                 DropdownMenuItem(
                                     text = {
-                                        Text(text = locale.displayName)
+                                        Text(
+                                            text = locale.displayName,
+                                            style = TextStyle(
+                                                color = colorPaletteState.textColor,
+                                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                            )
+                                        )
                                     },
                                     onClick = {
                                         viewModel.onContentAction(dataStoreManager, ContentAction.UpdateTTSLanguage(locale))
@@ -201,7 +215,8 @@ fun VoiceMenuDialog(
                             Text(
                                 text = "Voice",
                                 style = TextStyle(
-                                    color = colorPaletteState.textColor
+                                    color = colorPaletteState.textColor,
+                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                                 )
                             )
                         }
@@ -213,6 +228,10 @@ fun VoiceMenuDialog(
                         OutlinedTextField(
                             shape = RoundedCornerShape(8.dp),
                             value = contentState.currentVoice?.name.toString(),
+                            textStyle = TextStyle(
+                                color = colorPaletteState.textColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            ),
                             onValueChange = {
 
                             },
@@ -246,13 +265,15 @@ fun VoiceMenuDialog(
                                             Text(
                                                 text = "Quality: " + voice.quality.toString(),
                                                 style = TextStyle(
-                                                    color = colorPaletteState.textColor
+                                                    color = colorPaletteState.textColor,
+                                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                                                 )
                                             )
                                             Text(
                                                 text = voice.name,
                                                 style = TextStyle(
-                                                    color = colorPaletteState.textColor
+                                                    color = colorPaletteState.textColor,
+                                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                                                 )
                                             )
                                         }
@@ -274,13 +295,15 @@ fun VoiceMenuDialog(
                     Text(
                         text = "Speed",
                         style = TextStyle(
-                            color = colorPaletteState.textColor
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
                     Text(
                         text = "%.2fx".format(speedSliderValue),
                         style = TextStyle(
-                            color = colorPaletteState.textColor
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
 
@@ -318,13 +341,15 @@ fun VoiceMenuDialog(
                     Text(
                         text = "Pitch",
                         style = TextStyle(
-                            color = colorPaletteState.textColor
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
                     Text(
                         text = "%.2fx".format(pitchSliderValue),
                         style = TextStyle(
-                            color = colorPaletteState.textColor
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
                 }
@@ -368,7 +393,8 @@ fun VoiceMenuDialog(
                         Text(
                             text = "Test Voice",
                             style = TextStyle(
-                                color = colorPaletteState.textColor
+                                color = colorPaletteState.textColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                             )
                         )
                     }

@@ -15,9 +15,14 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
@@ -32,6 +37,7 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 
 @Composable
+@UnstableApi
 fun BottomBarTTS(
     viewModel : ContentViewModel,
     bottomBarViewModel: BottomBarViewModel,
@@ -51,6 +57,14 @@ fun BottomBarTTS(
     onStopIconClick: () -> Unit,
     onTTSSettingIconClick: () -> Unit,
 ) {
+    val test by remember { mutableStateOf(listOf(
+        R.drawable.ic_previous_chapter,
+        R.drawable.ic_previous,
+        R.drawable.ic_play,
+        R.drawable.ic_pause,
+        R.drawable.ic_next,
+    )) }
+    val selectedIcon by remember { mutableIntStateOf(0) }
     val iconList = listOf(
         R.drawable.ic_previous_chapter,
         R.drawable.ic_previous,

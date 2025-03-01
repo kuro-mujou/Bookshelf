@@ -23,6 +23,10 @@ object PreferencesKeys {
     val TTS_LOCALE = stringPreferencesKey("TTS_LOCALE")
     val TTS_VOICE = stringPreferencesKey("TTS_VOICE")
     val AUTO_SCROLL_SPEED = intPreferencesKey("AUTO_SCROLL_SPEED")
+    val DELAY_TIME_AT_START = intPreferencesKey("DELAY_TIME_AT_START")
+    val DELAY_TIME_AT_END = intPreferencesKey("DELAY_TIME_AT_END")
+    val AUTO_SCROLL_RESUME_MODE = booleanPreferencesKey("AUTO_SCROLL_RESUME_MODE")
+    val AUTO_SCROLL_RESUME_DELAY_TIME = intPreferencesKey("AUTO_SCROLL_RESUME_DELAY_TIME")
     val BACKGROUND_COLOR = intPreferencesKey("BACKGROUND_COLOR")
     val TEXT_COLOR = intPreferencesKey("TEXT_COLOR")
     val SELECTED_COLOR_SET = intPreferencesKey("SELECTED_COLOR_SET")
@@ -52,6 +56,18 @@ class DataStoreManager(val context: Context) {
     }
     val autoScrollSpeed: Flow<Int> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.AUTO_SCROLL_SPEED] ?: 10000
+    }
+    val delayTimeAtStart: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.DELAY_TIME_AT_START] ?: 3000
+    }
+    val delayTimeAtEnd: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.DELAY_TIME_AT_END] ?: 3000
+    }
+    val autoScrollResumeMode: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.AUTO_SCROLL_RESUME_MODE] ?: false
+    }
+    val autoScrollResumeDelayTime: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.AUTO_SCROLL_RESUME_DELAY_TIME] ?: 2000
     }
     val backgroundColor: Flow<Int> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.BACKGROUND_COLOR] ?: Color.White.toArgb()
@@ -108,6 +124,26 @@ class DataStoreManager(val context: Context) {
     suspend fun setAutoScrollSpeed(value: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.AUTO_SCROLL_SPEED] = value
+        }
+    }
+    suspend fun setDelayTimeAtStart(value: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DELAY_TIME_AT_START] = value
+        }
+    }
+    suspend fun setDelayTimeAtEnd(value: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DELAY_TIME_AT_END] = value
+        }
+    }
+    suspend fun setAutoScrollResumeMode(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_SCROLL_RESUME_MODE] = value
+        }
+    }
+    suspend fun setAutoScrollResumeDelayTime(value: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_SCROLL_RESUME_DELAY_TIME] = value
         }
     }
     suspend fun setBackgroundColor(value: Int) {

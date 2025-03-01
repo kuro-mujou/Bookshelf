@@ -167,7 +167,7 @@ class BookImportWorker(
     private fun normalizeAuthorName(authors: List<Author>): List<String> {
         val normalizedName = mutableListOf<String>()
         authors.forEach { author ->
-            normalizedName.add(author.firstname + " " + author.lastname)
+            normalizedName.add((author.firstname + " " + author.lastname).trim())
         }
         return normalizedName
     }
@@ -189,7 +189,6 @@ class BookImportWorker(
         return chapterContent
     }
 
-
     @Suppress("DEPRECATION")
     private fun saveImageToPrivateStorage(
         context: Context,
@@ -200,8 +199,14 @@ class BookImportWorker(
             val bitmap = BitmapFactory.decodeStream(imageResource.inputStream)
 
             val file = File(context.filesDir, "$filename.webp")
-            FileOutputStream(file).use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
+            if(Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q){
+                FileOutputStream(file).use { outputStream ->
+                    bitmap.compress(Bitmap.CompressFormat.WEBP, 100, outputStream)
+                }
+            } else {
+                FileOutputStream(file).use { outputStream ->
+                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, outputStream)
+                }
             }
             file.absolutePath
         } catch (e: IOException) {

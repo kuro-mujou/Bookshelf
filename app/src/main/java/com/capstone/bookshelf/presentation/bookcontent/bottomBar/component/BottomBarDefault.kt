@@ -25,8 +25,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -34,9 +36,11 @@ import dev.chrisbanes.haze.hazeEffect
 
 
 @Composable
+@UnstableApi
 fun BottomBarDefault(
     hazeState: HazeState,
     style: HazeStyle,
+    contentState: ContentState,
     drawerContainerState: DrawerContainerState,
     colorPaletteState: ColorPalette,
     onThemeIconClick: () -> Unit,
@@ -82,6 +86,7 @@ fun BottomBarDefault(
                 style = TextStyle(
                     color = colorPaletteState.textColor,
                     textAlign = TextAlign.Center,
+                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                 ),
                 maxLines = 1,
             )

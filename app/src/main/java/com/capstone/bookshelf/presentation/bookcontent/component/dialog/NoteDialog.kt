@@ -30,10 +30,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 
 @Composable
+@UnstableApi
 fun NoteDialog(
+    contentState: ContentState,
     note: AnnotatedString,
     colorPaletteState: ColorPalette,
     onDismiss: () -> Unit
@@ -72,7 +76,8 @@ fun NoteDialog(
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(
                             color = colorPaletteState.textColor,
-                            textAlign = TextAlign.Justify
+                            textAlign = TextAlign.Justify,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
                 }
@@ -82,10 +87,19 @@ fun NoteDialog(
                         noteContent = it
                     },
                     textStyle = TextStyle(
-                        color = colorPaletteState.textColor
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     ),
                     maxLines = 20,
-                    label = { Text("Enter your note") },
+                    label = {
+                        Text(
+                            text = "Enter your note",
+                            style = TextStyle(
+                                color = colorPaletteState.textColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            )
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = colorPaletteState.textColor,
@@ -112,7 +126,8 @@ fun NoteDialog(
                         Text(
                             text = "Close",
                             style = TextStyle(
-                                color = colorPaletteState.backgroundColor
+                                color = colorPaletteState.backgroundColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                             )
                         )
                     }
@@ -127,7 +142,8 @@ fun NoteDialog(
                         Text(
                             text = "Submit",
                             style = TextStyle(
-                                color = colorPaletteState.backgroundColor
+                                color = colorPaletteState.backgroundColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                             )
                         )
                     }
@@ -137,7 +153,9 @@ fun NoteDialog(
     }
 }
 @Composable
+@UnstableApi
 fun NoteDialog(
+    contentState: ContentState,
     note: String,
     colorPaletteState: ColorPalette,
     onDismiss: () -> Unit
@@ -176,7 +194,8 @@ fun NoteDialog(
                         overflow = TextOverflow.Ellipsis,
                         style = TextStyle(
                             color = colorPaletteState.textColor,
-                            textAlign = TextAlign.Justify
+                            textAlign = TextAlign.Justify,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
                 }
@@ -186,7 +205,8 @@ fun NoteDialog(
                         noteContent = it
                     },
                     textStyle = TextStyle(
-                        color = colorPaletteState.textColor
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     ),
                     maxLines = 20,
                     label = { Text("Enter your note") },
@@ -216,7 +236,8 @@ fun NoteDialog(
                         Text(
                             text = "Close",
                             style = TextStyle(
-                                color = colorPaletteState.backgroundColor
+                                color = colorPaletteState.backgroundColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                             )
                         )
                     }
@@ -231,7 +252,8 @@ fun NoteDialog(
                         Text(
                             text = "Submit",
                             style = TextStyle(
-                                color = colorPaletteState.backgroundColor
+                                color = colorPaletteState.backgroundColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                             )
                         )
                     }

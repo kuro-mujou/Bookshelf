@@ -5,6 +5,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.component.BottomBarAutoScroll
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.component.BottomBarDefault
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.component.BottomBarSetting
@@ -28,6 +29,7 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
+@UnstableApi
 fun BottomBarManager(
     viewModel: ContentViewModel,
     topBarViewModel: TopBarViewModel,
@@ -64,6 +66,7 @@ fun BottomBarManager(
         BottomBarDefault(
             hazeState = hazeState,
             style = style,
+            contentState = contentState,
             drawerContainerState = drawerContainerState,
             colorPaletteState = colorPaletteState,
             onThemeIconClick = {
@@ -93,6 +96,7 @@ fun BottomBarManager(
         exit = slideOutVertically(targetOffsetY = { it }),
     ) {
         BottomBarAutoScroll(
+            contentState = contentState,
             dataStoreManager = dataStoreManager,
             hazeState = hazeState,
             style = style,

@@ -17,19 +17,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.AutoScrollMenuDialog
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 
 @Composable
+@UnstableApi
 fun BottomBarAutoScroll(
+    contentState: ContentState,
     dataStoreManager: DataStoreManager,
     hazeState: HazeState,
     style: HazeStyle,
@@ -133,6 +137,7 @@ fun BottomBarAutoScroll(
 
         if(bottomBarState.openAutoScrollMenu){
             AutoScrollMenuDialog(
+                contentState = contentState,
                 autoScrollState = autoScrollState,
                 autoScrollViewModel = autoScrollViewModel,
                 colorPaletteState = colorPaletteState,
