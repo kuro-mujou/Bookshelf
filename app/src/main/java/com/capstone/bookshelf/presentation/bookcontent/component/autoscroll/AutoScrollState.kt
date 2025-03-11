@@ -3,6 +3,7 @@ package com.capstone.bookshelf.presentation.bookcontent.component.autoscroll
 data class AutoScrollState(
     val isStart : Boolean = false,
     val isPaused : Boolean = false,
+    val stopAutoScroll : Boolean = true,
     val isAutoResumeScrollMode : Boolean = false,
     val currentSpeed : Int = 10000,
     val delayAtStart: Int = 3000,

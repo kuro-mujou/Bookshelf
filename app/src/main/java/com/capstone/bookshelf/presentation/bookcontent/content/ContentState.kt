@@ -7,8 +7,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.domain.wrapper.Book
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.PlaybackService
-import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSService
 import java.util.Locale
 
 @UnstableApi
@@ -17,9 +15,6 @@ data class ContentState(
     val tts : TextToSpeech? = null,
     val enableScaffoldBar : Boolean = true,
     val enablePagerScroll : Boolean = true,
-    val service : TTSService? = null,
-    val playbackService: PlaybackService? = null,
-    val isServiceBound : Boolean = false,
     //content
     val currentChapterIndex: Int = 0,
     val previousChapterIndex: Int = 0,
@@ -30,6 +25,7 @@ data class ContentState(
     val flagStartAdjustScroll : Boolean = false,
     val firstVisibleItemIndex : Int = 0,
     val lastVisibleItemIndex : Int = 0,
+    val chapterHeader : String = "",
 
     val screenHeight : Int = 0,
     val screenWidth : Int = 0,
@@ -39,7 +35,7 @@ data class ContentState(
     val currentLanguage : Locale? = null,
     val currentVoice : Voice? = null,
     val scrollTime : Int = 0,
-
+    val enableBackgroundMusic : Boolean = false,
     val isSpeaking : Boolean = false,
     val isPaused : Boolean = false,
     val isFocused : Boolean = false,

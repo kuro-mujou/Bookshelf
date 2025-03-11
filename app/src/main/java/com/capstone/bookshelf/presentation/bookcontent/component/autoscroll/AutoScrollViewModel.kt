@@ -52,6 +52,11 @@ class AutoScrollViewModel : ViewModel() {
                     delayResumeMode = action.delayResume
                 )
             }
+            is AutoScrollAction.UpdateStopAutoScroll -> {
+                _state.value = _state.value.copy(
+                    stopAutoScroll = action.stopScroll
+                )
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,9 +27,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
+import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 
 @Composable
+@UnstableApi
 fun ImageComponent(
     content: ImageContent
 ) {
@@ -105,6 +108,9 @@ fun ImageComponent(
             ) {
                 popup.value = true
             },
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
         shape = RectangleShape
     ) {
         AsyncImage(

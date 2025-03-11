@@ -2,7 +2,9 @@ package com.capstone.bookshelf.presentation.bookcontent.bottomBar.component
 
 import android.os.Build
 import android.speech.tts.TextToSpeech
+import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,17 +12,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
@@ -31,6 +35,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.Col
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.VoiceMenuDialog
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
+import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -46,6 +51,7 @@ fun BottomBarTTS(
     style: HazeStyle,
     bottomBarState: BottomBarState,
     colorPaletteState: ColorPalette,
+    drawerContainerState : DrawerContainerState,
     tts: TextToSpeech,
     dataStoreManager: DataStoreManager,
     onPreviousChapterIconClick: () -> Unit,
@@ -57,24 +63,16 @@ fun BottomBarTTS(
     onStopIconClick: () -> Unit,
     onTTSSettingIconClick: () -> Unit,
 ) {
-    val test by remember { mutableStateOf(listOf(
-        R.drawable.ic_previous_chapter,
-        R.drawable.ic_previous,
-        R.drawable.ic_play,
-        R.drawable.ic_pause,
-        R.drawable.ic_next,
-    )) }
-    val selectedIcon by remember { mutableIntStateOf(0) }
     val iconList = listOf(
-        R.drawable.ic_previous_chapter,
-        R.drawable.ic_previous,
+        R.drawable.ic_skip_to_back,
+        R.drawable.ic_backward,
         R.drawable.ic_play,
         R.drawable.ic_pause,
-        R.drawable.ic_next,
-        R.drawable.ic_next_chapter,
+        R.drawable.ic_forward,
+        R.drawable.ic_skip_to_next,
         R.drawable.ic_timer,
         R.drawable.ic_stop,
-        R.drawable.ic_settings
+        R.drawable.ic_setting
     )
     Column(
         modifier = Modifier
@@ -90,7 +88,29 @@ fun BottomBarTTS(
                     Modifier.background(colorPaletteState.containerColor)
                 }
             ),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        Spacer(modifier = Modifier.height(10.dp))
+        drawerContainerState.currentTOC?.let {
+            Text(
+                modifier = Modifier
+                    .padding(start = 10.dp, end = 10.dp)
+                    .basicMarquee(
+                        animationMode = MarqueeAnimationMode.Immediately,
+                        initialDelayMillis = 0,
+                        repeatDelayMillis = 0
+                    ),
+                text = it.title,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(
+                    color = colorPaletteState.textColor,
+                    textAlign = TextAlign.Center,
+                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
+                ),
+                maxLines = 1,
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center

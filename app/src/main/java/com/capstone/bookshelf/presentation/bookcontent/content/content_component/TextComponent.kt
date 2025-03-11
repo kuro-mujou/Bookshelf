@@ -78,7 +78,7 @@ fun HeaderText(
                 }
             ) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(R.drawable.ic_twotone_bookmark_add),
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_comment),
                     contentDescription = null
                 )
             }
@@ -142,7 +142,7 @@ fun ParagraphText(
                 }
             ) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(R.drawable.ic_twotone_bookmark_add),
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_comment),
                     contentDescription = null
                 )
             }

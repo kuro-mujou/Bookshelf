@@ -148,17 +148,17 @@ fun TableOfContents(
                 ) {
                     if(contentState.currentChapterIndex < firstItemIndex)
                         Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_up),
-                            modifier = Modifier.size(48.dp),
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_up),
+                            modifier = Modifier.size(16.dp),
                             contentDescription = null,
-                            tint = Color.White
+                            tint = colorPaletteState.backgroundColor
                         )
                     else
                         Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down),
-                            modifier = Modifier.size(48.dp),
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_down),
+                            modifier = Modifier.size(16.dp),
                             contentDescription = null,
-                            tint = Color.White
+                            tint = colorPaletteState.backgroundColor
                         )
                 }
             }

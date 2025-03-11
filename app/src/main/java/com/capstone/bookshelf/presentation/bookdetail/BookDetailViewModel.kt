@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.presentation.bookdetail
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -8,9 +7,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-class BookDetailViewModel(
-    savedStateHandle: SavedStateHandle
-): ViewModel() {
+class BookDetailViewModel: ViewModel() {
 
     private val _state = MutableStateFlow(BookDetailState())
     val state = _state

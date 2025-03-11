@@ -91,7 +91,7 @@ fun BookView(
                 ) {
                     Text(
                         modifier = Modifier.padding(top = 2.dp, start = 4.dp),
-                        text = "${book.currentChapter} / ${book.totalChapter}",
+                        text = "${book.currentChapter+1} / ${book.totalChapter}",
                         style = TextStyle(
                             fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             background = MaterialTheme.colorScheme.surfaceContainer,

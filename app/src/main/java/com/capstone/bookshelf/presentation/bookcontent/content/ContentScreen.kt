@@ -62,10 +62,10 @@ import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerSta
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -129,10 +129,12 @@ fun ContentScreen(
             if (callbackLoadChapter) {
                 triggerLoadChapter = false
                 callbackLoadChapter = false
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateChapterHeader(drawerContainerState.currentTOC?.title!!))
             }
             if(autoScrollState.isStart && autoScrollState.isPaused){
                 delay(autoScrollState.delayAtStart.toLong())
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+
             }
         }
         val beyondBoundsPageCount = 1
@@ -157,9 +159,11 @@ fun ContentScreen(
                 isInitial = false
             }
             val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean,ColorPalette,ContentState) -> Unit>())}
-            val density = LocalDensity.current
+            var header by remember{ mutableStateOf("") }
             var hasPrintedAtEnd by remember { mutableStateOf(false) }
             var isAnimationRunning by remember { mutableStateOf(false) }
+            var animationJob by remember { mutableStateOf<Job?>(null) }
+            val density = LocalDensity.current
             LaunchedEffect(Unit) {
                 snapshotFlow {
                     Pair(
@@ -180,9 +184,12 @@ fun ContentScreen(
                 if (triggerLoadChapter && data == null) {
                     viewModel.getChapter((page))
                     data = chapterContent
-                    parseListToUsableLists(data!!.content).also{
-                        contentList.value = it.first
-                        chapterContents[page] = it.second
+                    data?.let { chapterData ->
+                        header = chapterData.chapterTitle
+                        parseListToUsableLists(chapterData.content).also{
+                            contentList.value = it.first
+                            chapterContents[page] = it.second
+                        }
                     }
                     callbackLoadChapter = true
                 }
@@ -301,18 +308,23 @@ fun ContentScreen(
                     }
                 }
             }
-            LaunchedEffect(autoScrollState.currentSpeed, autoScrollState.isStart, autoScrollState.isPaused) {
+            LaunchedEffect(autoScrollState.currentSpeed, autoScrollState.isStart, autoScrollState.isPaused, autoScrollState.stopAutoScroll) {
+                if (autoScrollState.stopAutoScroll || autoScrollState.isPaused) {
+                    animationJob?.cancel()
+                    animationJob = null
+                    return@LaunchedEffect
+                }
                 lazyListStates[contentState.currentChapterIndex]?.let { lazyListState ->
-                    if(autoScrollState.isStart) {
+                    if (autoScrollState.isStart) {
                         flow {
-                            while (!autoScrollState.isPaused) {
+                            while (true) {
                                 emit(Unit)
                                 delay(autoScrollState.currentSpeed.toLong())
                             }
-                        }.filter { !autoScrollState.isPaused }
-                            .collect {
+                        }.collect {
                                 isAnimationRunning = true
-                                coroutineScope.launch {
+                                animationJob?.cancel()
+                                animationJob = coroutineScope.launch {
                                     lazyListState.animateScrollBy(
                                         value = contentState.screenHeight.toFloat(),
                                         animationSpec = tween(
@@ -321,12 +333,20 @@ fun ContentScreen(
                                             easing = LinearEasing
                                         )
                                     )
-                                }.invokeOnCompletion {
+                                }
+                                animationJob?.invokeOnCompletion {
                                     isAnimationRunning = false
                                     hasPrintedAtEnd = false
+                                    animationJob = null
                                 }
                             }
+                    } else {
+                        animationJob?.cancel()
+                        animationJob = null
                     }
+                } ?: run {
+                    animationJob?.cancel()
+                    animationJob = null
                 }
             }
             LaunchedEffect(lazyListStates[contentState.currentChapterIndex]?.isScrollInProgress) {
@@ -353,7 +373,13 @@ fun ContentScreen(
                                         if (!isAnimationRunning && !hasPrintedAtEnd && contentState.previousChapterIndex <= contentState.currentChapterIndex) {
                                             delay(autoScrollState.delayAtEnd.toLong())
                                             autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
-                                            currentChapter(minOf(contentState.currentChapterIndex + 1,contentState.book?.totalChapter!!),0,true)
+                                            if(contentState.currentChapterIndex + 1 < contentState.book?.totalChapter!!){
+                                                currentChapter(contentState.currentChapterIndex + 1,0,true)
+                                            } else if (contentState.currentChapterIndex + 1 == contentState.book.totalChapter){
+                                                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(false))
+                                                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+                                                autoScrollViewModel.onAction(AutoScrollAction.UpdateStopAutoScroll(true))
+                                            }
                                             hasPrintedAtEnd = true
                                         }
                                     } else {
@@ -375,21 +401,18 @@ fun ContentScreen(
                         .background(color = colorPaletteState.containerColor),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    drawerContainerState.currentTOC?.title?.let {
-                        Text(
-                            modifier = Modifier
-                                .weight(1f)
-                                .statusBarsPadding(),
-                            text = it,
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                            style = TextStyle(
-                                color = colorPaletteState.textColor,
-                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
-                            )
+                    Text(
+                        modifier = Modifier
+                            .weight(1f)
+                            .statusBarsPadding(),
+                        text = header,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        style = TextStyle(
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                         )
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateChapterHeader(it))
-                    }
+                    )
                     Text(
                         modifier = Modifier
                             .statusBarsPadding()

@@ -23,6 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
@@ -31,6 +34,7 @@ import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewMo
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentScreen
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
@@ -60,35 +64,40 @@ fun BookContentScreenRoot(
     val topBarViewModel = koinViewModel<TopBarViewModel>()
     val drawerContainerViewModel = koinViewModel<DrawerContainerViewModel>()
     val autoScrollViewModel = koinViewModel<AutoScrollViewModel>()
-//    val ttsViewModel = koinViewModel<TTSMediaViewModel>()
-
     val topBarState by topBarViewModel.state.collectAsStateWithLifecycle()
     val bottomBarState by bottomBarViewModel.state.collectAsStateWithLifecycle()
     val autoScrollState by autoScrollViewModel.state.collectAsStateWithLifecycle()
     val contentState by viewModel.state.collectAsStateWithLifecycle()
     val drawerContainerState by drawerContainerViewModel.state.collectAsStateWithLifecycle()
     val colorPaletteState by colorPaletteViewModel.colorPalette.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val hazeState = remember { HazeState() }
     val textMeasurer = rememberTextMeasurer()
     val scope = rememberCoroutineScope()
-
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var pagerState by remember { mutableStateOf<PagerState?>(null) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val drawerLazyColumnState = rememberLazyListState()
     contentState.book?.let {
         pagerState = rememberPagerState(
             initialPage = it.currentChapter,
             pageCount = { it.totalChapter }
         )
     }
-    DisposableEffect(Unit) {
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
+                viewModel.stopTTSService(context)
+                viewModel.stopTTS()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
-            viewModel.stopTTSService(context)
-            viewModel.stopTTS()
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    val drawerLazyColumnState = rememberLazyListState()
     if(!contentState.keepScreenOn){
         if(autoScrollState.isStart)
             KeepScreenOn(true)
@@ -104,23 +113,27 @@ fun BookContentScreenRoot(
         drawerLazyColumnState = drawerLazyColumnState,
         colorPaletteState = colorPaletteState,
         hazeState = hazeState,
-        onDrawerItemClick ={
+        onDrawerItemClick = {
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(it))
             viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(it))
+            if(contentState.isSpeaking){
+                viewModel.onTtsUiEvent(TtsUiEvent.JumpToRandomChapter)
+            }
         },
     ) {
         LaunchedEffect(contentState.book) {
             if (contentState.book != null) {
                 viewModel.setupTTS(context)
-//                viewModel.initialize(context)
-                viewModel.startTTSService(context,textMeasurer)
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(contentState.book?.currentChapter!!))
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
+                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateEnableBackgroundMusic(dataStoreManager.enableBackgroundMusic.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(dataStoreManager.autoScrollSpeed.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtStart(dataStoreManager.delayTimeAtStart.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtEnd(dataStoreManager.delayTimeAtEnd.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoResumeScrollMode(dataStoreManager.autoScrollResumeMode.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayResume(dataStoreManager.autoScrollResumeDelayTime.first()))
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
+                viewModel.initialize(context,textMeasurer)
             }
         }
         LaunchedEffect(contentState.isSpeaking) {
@@ -183,10 +196,6 @@ fun BookContentScreenRoot(
                     },
                     onBackIconClick = {
                         onBackClick()
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
-                        viewModel.stopTTSService(context)
-                        viewModel.stopTTS()
                     }
                 )
             },
@@ -209,26 +218,13 @@ fun BookContentScreenRoot(
                             viewModel.loadTTSSetting(dataStoreManager, contentState.tts!!)
                             bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
                             bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
-                            viewModel.onContentAction(dataStoreManager, ContentAction.UpdateIsSpeaking(true))
                             viewModel.onContentAction(
                                 dataStoreManager,
                                 ContentAction.UpdateCurrentReadingParagraph(contentState.firstVisibleItemIndex)
                             )
                             delay(1000)
-                            contentState.service?.startPlayback()
-//                            delay(1000)
-//                            viewModel.play(
-//                                MediaItem.Builder()
-//                                    .setMediaMetadata(
-//                                        MediaMetadata.Builder()
-//                                            .setTitle("title from media item")
-//                                            .setArtist("artist from media item")
-//                                            .build()
-//                                    )
-////                                  .setUri("")
-//                                    .setUri("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3")
-//                                    .build()
-//                            )
+                            viewModel.onContentAction(dataStoreManager, ContentAction.UpdateIsSpeaking(true))
+                            viewModel.play()
                         }
                     },
                     onSwitchChange = {

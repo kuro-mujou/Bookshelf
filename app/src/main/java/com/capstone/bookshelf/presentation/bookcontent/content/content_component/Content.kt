@@ -10,9 +10,11 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 
 @Immutable
+@UnstableApi
 data class ImageContent(
     val content: String,
 ){
@@ -21,6 +23,7 @@ data class ImageContent(
 }
 
 @Immutable
+@UnstableApi
 data class HeaderContent(
     val content: String,
     val contentState : ContentState,
@@ -35,11 +38,12 @@ private fun calculateHeaderSize(level : Int, fontSize: Int): Float {
         3 -> fontSize*1.17f
         4 -> fontSize*1f
         5 -> fontSize*0.83f
-        6 -> fontSize*0.67f
+        6 -> fontSize*0.75f
         else -> fontSize.toFloat()
     }
 }
 @Immutable
+@UnstableApi
 data class ParagraphContent(
     val content: String,
     val contentState : ContentState

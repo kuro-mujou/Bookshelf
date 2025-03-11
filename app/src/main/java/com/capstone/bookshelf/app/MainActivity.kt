@@ -31,8 +31,10 @@ class MainActivity : ComponentActivity() {
                 Surface {
                     val navController = rememberNavController()
                     val requestNotificationPermission = rememberNotificationPermissionLauncher(this) {}
+                    val requestReadExternalStoragePermission = rememberReadExternalStoragePermissionLauncher(this) {}
                     LaunchedEffect(Unit) {
                         requestNotificationPermission()
+                        requestReadExternalStoragePermission()
                     }
                     SetupNavGraph(
                         navController = navController
@@ -67,6 +69,32 @@ fun rememberNotificationPermissionLauncher(
                 onPermissionGranted()
             } else {
                 permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+}
+@Composable
+fun rememberReadExternalStoragePermissionLauncher(
+    context: Context,
+    onPermissionGranted: () -> Unit
+): () -> Unit {
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            onPermissionGranted()
+        }
+    }
+    return remember {
+        {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                onPermissionGranted()
+            } else {
+                permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
         }
     }

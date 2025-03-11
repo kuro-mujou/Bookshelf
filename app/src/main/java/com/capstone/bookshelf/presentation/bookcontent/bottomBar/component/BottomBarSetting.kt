@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -94,7 +95,7 @@ fun BottomBarSetting(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(300.dp)
+            .wrapContentHeight()
             .then(
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
                     Modifier.hazeEffect(
@@ -121,7 +122,10 @@ fun BottomBarSetting(
         )
         HorizontalDivider(thickness = 2.dp)
         Row(
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .padding(start = 4.dp, end = 4.dp)
+                .fillMaxWidth()
+                .height(50.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -150,6 +154,7 @@ fun BottomBarSetting(
         HorizontalDivider(thickness = 1.dp)
         Row(
             modifier = Modifier
+                .padding(start = 4.dp, end = 4.dp)
                 .fillMaxWidth()
                 .height(50.dp)
                 .clickable {
@@ -178,6 +183,7 @@ fun BottomBarSetting(
         Row(
             modifier = Modifier
                 .navigationBarsPadding()
+                .padding(start = 4.dp, end = 4.dp)
                 .fillMaxWidth()
                 .height(50.dp)
                 .clickable{

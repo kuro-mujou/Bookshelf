@@ -15,8 +15,8 @@ android {
         applicationId = "com.capstone.bookshelf"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.02 - hot fix"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -27,10 +27,14 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            isDebuggable = true
         }
     }
     compileOptions {
@@ -43,13 +47,14 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes.add("/META-INF/{AL2.0,LGPL2.1}")
         }
     }
 }
@@ -72,7 +77,6 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.androidx.navigation)
-//    implementation(libs.koin.androidx.viewmodel)
     implementation(libs.koin.core)
     //room
     implementation(libs.androidx.room.runtime)
@@ -91,6 +95,8 @@ dependencies {
         exclude(group = "xmlpull")
     }
     implementation(libs.slf4j.android)
+    //pdf reader
+    implementation(libs.pdfbox.android)
     //animation lottie
     implementation(libs.lottie.compose)
     //jsoup - html parser

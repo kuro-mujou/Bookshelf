@@ -9,9 +9,9 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import com.capstone.bookshelf.domain.book.BookRepository
 import com.capstone.bookshelf.util.BookImportWorker
+import com.capstone.bookshelf.util.PDFImportWorker
 import kotlinx.coroutines.launch
 import nl.siegmann.epublib.domain.Book
-import java.io.File
 
 class AsyncImportBookViewModel(
     private val bookRepository: BookRepository
@@ -20,18 +20,18 @@ class AsyncImportBookViewModel(
     fun processAndSaveBook(
         book: Book,
         context: Context,
-        cacheFilePath: String
+        filePath: String
     ) = viewModelScope.launch {
         try {
+            Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
             val title = book.title
             val isAlreadyImported = bookRepository.isBookExist(title)
             if (isAlreadyImported) {
                 Toast.makeText(context, "Book already imported", Toast.LENGTH_SHORT).show()
-                deleteCacheFile(cacheFilePath)
             } else {
                 val inputData = Data.Builder()
                     .putString(BookImportWorker.BOOK_TITLE_KEY, book.title)
-                    .putString(BookImportWorker.BOOK_CACHE_PATH_KEY, cacheFilePath)
+                    .putString(BookImportWorker.BOOK_CACHE_PATH_KEY, filePath)
                     .build()
 
                 val workRequest = OneTimeWorkRequest.Builder(BookImportWorker::class.java)
@@ -41,13 +41,26 @@ class AsyncImportBookViewModel(
                 WorkManager.getInstance(context).enqueue(workRequest)
             }
         }catch (e: Exception){
-            Toast.makeText(context, "Can't open book file", Toast.LENGTH_SHORT).show()
+            e.printStackTrace()
+            Toast.makeText(context, "Can't open ebook file", Toast.LENGTH_SHORT).show()
         }
     }
-    private fun deleteCacheFile(filePath: String) {
-        val file = File(filePath)
-        if (file.exists()) {
-            file.delete()
+    fun processAndSavePdf(
+        context: Context,
+        filePath: String
+    ) = viewModelScope.launch {
+        try {
+            Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
+            val inputData = Data.Builder()
+                .putString(PDFImportWorker.BOOK_CACHE_PATH_KEY, filePath)
+                .build()
+            val workRequest = OneTimeWorkRequest.Builder(PDFImportWorker::class.java)
+                .setInputData(inputData)
+                .build()
+            WorkManager.getInstance(context).enqueue(workRequest)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "Can't open PDF file", Toast.LENGTH_SHORT).show()
         }
     }
 }

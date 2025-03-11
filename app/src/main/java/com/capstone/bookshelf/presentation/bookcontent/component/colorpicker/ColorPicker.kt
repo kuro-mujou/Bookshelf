@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.graphics.toColorInt
 import com.capstone.bookshelf.util.toHsl
 import kotlinx.coroutines.delay
 
@@ -136,7 +137,7 @@ fun ColorPicker(
                         IconButton(
                             onClick = {
                                 try {
-                                    Color(android.graphics.Color.parseColor("#$inputHex")).toHsl().let {
+                                    Color("#$inputHex".toColorInt()).toHsl().let {
                                         hue = it.first * 360f
                                         saturation = it.second
                                         lightness = it.third

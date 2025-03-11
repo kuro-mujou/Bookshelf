@@ -9,13 +9,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -36,7 +36,7 @@ fun TopBar(
         enter = slideInVertically(initialOffsetY = { -it }),
         exit = slideOutVertically(targetOffsetY = { -it }),
     ) {
-        val style = HazeMaterials.ultraThin(colorPaletteState.containerColor)
+        val style = HazeMaterials.thin(colorPaletteState.containerColor)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -60,7 +60,7 @@ fun TopBar(
                 }
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_back),
                     contentDescription = "Back",
                     tint = colorPaletteState.textColor
                 )
@@ -73,7 +73,7 @@ fun TopBar(
                 }
             ) {
                 Icon(
-                    imageVector = Icons.Default.Menu,
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_menu),
                     contentDescription = "Menu",
                     tint = colorPaletteState.textColor
                 )

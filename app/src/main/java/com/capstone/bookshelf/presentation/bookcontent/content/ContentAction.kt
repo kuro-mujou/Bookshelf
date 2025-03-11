@@ -28,6 +28,7 @@ sealed interface ContentAction {
     data class UpdateTTSVoice(val currentVoice: Voice?) : ContentAction
     data class UpdateTTSSpeed(val currentSpeed: Float) : ContentAction
     data class UpdateTTSPitch(val currentPitch: Float) : ContentAction
+    data class UpdateEnableBackgroundMusic(val enable: Boolean) : ContentAction
     data class UpdateCurrentReadingParagraph(val pos: Int): ContentAction
 
     data class UpdateSelectedFontFamilyIndex(val index: Int) : ContentAction

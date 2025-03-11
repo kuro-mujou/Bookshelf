@@ -11,10 +11,6 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,7 +64,7 @@ fun BookList(
                     }
                 ) {
                     Icon(
-                        imageVector = ImageVector.vectorResource(R.drawable.ic_rounded_bookmark_star),
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark_star),
                         contentDescription = "Sorting Icon",
                         tint = if (localBookListState.isSortedByFavorite) Color.Green else Color.Gray
                     )
@@ -81,7 +77,7 @@ fun BookList(
                     }
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Delete,
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
                         contentDescription = "Delete Icon",
                     )
                 }
@@ -101,7 +97,7 @@ fun BookList(
                     }
                 ){
                     Icon(
-                        imageVector = Icons.Filled.Done,
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_confirm),
                         contentDescription = "Confirm Delete Icon",
                     )
                 }
@@ -113,7 +109,7 @@ fun BookList(
                     }
                 ){
                     Icon(
-                        imageVector = Icons.Filled.Close,
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_cancel),
                         contentDescription = "Cancel Delete Icon",
                     )
                 }

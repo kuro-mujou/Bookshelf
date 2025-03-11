@@ -16,6 +16,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
@@ -46,10 +47,22 @@ fun BottomBarManager(
     connectToService: () -> Unit,
     onSwitchChange: (Boolean) -> Unit
 ){
-    val style = HazeMaterials.ultraThin(colorPaletteState.containerColor)
-    LaunchedEffect(bottomBarState.visibility){
+    val style = HazeMaterials.thin(colorPaletteState.containerColor)
+    LaunchedEffect(bottomBarState.visibility,contentState.isSpeaking,autoScrollState.stopAutoScroll){
         if(!bottomBarState.visibility) {
-            if(!contentState.isSpeaking && !contentState.isPaused && !autoScrollState.isStart && !autoScrollState.isPaused){
+            if(contentState.isSpeaking){
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(false))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarAutoScrollState(false))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarSettingState(false))
+            } else if(!autoScrollState.stopAutoScroll){
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(false))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(false))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarAutoScrollState(true))
+                bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarSettingState(false))
+            } else {
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(true))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(false))
@@ -83,6 +96,7 @@ fun BottomBarManager(
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarAutoScrollState(true))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(true))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+                autoScrollViewModel.onAction(AutoScrollAction.UpdateStopAutoScroll(false))
             },
             onSettingIconClick = {
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
@@ -112,6 +126,7 @@ fun BottomBarManager(
             onStopIconClick = {
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(false))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+                autoScrollViewModel.onAction(AutoScrollAction.UpdateStopAutoScroll(true))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                 topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
             },
@@ -159,16 +174,16 @@ fun BottomBarManager(
             bottomBarState = bottomBarState,
             contentState = contentState,
             colorPaletteState = colorPaletteState,
+            drawerContainerState = drawerContainerState,
             tts = contentState.tts!!,
             dataStoreManager = dataStoreManager,
             onPreviousChapterIconClick = {
-                contentState.service?.previousChapter()
+                viewModel.onTtsUiEvent(TtsUiEvent.SkipToBack)
             },
             onPreviousParagraphIconClick = {
-                contentState.service?.previousParagraph()
+                viewModel.onTtsUiEvent(TtsUiEvent.Backward)
             },
             onPlayPauseIconClick = {
-                contentState.service?.resumePausePlayback()
                 if(contentState.isSpeaking){
                     if(!contentState.isPaused){
                         viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsPaused(true))
@@ -178,10 +193,10 @@ fun BottomBarManager(
                 }
             },
             onNextParagraphIconClick = {
-                contentState.service?.nextParagraph()
+                viewModel.onTtsUiEvent(TtsUiEvent.Forward)
             },
             onNextChapterIconClick = {
-                contentState.service?.nextChapter()
+                viewModel.onTtsUiEvent(TtsUiEvent.SkipToNext)
             },
             onTimerIconClick = {
 
@@ -191,7 +206,7 @@ fun BottomBarManager(
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsPaused(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                 topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
-                contentState.service?.cancelPlayback()
+                viewModel.onTtsUiEvent(TtsUiEvent.Stop)
             },
             onTTSSettingIconClick = {
                 bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))

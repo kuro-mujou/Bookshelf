@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -19,12 +20,11 @@ import com.capstone.bookshelf.domain.book.BookRepository
 import com.capstone.bookshelf.domain.book.ChapterRepository
 import com.capstone.bookshelf.domain.book.ImagePathRepository
 import com.capstone.bookshelf.domain.book.TableOfContentRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import nl.siegmann.epublib.domain.Author
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.domain.Resource
 import nl.siegmann.epublib.domain.TOCReference
+import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
@@ -61,31 +61,32 @@ class BookImportWorker(
 
 
     override suspend fun doWork(): Result {
-        val bookTitle = inputData.getString(BOOK_TITLE_KEY)
-            ?: return Result.failure()
+        val bookTitle = inputData.getString(BOOK_TITLE_KEY) ?: return Result.failure()
         setForeground(createForegroundInfo("Importing $bookTitle..."))
         val cacheFilePath = inputData.getString(BOOK_CACHE_PATH_KEY)
         val bookID = BigInteger(1, md.digest(bookTitle.toByteArray())).toString(16)
             .padStart(32, '0')
-        val book = withContext(Dispatchers.IO) {
-            loadBookFromFile(cacheFilePath!!)
-        } ?: return Result.failure()
-
+        val inputStream = context.contentResolver.openInputStream(cacheFilePath!!.toUri()) ?: return Result.failure()
+        val book = EpubReader().readEpub(inputStream)
         return try {
-            saveBookInfo(book, context, bookID, cacheFilePath!!)
+            saveBookInfo(book, context, bookID, cacheFilePath)
             saveBookContent(bookID, book, context)
             Result.success()
         } catch (e: Exception) {
             Result.failure()
         } finally {
-            deleteCacheFile(cacheFilePath!!)
             val notificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(NOTIFICATION_ID)
         }
     }
 
-    private suspend fun saveBookInfo(book: Book, context: Context, bookID: String, cacheFilePath: String): Long {
+    private suspend fun saveBookInfo(
+        book: Book,
+        context: Context,
+        bookID: String,
+        cacheFilePath: String
+    ): Long {
         val coverImage = try {
             book.coverImage
         } catch (e: Exception) {
@@ -258,9 +259,16 @@ class BookImportWorker(
                             }
 
                             "br" -> {
-                                if (currentParagraph.isNotEmpty()) {
-                                    paragraphs.add(currentParagraph.toString().trim())
-                                    currentParagraph = StringBuilder()
+                                val parentNode = node.parentNode()
+                                if (parentNode is Element && parentNode.tagName() in listOf("h1", "h2", "h3", "h4", "h5", "h6")) {
+                                    if (currentParagraph.isNotEmpty()) {
+                                        currentParagraph.append(" ")
+                                    }
+                                } else {
+                                    if (currentParagraph.isNotEmpty()) {
+                                        paragraphs.add(currentParagraph.toString().trim())
+                                        currentParagraph = StringBuilder()
+                                    }
                                 }
                             }
 
@@ -327,25 +335,72 @@ class BookImportWorker(
                                 currentParagraph.append("<h6>")
                             }
 
-                            "img" -> {
+                            "img","svg" -> {
                                 try {
-                                    val src = node.attr("src")
-                                    val actualSrc = src.replace("../", "")
-                                    val resource = getImageResourceFromBook(actualSrc, book)
-                                    resource?.let {
-                                        val imagePath = saveImageToPrivateStorage(
-                                            context = context,
-                                            imageResource = it,
-                                            filename = "image_${bookID}_${tocID}_${i}"
-                                        )
-                                        pathList.add(imagePath)
-                                        if (imagePath.isNotEmpty()) {
-                                            if (currentParagraph.isNotEmpty()) {
-                                                paragraphs.add(currentParagraph.toString().trim())
-                                                currentParagraph = StringBuilder()
+                                    if(node.tagName() == "img"){
+                                        val src = node.attr("src")
+                                        val actualSrc = src.replace("../", "")
+                                        val resource = getImageResourceFromBook(actualSrc, book)
+                                        resource?.let {
+                                            val imagePath = saveImageToPrivateStorage(
+                                                context = context,
+                                                imageResource = it,
+                                                filename = "image_${bookID}_${tocID}_${i}"
+                                            )
+                                            pathList.add(imagePath)
+                                            if (imagePath.isNotEmpty()) {
+                                                if (currentParagraph.isNotEmpty()) {
+                                                    paragraphs.add(currentParagraph.toString().trim())
+                                                    currentParagraph = StringBuilder()
+                                                }
+                                                paragraphs.add(imagePath)
+                                                i++
                                             }
-                                            paragraphs.add(imagePath)
-                                            i++
+                                        }
+                                    } else {
+                                        var imageElement = node.selectFirst("image")
+                                        if (imageElement != null) {
+                                            val src = imageElement.attr("xlink:href")
+                                            val actualSrc = src.replace("../", "")
+                                            val resource = getImageResourceFromBook(actualSrc, book)
+                                            resource?.let {
+                                                val imagePath = saveImageToPrivateStorage(
+                                                    context = context,
+                                                    imageResource = it,
+                                                    filename = "image_${bookID}_${tocID}_${i}"
+                                                )
+                                                pathList.add(imagePath)
+                                                if (imagePath.isNotEmpty()) {
+                                                    if (currentParagraph.isNotEmpty()) {
+                                                        paragraphs.add(currentParagraph.toString().trim())
+                                                        currentParagraph = StringBuilder()
+                                                    }
+                                                    paragraphs.add(imagePath)
+                                                    i++
+                                                }
+                                            }
+                                        } else {
+                                            imageElement = node.selectFirst("img")
+                                            val src = imageElement?.attr("src")
+                                            val actualSrc = src?.replace("../", "")
+                                            val resource =
+                                                actualSrc?.let { getImageResourceFromBook(it, book) }
+                                            resource?.let {
+                                                val imagePath = saveImageToPrivateStorage(
+                                                    context = context,
+                                                    imageResource = it,
+                                                    filename = "image_${bookID}_${tocID}_${i}"
+                                                )
+                                                pathList.add(imagePath)
+                                                if (imagePath.isNotEmpty()) {
+                                                    if (currentParagraph.isNotEmpty()) {
+                                                        paragraphs.add(currentParagraph.toString().trim())
+                                                        currentParagraph = StringBuilder()
+                                                    }
+                                                    paragraphs.add(imagePath)
+                                                    i++
+                                                }
+                                            }
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -381,43 +436,33 @@ class BookImportWorker(
 
         return Pair(paragraphs, pathList)
     }
-
     private fun getImageResourceFromBook(
         src: String,
         book: Book
     ): Resource? {
-        return if (book.resources.containsByHref(src))
-            book.resources.getByHref(src)
-        else if (book.resources.containsByHref("OEBPS/$src"))
-            book.resources.getByHref("OEBPS/$src")
-        else if (book.resources.containsByHref("epub/$src"))
-            book.resources.getByHref("epub/$src")
-        else if (book.resources.containsByHref("images/$src"))
-            book.resources.getByHref("images/$src")
-        else if (book.resources.containsByHref("epub/images/$src"))
-            book.resources.getByHref("epub/images/$src")
-        else if (book.resources.containsByHref("OEBPS/images/$src"))
-            book.resources.getByHref("OEBPS/images/$src")
-        else
-            null
-    }
-    private fun loadBookFromFile(filePath: String): Book? {
-        return try {
-            val file = File(filePath)
-            nl.siegmann.epublib.epub.EpubReader().readEpub(file.inputStream())
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
+        if (book.resources.resourceMap.containsKey(src)) {
+            return book.resources.resourceMap[src]
         }
-    }
-
-    private fun deleteCacheFile(filePath: String) {
-        val file = File(filePath)
-        if (file.exists()) {
-            file.delete()
+        val possiblePrefixes = listOf(
+            "OEBPS/images/",
+            "OEBPS/IMAGES/",
+            "epub/images/",
+            "OEBPS/",
+            "epub/",
+            "images/",
+        )
+        possiblePrefixes.forEach{prefix->
+            val prefixedHref = prefix + src
+            if (book.resources.resourceMap.containsKey(prefixedHref)) {
+                return book.resources.resourceMap[prefixedHref]
+            }
         }
+        book.resources.resourceMap.keys.forEach{key->
+            if(key.endsWith(src))
+                return book.resources.resourceMap[key]
+        }
+        return null
     }
-
     private fun createForegroundInfo(message: String): ForegroundInfo {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

@@ -1,71 +1,347 @@
 package com.capstone.bookshelf.presentation.bookcontent.component.tts
 
 import android.content.Context
-import android.util.Log
-import androidx.media3.common.PlaybackException
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.speech.tts.Voice
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextIndent
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.session.MediaSession
-import org.koin.java.KoinJavaComponent.inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 @UnstableApi
 class TTSServiceHandler (
-    val context : Context
-) : Player.Listener{
-    private val ttsNotificationManager by inject<TTSNotificationManager>(TTSNotificationManager::class.java)
-    private val ttsAudioManager by inject<TTSAudioManager>(TTSAudioManager::class.java)
-    private lateinit var mediaSession : MediaSession
-
-    fun getMediaSession(mediaSession: MediaSession) {
-        this.mediaSession = mediaSession
-    }
-    override fun onIsPlayingChanged(isPlaying: Boolean) {
-        super.onIsPlayingChanged(isPlaying)
-        Log.d("TTSServiceHandler", "onIsPlayingChanged: $isPlaying")
-    }
-
-    override fun onPlaybackStateChanged(playbackState: Int) {
-        when (playbackState) {
-            Player.STATE_READY -> {
-                Log.d("TTSServiceHandler", "onPlaybackStateChanged: State ready")
-                ttsNotificationManager.createNotificationChannel()
-                ttsNotificationManager.buildNotification(mediaSession)
-                ttsAudioManager.requestAudioFocus()
+    private val context: Context,
+) : Player.Listener {
+    private val _currentParagraphIndex = MutableStateFlow(0)
+    val currentParagraphIndex = _currentParagraphIndex.asStateFlow()
+    private val _currentChapterIndex = MutableStateFlow(0)
+    val currentChapterIndex = _currentChapterIndex.asStateFlow()
+    private val _isSpeaking = MutableStateFlow(false)
+    val isSpeaking = _isSpeaking.asStateFlow()
+    private val _isPaused = MutableStateFlow(false)
+    val isPaused = _isPaused.asStateFlow()
+    private val _scrollTimes = MutableStateFlow(0)
+    val scrollTimes = _scrollTimes.asStateFlow()
+    private val _flagTriggerScroll = MutableStateFlow(false)
+    val flagTriggerScroll = _flagTriggerScroll.asStateFlow()
+    private var player: Player? = null
+    private var audioManager: AudioManager? = null
+    private var focusRequest: AudioFocusRequest? = null
+    private var audioFocusRequestResult: Int = AudioManager.AUDIOFOCUS_NONE
+    private var textToSpeech : TextToSpeech? = null
+    private var isTtsInitialized by mutableStateOf(false)
+    private var oldPos by mutableIntStateOf(0)
+    private var sumLength by mutableIntStateOf(0)
+    private var currentReadingPositionInParagraph by mutableIntStateOf(0)
+    private var totalParagraphs by mutableIntStateOf(0)
+    private var textToSpeakNow by mutableStateOf("")
+    private var flowTextLength = mutableStateListOf<Int>()
+    var textMeasurer: TextMeasurer? = null
+    var fontFamilyTTS by mutableStateOf<FontFamily?>(null)
+    var fontSizeTTS by mutableIntStateOf(0)
+    var lineSpacingTTS by mutableIntStateOf(0)
+    var totalChapter by mutableIntStateOf(0)
+    var screenWidth by mutableIntStateOf(0)
+    var screenHeight by mutableIntStateOf(0)
+    var currentChapterParagraphs by mutableStateOf<List<String>>(emptyList())
+    var textIndentTTS by mutableStateOf(false)
+    var textAlignTTS by mutableStateOf(false)
+    fun onTtsPlayerEvent(event: TtsPlayerEvent){
+        when(event){
+            is TtsPlayerEvent.Backward -> {
+                playPreviousParagraphOrChapter()
             }
-            Player.STATE_BUFFERING -> {
-                Log.d("TTSServiceHandler", "onPlaybackStateChanged: State buffering")
-                ttsAudioManager.requestAudioFocus()
+            is TtsPlayerEvent.Forward -> {
+                playNextParagraphOrChapter()
             }
-            Player.STATE_ENDED -> {
-                Log.d("TTSServiceHandler", "onPlaybackStateChanged: State ended")
-                ttsNotificationManager.abandonNotification()
-                ttsAudioManager.abandonAudioFocus()
+            is TtsPlayerEvent.PlayPause -> {
+                if (event.isPaused) {
+                    pauseReading()
+                } else {
+                    resumeReading()
+                }
             }
-            Player.STATE_IDLE -> {
-                Log.d("TTSServiceHandler", "onPlaybackStateChanged: State idle")
+            is TtsPlayerEvent.Stop -> {
+                stopReading()
+            }
+            is TtsPlayerEvent.SkipToBack -> {
+                moveToPreviousChapterOrStop()
+            }
+            is TtsPlayerEvent.SkipToNext -> {
+                moveToNextChapterOrStop()
+            }
+            is TtsPlayerEvent.JumpToRandomChapter -> {
+                jumpToRandomChapter()
             }
         }
-        super.onPlaybackStateChanged(playbackState)
     }
-    override fun onPlayerError(error: PlaybackException) {
-        Log.e("TTSServiceHandler", "Player error: ${error.errorCodeName} - ${error.message}", error)
+    fun initSystem(
+        player: Player?,
+        audioManager: AudioManager,
+        focusRequest: AudioFocusRequest
+    ){
+        this.player = player
+        this.audioManager = audioManager
+        this.focusRequest = focusRequest
     }
-}
+    fun initializeTts() {
+        textToSpeech = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                textToSpeech?.language = Locale.getDefault()
+                textToSpeech?.voice = textToSpeech?.defaultVoice
+                textToSpeech?.setSpeechRate(1f)
+                textToSpeech?.setPitch(1f)
+                isTtsInitialized = true
+            }
+        }
+        textToSpeech?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                _flagTriggerScroll.value = false
+            }
+            override fun onDone(utteranceId: String?) {
+                playNextParagraphOrChapter()
+                _flagTriggerScroll.value = false
+                currentReadingPositionInParagraph = 0
+            }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {}
+            override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                super.onRangeStart(utteranceId, start, end, frame)
+                if(_isSpeaking.value) {
+                    val currentPos = textToSpeakNow.substring(0, end).length
+                    _flagTriggerScroll.value = false
+                    currentReadingPositionInParagraph = oldPos + currentPos
+                    if (flowTextLength.size > 1) {
+                        if (oldPos + currentPos > sumLength) {
+                            _flagTriggerScroll.value = true
+                            _scrollTimes.value += 1
+                            sumLength += flowTextLength[_scrollTimes.value]
+                            currentReadingPositionInParagraph = oldPos + currentPos
+                        }
+                    }
+                }
+            }
+        })
+    }
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        if(_isSpeaking.value){
+            if(isPlaying){
+                _isPaused.value = false
+                resumeReading()
+            }else{
+                _isPaused.value = true
+                pauseReading()
+            }
+        }
+    }
+    fun startReading(paragraphIndex:Int){
+        if (!isTtsInitialized) {
+            return
+        }
+        if (currentChapterParagraphs.isEmpty()) {
+            return
+        }
 
-sealed class TTSPlayerEvent {
-    data object PlayPause : TTSPlayerEvent()
-    data object NextChapter : TTSPlayerEvent()
-    data object NextParagraph : TTSPlayerEvent()
-    data object PreviousChapter : TTSPlayerEvent()
-    data object PreviousParagraph : TTSPlayerEvent()
-    data object Stop : TTSPlayerEvent()
-    data class UpdateProgress(val newProgress: Float) : TTSPlayerEvent()//may not need
-}
-
-sealed class TTSMediaState {
-    data object Initial : TTSMediaState()
-    data class Ready(val duration: Long) : TTSMediaState()
-    data class Progress(val progress: Long) : TTSMediaState()
-    data class Buffering(val progress: Long) : TTSMediaState()
-    data class Playing(val isPlaying: Boolean) : TTSMediaState()
+        audioFocusRequestResult = audioManager!!.requestAudioFocus(focusRequest!!)
+        _isSpeaking.value = true
+        _isPaused.value = false
+        currentReadingPositionInParagraph = 0
+        _currentParagraphIndex.value = paragraphIndex
+        if(audioFocusRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED){
+            startSpeakCurrentParagraph()
+        }
+    }
+    fun pauseReading(){
+        if (textToSpeech?.isSpeaking == true) {
+            player?.pause()
+            textToSpeech?.stop()
+        }
+    }
+    fun resumeReading(){
+        player?.play()
+        startSpeakCurrentParagraph()
+    }
+    fun stopReading(){
+        _isSpeaking.value = false
+        _isPaused.value = false
+        player?.stop()
+        textToSpeech?.stop()
+        _currentParagraphIndex.value = 0
+        currentReadingPositionInParagraph = 0
+        audioFocusRequestResult = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
+    }
+    fun shutdown(){
+        stopReading()
+        textToSpeech?.shutdown()
+        textToSpeech = null
+    }
+    private fun startSpeakCurrentParagraph() {
+        if (_currentChapterIndex.value != -1) {
+            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size) {
+                totalParagraphs = currentChapterParagraphs.size
+                val text = currentChapterParagraphs[_currentParagraphIndex.value]
+                textToSpeakNow = text.substring(currentReadingPositionInParagraph)
+                oldPos = text.length - textToSpeakNow.length
+                _scrollTimes.value = 0
+                flowTextLength = processTextLength(
+                    text = text,
+                    maxWidth = screenWidth,
+                    maxHeight = screenHeight,
+                    textStyle = TextStyle(
+                        textIndent = if(textIndentTTS)
+                            TextIndent(firstLine = (fontSizeTTS * 2).sp)
+                        else
+                            TextIndent.None,
+                        textAlign = if(textAlignTTS) TextAlign.Justify else TextAlign.Left,
+                        fontSize = fontSizeTTS.sp,
+                        fontFamily = fontFamilyTTS,
+                        lineBreak = LineBreak.Paragraph,
+                        lineHeight = (fontSizeTTS + lineSpacingTTS).sp
+                    ),
+                    textMeasurer = textMeasurer!!
+                )
+                sumLength = flowTextLength[_scrollTimes.value]
+                textToSpeech?.speak(textToSpeakNow, TextToSpeech.QUEUE_FLUSH, null, "paragraph_${_currentChapterIndex.value}_${_currentParagraphIndex.value}")
+            } else {
+                moveToNextChapterOrStop()
+            }
+        }
+    }
+    private fun playNextParagraphOrChapter(){
+        if (_currentChapterIndex.value != -1) {
+            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size - 1) {
+                _currentParagraphIndex.value += 1
+                currentReadingPositionInParagraph = 0
+                if(_isSpeaking.value && !_isPaused.value)
+                    startSpeakCurrentParagraph()
+            } else {
+                moveToNextChapterOrStop()
+            }
+        }
+    }
+    private fun playPreviousParagraphOrChapter(){
+        if (_currentChapterIndex.value != -1) {
+            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value - 1 >= 0) {
+                _currentParagraphIndex.value -= 1
+                currentReadingPositionInParagraph = 0
+                if(_isSpeaking.value && !_isPaused.value)
+                    startSpeakCurrentParagraph()
+            } else {
+                moveToPreviousChapterOrStop()
+            }
+        }
+    }
+    fun moveToNextChapterOrStop(){
+        if (_currentChapterIndex.value + 1 <= totalChapter) {
+            CoroutineScope(Dispatchers.Default).launch {
+                textToSpeech?.stop()
+                currentReadingPositionInParagraph = 0
+                _currentParagraphIndex.value = 0
+                _currentChapterIndex.value += 1
+                delay(1000L)
+                if(_isSpeaking.value && !_isPaused.value)
+                    startSpeakCurrentParagraph()
+            }
+        } else {
+            stopReading()
+        }
+    }
+    fun moveToPreviousChapterOrStop(){
+        if (_currentChapterIndex.value -1 >= 0) {
+            CoroutineScope(Dispatchers.Default).launch {
+                textToSpeech?.stop()
+                currentReadingPositionInParagraph = 0
+                _currentParagraphIndex.value = 0
+                _currentChapterIndex.value -= 1
+                delay(1000L)
+                if(_isSpeaking.value && !_isPaused.value)
+                    startSpeakCurrentParagraph()
+            }
+        } else {
+            stopReading()
+        }
+    }
+    private fun jumpToRandomChapter(){
+        CoroutineScope(Dispatchers.Default).launch {
+            textToSpeech?.stop()
+            currentReadingPositionInParagraph = 0
+            _currentParagraphIndex.value = 0
+            delay(1000L)
+            if(_isSpeaking.value && !_isPaused.value)
+                startSpeakCurrentParagraph()
+        }
+    }
+    private fun processTextLength(
+        text: String,
+        maxWidth: Int,
+        maxHeight: Int,
+        textStyle: TextStyle,
+        textMeasurer: TextMeasurer,
+    ): SnapshotStateList<Int> {
+        var remainingText = text
+        val subStringLength = mutableStateListOf<Int>()
+        while (remainingText.isNotEmpty()) {
+            val measuredLayoutResult = textMeasurer.measure(
+                text = remainingText,
+                style = textStyle,
+                overflow = TextOverflow.Ellipsis,
+                constraints = Constraints(
+                    maxWidth = maxWidth,
+                    maxHeight = maxHeight
+                ),
+            )
+            if (measuredLayoutResult.hasVisualOverflow) {
+                val lastVisibleCharacterIndex = measuredLayoutResult.getLineEnd(
+                    lineIndex = measuredLayoutResult.lineCount - 1,
+                    visibleEnd = true
+                )
+                val endIndex = minOf(lastVisibleCharacterIndex, remainingText.length)
+                val endSubString = remainingText.substring(0, endIndex)
+                subStringLength.add(endSubString.trim().length)
+                remainingText = remainingText.substring(endIndex)
+            } else {
+                subStringLength.add(remainingText.trim().length)
+                remainingText = ""
+            }
+        }
+        return subStringLength
+    }
+    fun updateTTSLanguage(language: Locale?){
+        textToSpeech?.language = language?:Locale.getDefault()
+    }
+    fun updateTTSVoice(voice: Voice?){
+        textToSpeech?.voice = voice?:textToSpeech?.defaultVoice
+    }
+    fun updateTTSSpeed(speed: Float?){
+        textToSpeech?.setSpeechRate(speed?:1f)
+    }
+    fun updateTTSPitch(pitch: Float?) {
+        textToSpeech?.setPitch(pitch?:1f)
+    }
+    fun updateCurrentChapterIndex(index: Int){
+        _currentChapterIndex.value = index
+    }
 }

@@ -3,26 +3,33 @@ package com.capstone.bookshelf.presentation.bookcontent.content
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
-import android.os.IBinder
 import android.speech.tts.TextToSpeech
-import android.support.v4.media.MediaBrowserCompat
-import android.support.v4.media.session.MediaControllerCompat
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.TextMeasurer
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import androidx.navigation.toRoute
 import com.capstone.bookshelf.app.Route
 import com.capstone.bookshelf.domain.book.BookRepository
 import com.capstone.bookshelf.domain.book.ChapterRepository
 import com.capstone.bookshelf.domain.wrapper.Chapter
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSService
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSServiceHandler
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsPlayerEvent
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
 import com.capstone.bookshelf.util.DataStoreManager
+import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,29 +37,26 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
 @UnstableApi
 class ContentViewModel(
     private val bookRepository: BookRepository,
     private val chapterRepository: ChapterRepository,
+    private val ttsServiceHandler : TTSServiceHandler,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val bookId = savedStateHandle.toRoute<Route.BookContent>().bookId
-    private var ttsServiceConnection: ServiceConnection? = null
-//    var playBackServiceBinder: PlaybackService.TTSServiceBinder? = null
-    var serviceBinder: TTSService.TTSBinder? = null
     private val _chapterContent: MutableState<Chapter?> = mutableStateOf(null)
     val chapterContent: State<Chapter?> = _chapterContent
-    private val _state = MutableStateFlow(ContentState())
+    private val serviceJob = mutableListOf<Job>()
+    private var _state = MutableStateFlow(ContentState())
     val state = _state
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000L),
             _state.value
         )
-
     fun onContentAction(dataStoreManager : DataStoreManager, action: ContentAction) {
         when(action){
             is ContentAction.UpdateFlagTriggerAdjustScroll -> {
@@ -79,7 +83,6 @@ class ContentViewModel(
                 _state.value = _state.value.copy(
                     firstVisibleItemIndex = action.index
                 )
-                serviceBinder?.setFirstVisibleItemIndex(action.index)
             }
             is ContentAction.UpdateLastVisibleItemIndex -> {
                 _state.value = _state.value.copy(
@@ -90,7 +93,7 @@ class ContentViewModel(
                 _state.value = _state.value.copy(
                     currentChapterIndex = action.index
                 )
-                serviceBinder?.setCurrentChapterIndex(action.index)
+                ttsServiceHandler.updateCurrentChapterIndex(action.index)
             }
             is ContentAction.UpdateScreenHeight -> {
                 _state.value = _state.value.copy(
@@ -118,14 +121,14 @@ class ContentViewModel(
                 }
             }
             is ContentAction.UpdateChapterHeader -> {
-                serviceBinder?.setChapterTitle(action.header)
-//                ttsNotificationDescriptionHandler.updateContentText(action.header)
+                _state.value = _state.value.copy(
+                    chapterHeader = action.header
+                )
             }
             is ContentAction.UpdateIsSpeaking -> {
                 _state.value = _state.value.copy(
                     isSpeaking = action.isSpeaking
                 )
-                serviceBinder?.setIsSpeaking(action.isSpeaking)
             }
             is ContentAction.UpdateIsFocused -> {
                 _state.value = _state.value.copy(
@@ -136,7 +139,7 @@ class ContentViewModel(
                 _state.value = _state.value.copy(
                     isPaused = action.isPaused
                 )
-                serviceBinder?.setIsPaused(action.isPaused)
+                onTtsUiEvent(TtsUiEvent.PlayPause(action.isPaused))
             }
             is ContentAction.UpdateTTSLanguage -> {
                 _state.value = _state.value.copy(
@@ -145,7 +148,7 @@ class ContentViewModel(
                 viewModelScope.launch {
                     dataStoreManager.setTTSLocale(action.currentLanguage.displayName)
                 }
-                serviceBinder?.setCurrentLanguage(action.currentLanguage)
+                ttsServiceHandler.updateTTSLanguage(action.currentLanguage)
             }
             is ContentAction.UpdateTTSPitch -> {
                 _state.value = _state.value.copy(
@@ -154,7 +157,7 @@ class ContentViewModel(
                 viewModelScope.launch {
                     dataStoreManager.setTTSPitch(action.currentPitch)
                 }
-                serviceBinder?.setCurrentPitch(action.currentPitch)
+                ttsServiceHandler.updateTTSPitch(action.currentPitch)
             }
             is ContentAction.UpdateTTSSpeed -> {
                 _state.value = _state.value.copy(
@@ -163,7 +166,7 @@ class ContentViewModel(
                 viewModelScope.launch {
                     dataStoreManager.setTTSSpeed(action.currentSpeed)
                 }
-                serviceBinder?.setCurrentSpeed(action.currentSpeed)
+                ttsServiceHandler.updateTTSSpeed(action.currentSpeed)
             }
             is ContentAction.UpdateTTSVoice -> {
                 _state.value = _state.value.copy(
@@ -174,43 +177,42 @@ class ContentViewModel(
                         dataStoreManager.setTTSVoice(action.currentVoice.name)
                     }
                 }
-                serviceBinder?.setCurrentVoice(action.currentVoice)
+                ttsServiceHandler.updateTTSVoice(action.currentVoice)
             }
             is ContentAction.UpdateCurrentReadingParagraph -> {
                 _state.value = _state.value.copy(
                     currentReadingParagraph = action.pos
                 )
-                serviceBinder?.setCurrentParagraphIndex(action.pos)
             }
             is ContentAction.UpdateFontSize -> {
                 _state.value = _state.value.copy(
                     fontSize = action.fontSize
                 )
-                serviceBinder?.setFontSize(action.fontSize)
+                ttsServiceHandler.fontSizeTTS = action.fontSize
             }
             is ContentAction.UpdateLineSpacing -> {
                 _state.value = _state.value.copy(
                     lineSpacing = action.lineSpacing
                 )
-                serviceBinder?.setLineSpacing(action.lineSpacing)
+                ttsServiceHandler.lineSpacingTTS = action.lineSpacing
             }
             is ContentAction.UpdateSelectedFontFamilyIndex -> {
                 _state.value = _state.value.copy(
                     selectedFontFamilyIndex = action.index
                 )
-                serviceBinder?.setFontFamily(_state.value.fontFamilies[action.index])
+                ttsServiceHandler.fontFamilyTTS = _state.value.fontFamilies[action.index]
             }
             is ContentAction.UpdateTextAlign -> {
                 _state.value = _state.value.copy(
                     textAlign = action.textAlign
                 )
-                serviceBinder?.setTextAlign(action.textAlign)
+                ttsServiceHandler.textAlignTTS = action.textAlign
             }
             is ContentAction.UpdateTextIndent -> {
                 _state.value = _state.value.copy(
                     textIndent = action.textIndent
                 )
-                serviceBinder?.setTextIndent(action.textIndent)
+                ttsServiceHandler.textIndentTTS = action.textIndent
             }
             is ContentAction.SelectedBook -> {
                 _state.update { it.copy(
@@ -226,6 +228,37 @@ class ContentViewModel(
                 _state.value = _state.value.copy(
                     enablePagerScroll = action.enable
                 )
+            }
+
+            is ContentAction.UpdateEnableBackgroundMusic -> {
+                _state.value = _state.value.copy(
+                    enableBackgroundMusic = action.enable
+                )
+            }
+        }
+    }
+    fun onTtsUiEvent(event: TtsUiEvent){
+        when(event){
+            is TtsUiEvent.Backward -> {
+                ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Backward)
+            }
+            is TtsUiEvent.Forward -> {
+                ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Forward)
+            }
+            is TtsUiEvent.PlayPause -> {
+                ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.PlayPause(isPaused = event.isPaused))
+            }
+            is TtsUiEvent.SkipToBack -> {
+                ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.SkipToBack)
+            }
+            is TtsUiEvent.SkipToNext -> {
+                ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.SkipToNext)
+            }
+            is TtsUiEvent.Stop -> {
+                ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Stop)
+            }
+            is TtsUiEvent.JumpToRandomChapter -> {
+                ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.JumpToRandomChapter)
             }
         }
     }
@@ -267,146 +300,15 @@ class ContentViewModel(
             onContentAction(dataStoreManager, ContentAction.UpdateTTSVoice(selectedVoice!!))
         }
     }
-
-    private var mediaBrowser: MediaBrowserCompat? = null
-    private var mediaController: MediaControllerCompat? = null
-    var connected = false
-    fun startTTSService(context: Context , textMeasurer: TextMeasurer) {
-        if (!state.value.isServiceBound) {
-            val connectionCallback = object : MediaBrowserCompat.ConnectionCallback() {
-                override fun onConnected() {
-                    mediaController = MediaControllerCompat(context, mediaBrowser!!.sessionToken)
-                    connected = true;
-                }
-
-                override fun onConnectionSuspended() {
-                    connected = false;
-                }
-
-                override fun onConnectionFailed() {
-                    connected = false;
-                }
-            }
-            mediaBrowser = MediaBrowserCompat(
-                context,
-                ComponentName(context, TTSService::class.java),
-                connectionCallback,
-                null
-            ).apply {
-                connect()
-            }
-            val serviceIntent = Intent(context, TTSService::class.java).apply {
-                action = TTSService.ACTION_START_TTS_SERVICE // Use the action constant
-            }
-            ttsServiceConnection = object : ServiceConnection { // Store the connection
-                override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                    viewModelScope.launch {
-                        binder as TTSService.TTSBinder
-                        serviceBinder = binder
-                        _state.update {
-                            it.copy(
-                                service = binder.getService(),
-                            )
-                        }
-                        binder.initializeTts()
-                        binder.loadImage(_state.value.book?.coverImagePath!!)
-                        binder.setTextMeasure(textMeasurer)
-                        binder.setCurrentChapterIndex(_state.value.currentChapterIndex)
-                        binder.setCurrentParagraphIndex(_state.value.currentReadingParagraph)
-                        binder.setIsSpeaking(_state.value.isSpeaking)
-                        binder.setIsPaused(_state.value.isPaused)
-                        binder.setScrollTimes(_state.value.scrollTime)
-                        binder.setFlagTriggerScroll(_state.value.flagTriggerScrolling)
-                        binder.setTotalChapter(_state.value.book?.totalChapter!!)
-                        binder.setBookTitle(_state.value.book?.title!!)
-                        binder.setFirstVisibleItemIndex(_state.value.firstVisibleItemIndex)
-                        binder.setTextIndent(_state.value.textIndent)
-                        binder.setTextAlign(_state.value.textAlign)
-                        binder.setFontSize(_state.value.fontSize)
-                        binder.setLineSpacing(_state.value.lineSpacing)
-                        binder.setFontFamily(_state.value.fontFamilies[_state.value.selectedFontFamilyIndex])
-                        binder.setScreenWidth(_state.value.screenWidth)
-                        binder.setScreenHeight(_state.value.screenHeight)
-                        binder.setCurrentLanguage(_state.value.currentLanguage)
-                        binder.setCurrentVoice(_state.value.currentVoice)
-                        binder.setCurrentPitch(_state.value.currentPitch)
-                        binder.setCurrentSpeed(_state.value.currentSpeed)
-                        coroutineScope {
-                            val jobs = listOf(
-                                launch {
-                                    binder.currentParagraphIndex().collectLatest { currentReadingParagraph ->
-                                        _state.update { it.copy(currentReadingParagraph = currentReadingParagraph) }
-                                    }
-                                },
-                                launch {
-                                    binder.currentChapterIndex().collectLatest { currentChapterIndex ->
-                                        _state.update { it.copy(currentChapterIndex = currentChapterIndex) }
-                                        val chapter = chapterRepository.getChapterContent(bookId, currentChapterIndex)
-                                        parseListToUsableLists(chapter!!.content).also {
-                                            binder.setChapterParagraphs(it.second)
-                                        }
-                                    }
-                                },
-                                launch {
-                                    binder.isSpeaking().collectLatest { isSpeaking ->
-                                        _state.update { it.copy(isSpeaking = isSpeaking) }
-                                    }
-                                },
-                                launch {
-                                    binder.isPaused().collectLatest { isPaused ->
-                                        _state.update { it.copy(isPaused = isPaused, isServiceBound = true) } }
-                                },
-                                launch {
-                                    binder.scrollTimes().collectLatest { scrollTimes ->
-                                        _state.update { it.copy(scrollTime = scrollTimes) }
-                                    }
-                                },
-                                launch {
-                                    binder.flagTriggerScroll().collectLatest { flagTriggerScroll ->
-                                        _state.update { it.copy(flagTriggerScrolling = flagTriggerScroll) }
-                                    }
-                                }
-                            )
-                            jobs.joinAll()
-                        }
-                    }
-                }
-                override fun onServiceDisconnected(name: ComponentName?) {
-                    viewModelScope.launch {
-                        _state.update {
-                            it.copy(
-                                isServiceBound = false
-                            )
-                        }
-                    }
-                }
-            }
-//            context.startService(serviceIntent)
-            context.bindService(serviceIntent, ttsServiceConnection!!, Context.BIND_AUTO_CREATE)
-        }
-    }
-
     fun stopTTSService(context: Context) {
-        if (_state.value.isServiceBound && ttsServiceConnection != null) {
-            _state.value.service?.shutdownTts()
-            mediaBrowser?.disconnect()
-            mediaBrowser = null;
-            mediaController = null;
-//            val serviceIntent = Intent(context, TTSService::class.java)
-            context.unbindService(ttsServiceConnection!!)
-//            context.stopService(serviceIntent)
-            viewModelScope.launch {
-                _state.update {
-                    it.copy(
-                        isServiceBound = false,
-                        service = null
-                    )
-                }
-            }
-            ttsServiceConnection = null
+        val serviceIntent = Intent(context, TTSService::class.java)
+        context.stopService(serviceIntent)
+        controllerFuture?.let {
+            MediaController.releaseFuture(it)
+            mediaController = null
         }
+        controllerFuture = null
     }
-
     fun setupTTS(context : Context){
         viewModelScope.launch {
             val tts = TextToSpeech(context,null)
@@ -417,97 +319,117 @@ class ContentViewModel(
             }
         }
     }
-
     fun stopTTS(){
         _state.value.tts?.stop()
         _state.value.tts?.shutdown()
+        serviceJob.forEach { it.cancel() }
+        serviceJob.clear()
     }
-//    private var mediaController: MediaController? = null
-//    private val ttsNotificationDescriptionHandler : TTSNotificationDescriptionHandler by inject(TTSNotificationDescriptionHandler::class.java)
-//    fun initialize(context: Context) {
-//        if (mediaController != null) {
-//            return // Already initialized
-//        }
-//        val serviceIntent = Intent(context, PlaybackService::class.java)
-//        viewModelScope.launch {
-////            ContextCompat.startForegroundService(context,serviceIntent)
-//            context.startService(serviceIntent)
-//        }
-//        val serviceComponentName = ComponentName(context, PlaybackService::class.java)
-//        val sessionToken = SessionToken(context, serviceComponentName)
-//        val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-//        controllerFuture.addListener({
-//            try {
-//                mediaController = controllerFuture.get()
-//                Log.d("PlayerViewModel", "MediaController initialized successfully ${mediaController?.connectedToken}")
-//            } catch (e: Exception) {
-//                Log.e("PlayerViewModel", "Failed to build MediaController", e)
-//                mediaController = null
-//            }
-//        }, ContextCompat.getMainExecutor(context))
-//        viewModelScope.launch {
-//            ttsNotificationDescriptionHandler.updateTitle(_state.value.book?.title!!)
-//            ttsNotificationDescriptionHandler.updateBitmap(loadImage(_state.value.book?.coverImagePath!!,context))
-//        }
-//    }
-//    fun play(mediaItem: MediaItem) {
-//        if (mediaController == null) {
-//            Log.e("PlayerViewModel", "MediaController is null.  Initialization failed?")
-//            return
-//        }
-//
-////        playBackServiceBinder?.setTitle(_state.value.book?.title!!)
-//        mediaController?.apply {
-//            Log.d("PlayerViewModel", "Started media item")
-//            setMediaItem(mediaItem)
-//            prepare()
-//            play()
-//        }
-//    }
-//
-//    fun togglePlayPause() {
-//        mediaController?.let {
-//            if (it.isPlaying) it.pause() else it.play()
-//        }
-//    }
-//    fun stop() {
-//        mediaController?.stop()
-//    }
-//    fun release() {
-//        mediaController?.release()
-//    }
-//    fun seekToNext() {
-//        mediaController?.seekToNext()
-//    }
-//    fun seekToPrevious() {
-//        mediaController?.seekToPrevious()
-//    }
-//    fun seekBack() {
-//        mediaController?.seekBack()
-//    }
-//    fun seekForward() {
-//        mediaController?.seekForward()
-//    }
-//
-//    suspend fun loadImage(imagePath: String, context: Context) : Bitmap? {
-//        val imageUrl =
-//            if (imagePath == "error")
-//                R.mipmap.book_cover_not_available
-//            else
-//                imagePath
-//        val loader = ImageLoader(context)
-//        val request = ImageRequest.Builder(context)
-//            .data(imageUrl)
-//            .allowHardware(false)
-//            .build()
-//        val result = (loader.execute(request) as? SuccessResult)?.drawable
-//        return result?.toBitmap()
-//    }
-//    override fun onCleared() {
-//        mediaController?.run {
-//            stop()
-//            release()
-//        }
-//        super.onCleared()
-//    }
+    private var mediaController: MediaController? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    fun initialize(context: Context,textMeasurer: TextMeasurer) {
+        if (mediaController != null) {
+            return
+        }
+        viewModelScope.launch {
+            val serviceIntent = Intent(context, TTSService::class.java)
+            context.startService(serviceIntent)
+        }
+        val serviceComponentName = ComponentName(context, TTSService::class.java)
+        val sessionToken = SessionToken(context, serviceComponentName)
+        controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+        controllerFuture?.addListener({
+            mediaController = try {
+                controllerFuture?.get()
+            } catch (e: Exception) {
+                null
+            }
+        }, ContextCompat.getMainExecutor(context))
+        viewModelScope.launch {
+            ttsServiceHandler.totalChapter = _state.value.book?.totalChapter!!
+            ttsServiceHandler.screenWidth = _state.value.screenWidth
+            ttsServiceHandler.screenHeight = _state.value.screenHeight
+            ttsServiceHandler.textMeasurer = textMeasurer
+            ttsServiceHandler.updateTTSLanguage(_state.value.currentLanguage)
+            ttsServiceHandler.updateTTSPitch(_state.value.currentPitch)
+            ttsServiceHandler.updateTTSSpeed(_state.value.currentSpeed)
+            ttsServiceHandler.updateTTSVoice(_state.value.currentVoice)
+            ttsServiceHandler.textAlignTTS = _state.value.textAlign
+            ttsServiceHandler.fontSizeTTS = _state.value.fontSize
+            ttsServiceHandler.lineSpacingTTS = _state.value.lineSpacing
+            ttsServiceHandler.fontFamilyTTS = _state.value.fontFamilies[_state.value.selectedFontFamilyIndex]
+            ttsServiceHandler.textIndentTTS = _state.value.textIndent
+            mediaController?.apply{
+                prepare()
+            }
+            coroutineScope {
+                serviceJob += launch {
+                    ttsServiceHandler.currentParagraphIndex.collectLatest { currentReadingParagraph ->
+                        _state.update { it.copy(currentReadingParagraph = currentReadingParagraph) }
+                    }
+                }
+                serviceJob += launch {
+                    ttsServiceHandler.currentChapterIndex.collectLatest { currentChapterIndex ->
+                        _state.update { it.copy(currentChapterIndex = currentChapterIndex) }
+                        val chapter = chapterRepository.getChapterContent(bookId, currentChapterIndex)
+                        chapter?.let {content->
+                            parseListToUsableLists(content.content).also {
+                                ttsServiceHandler.currentChapterParagraphs = it.second
+                            }
+                            mediaController?.apply {
+                                if(_state.value.isSpeaking) {
+                                    val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
+                                        ?.setArtist(content.chapterTitle)?.build()!!
+                                    val updatedMediaItem =
+                                        currentMediaItem?.buildUpon()?.setMediaMetadata(updatedMetadata)
+                                            ?.build()!!
+                                    replaceMediaItem(0, updatedMediaItem)
+                                    prepare()
+                                    play()
+                                }
+                            }
+                        }
+
+                    }
+                }
+                serviceJob += launch {
+                    ttsServiceHandler.isSpeaking.collectLatest { isSpeaking ->
+                        _state.update { it.copy(isSpeaking = isSpeaking) }
+                    }
+                }
+                serviceJob += launch {
+                    ttsServiceHandler.isPaused.collectLatest { isPaused ->
+                        _state.update { it.copy(isPaused = isPaused) }
+                    }
+                }
+                serviceJob += launch {
+                    ttsServiceHandler.scrollTimes.collectLatest { scrollTimes ->
+                        _state.update { it.copy(scrollTime = scrollTimes) }
+                    }
+                }
+                serviceJob += launch {
+                    ttsServiceHandler.flagTriggerScroll.collectLatest { flagTriggerScroll ->
+                        _state.update { it.copy(flagTriggerScrolling = flagTriggerScroll) }
+                    }
+                }
+            }
+        }
+    }
+    fun play() {
+        val mediaItem = MediaItem.Builder()
+            .setUri("asset:///silent.mp3".toUri())
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
+                    .setTitle(_state.value.book?.title)
+                    .setArtist(_state.value.chapterHeader)
+                    .build())
+            .build()
+        mediaController?.apply {
+            setMediaItem(mediaItem)
+            prepare()
+            play()
+            ttsServiceHandler.startReading(_state.value.firstVisibleItemIndex)
+        }
+    }
 }

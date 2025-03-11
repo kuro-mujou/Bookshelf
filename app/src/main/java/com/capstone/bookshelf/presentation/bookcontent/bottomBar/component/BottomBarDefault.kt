@@ -20,7 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,12 +49,6 @@ fun BottomBarDefault(
     onAutoScrollIconClick: () -> Unit,
     onSettingIconClick: () -> Unit,
 ){
-    val iconList = listOf(
-        R.drawable.ic_theme,
-        R.drawable.ic_headphone,
-        R.drawable.ic_play,
-        R.drawable.ic_setting
-    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -69,7 +64,6 @@ fun BottomBarDefault(
                 }
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
-
     ) {
         Spacer(modifier = Modifier.height(10.dp))
         drawerContainerState.currentTOC?.let {
@@ -107,7 +101,7 @@ fun BottomBarDefault(
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[0]),
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_theme),
                     tint = colorPaletteState.textColor,
                     contentDescription = "theme"
                 )
@@ -120,7 +114,7 @@ fun BottomBarDefault(
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[1]),
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_headphones),
                     tint = colorPaletteState.textColor,
                     contentDescription = "start tts"
                 )
@@ -134,7 +128,7 @@ fun BottomBarDefault(
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[2]),
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_scroll),
                     tint = colorPaletteState.textColor,
                     contentDescription = "auto scroll"
                 )
@@ -148,7 +142,7 @@ fun BottomBarDefault(
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
-                    painter = painterResource(id = iconList[3]),
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_setting),
                     tint = colorPaletteState.textColor,
                     contentDescription = "setting"
                 )
