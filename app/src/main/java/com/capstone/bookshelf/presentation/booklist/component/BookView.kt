@@ -104,7 +104,7 @@ fun BookView(
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 progress = {
-                    book.currentChapter.toFloat() / book.totalChapter.toFloat()
+                    (book.currentChapter+1).toFloat() / book.totalChapter.toFloat()
                 },
                 modifier = Modifier
                     .fillMaxWidth()

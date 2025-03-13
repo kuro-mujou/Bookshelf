@@ -3,7 +3,6 @@ package com.capstone.bookshelf.presentation.booklist.component
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,8 +40,7 @@ fun ImportBookRoot(
                                     importBookViewModel.processAndSaveBook(book, context, it.toString())
                                 }
                                 fileName.endsWith(".pdf", ignoreCase = true) -> {
-                                    importBookViewModel.processAndSavePdf(context, it.toString())
-                                    Log.d("ImportBookRoot", "PDF file selected")
+                                    importBookViewModel.processAndSavePdf(context, it.toString(),fileName)
                                 }
                                 else -> {
                                     Toast.makeText(context, "Unsupported file format", Toast.LENGTH_SHORT).show()

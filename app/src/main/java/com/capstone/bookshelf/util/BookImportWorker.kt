@@ -46,9 +46,6 @@ class BookImportWorker(
     companion object {
         const val BOOK_TITLE_KEY = "book_title"
         const val BOOK_CACHE_PATH_KEY = "book_cache_path"
-        const val NOTIFICATION_CHANNEL_ID = "book_import_channel"
-        const val NOTIFICATION_CHANNEL_NAME = "Book Import"
-        const val NOTIFICATION_ID = 1234
     }
 
     private val bookRepository: BookRepository by inject()
@@ -62,13 +59,13 @@ class BookImportWorker(
 
     override suspend fun doWork(): Result {
         val bookTitle = inputData.getString(BOOK_TITLE_KEY) ?: return Result.failure()
-        setForeground(createForegroundInfo("Importing $bookTitle..."))
         val cacheFilePath = inputData.getString(BOOK_CACHE_PATH_KEY)
         val bookID = BigInteger(1, md.digest(bookTitle.toByteArray())).toString(16)
             .padStart(32, '0')
         val inputStream = context.contentResolver.openInputStream(cacheFilePath!!.toUri()) ?: return Result.failure()
         val book = EpubReader().readEpub(inputStream)
         return try {
+            setForeground(createForegroundInfo(context))
             saveBookInfo(book, context, bookID, cacheFilePath)
             saveBookContent(bookID, book, context)
             Result.success()
@@ -77,7 +74,7 @@ class BookImportWorker(
         } finally {
             val notificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.cancel(NOTIFICATION_ID)
+            notificationManager.cancel(1234)
         }
     }
 
@@ -447,6 +444,7 @@ class BookImportWorker(
             "OEBPS/images/",
             "OEBPS/IMAGES/",
             "epub/images/",
+            "epub/IMAGES/",
             "OEBPS/",
             "epub/",
             "images/",
@@ -463,27 +461,31 @@ class BookImportWorker(
         }
         return null
     }
-    private fun createForegroundInfo(message: String): ForegroundInfo {
+
+    private fun createForegroundInfo(context : Context): ForegroundInfo {
+        val channelId = "book_import_channel"
+        val channelName = "Book Import"
+        val notificationId = 1234
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
         val channel = NotificationChannel(
-            NOTIFICATION_CHANNEL_ID,
-            NOTIFICATION_CHANNEL_NAME,
+            channelId,
+            channelName,
             NotificationManager.IMPORTANCE_DEFAULT
         )
         notificationManager.createNotificationChannel(channel)
-
-        val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context,
+            channelId
+        )
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Importing Book")
-            .setContentText(message)
+            .setContentTitle("Bookshelf")
+            .setContentText("Importing book...")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(NOTIFICATION_ID, notification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            ForegroundInfo(notificationId, notification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
-            ForegroundInfo(NOTIFICATION_ID, notification)
+            ForegroundInfo(notificationId, notification)
         }
     }
 }

@@ -393,6 +393,28 @@ fun ContentScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .then(
+                        if(!autoScrollState.isStart){
+                            Modifier.clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() },
+                                onClick = {
+                                    updateSystemBar()
+                                },
+                            )
+                        }else{
+                            Modifier.combinedClickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() },
+                                onClick = {
+                                    updateSystemBar()
+                                },
+                                onDoubleClick = {
+                                    autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(!autoScrollState.isPaused))
+                                }
+                            )
+                        }
+                    )
             ) {
                 Row(
                     modifier = Modifier
@@ -431,28 +453,6 @@ fun ContentScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .then(
-                            if(!autoScrollState.isStart){
-                                Modifier.clickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    onClick = {
-                                        updateSystemBar()
-                                    },
-                                )
-                            }else{
-                                Modifier.combinedClickable(
-                                    indication = null,
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    onClick = {
-                                        updateSystemBar()
-                                    },
-                                    onDoubleClick = {
-                                        autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(!autoScrollState.isPaused))
-                                    }
-                                )
-                            }
-                        )
                         .onGloballyPositioned { coordinates ->
                             viewModel.onContentAction(dataStoreManager,ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
                             viewModel.onContentAction(dataStoreManager,ContentAction.UpdateScreenHeight(coordinates.size.height))
