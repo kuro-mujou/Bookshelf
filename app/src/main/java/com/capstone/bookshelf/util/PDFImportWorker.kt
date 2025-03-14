@@ -8,7 +8,6 @@ import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.Build
 import android.os.ParcelFileDescriptor
-import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
@@ -65,24 +64,52 @@ class PDFImportWorker(
 
     override suspend fun doWork(): Result {
         return withContext(Dispatchers.IO) {
+            val notificationId = 1234
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             try {
-                setForeground(createForegroundInfo(context))
                 val pdfPath = inputData.getString(BOOK_CACHE_PATH_KEY) ?: return@withContext Result.failure()
                 val fileName = inputData.getString(FILE_NAME_KEY) ?: return@withContext Result.failure()
-                processPDFtoBook(context, pdfPath,fileName)
+                val initialNotification = createNotificationBuilder(context,fileName).build()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ForegroundInfo(notificationId, initialNotification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                } else {
+                    ForegroundInfo(notificationId, initialNotification)
+                }
+                processPDFtoBook(context, pdfPath,fileName, notificationManager, notificationId)
+                sendCompletionNotification(context, notificationManager)
                 Result.success()
             } catch (e: Exception) {
                 e.printStackTrace()
+                sendCompletionNotification(context, notificationManager, isSuccess = false)
                 Result.failure()
             } finally {
                 context.cacheDir.deleteRecursively()
-                val notificationManager =
-                    context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                notificationManager.cancel(1234)
+                notificationManager.cancel(notificationId)
             }
         }
     }
-    private suspend fun processPDFtoBook(context: Context, pdfUriString: String, fileName: String) {
+    private fun updateNotification(
+        context: Context,
+        notificationManager: NotificationManager,
+        notificationId: Int,
+        fileName: String,
+        message: String,
+        chaptersProcessed: Int,
+        totalChapters: Int,
+    ) {
+        val updatedNotification = createNotificationBuilder(context, fileName)
+            .setContentText(message)
+            .setProgress(totalChapters, chaptersProcessed, false)
+            .build()
+        notificationManager.notify(notificationId, updatedNotification)
+    }
+    private suspend fun processPDFtoBook(
+        context: Context,
+        pdfUriString: String,
+        fileName: String,
+        notificationManager: NotificationManager,
+        notificationId: Int,
+    ) {
         return withContext(Dispatchers.IO) {
             var bookTitle: String?
             val authors = mutableListOf<String>()
@@ -91,6 +118,15 @@ class PDFImportWorker(
             val tocList = mutableListOf<Pair<String, Int>>()
             var pfd: ParcelFileDescriptor? = null
             try {
+                updateNotification(
+                    context = context,
+                    notificationManager = notificationManager,
+                    notificationId = notificationId,
+                    fileName = fileName,
+                    message = "Loading $fileName",
+                    chaptersProcessed = 1,
+                    totalChapters = 3
+                )
                 val uri = pdfUriString.toUri()
                 pfd = context.contentResolver.openFileDescriptor(uri, "r")
                 pfd?.let { fd ->
@@ -145,9 +181,20 @@ class PDFImportWorker(
                                 }
                                 if (pageNumber != -1) {
                                     tocList.add(title to pageNumber + 1)
+                                } else {
+                                    tocList.add("Sample Bookmark" to 0)
                                 }
                                 bookmark = bookmark.nextSibling
                             }
+                            updateNotification(
+                                context = context,
+                                notificationManager = notificationManager,
+                                notificationId = notificationId,
+                                fileName = fileName,
+                                message = "Saving book info",
+                                chaptersProcessed = 2,
+                                totalChapters = tocList.size + 2
+                            )
                             val bookEntity = BookEntity(
                                 bookId = bookID,
                                 title = bookTitle!!,
@@ -167,6 +214,15 @@ class PDFImportWorker(
                             stripper.paragraphEnd = ""
                             stripper.lineSeparator = "\n"
                             tocList.forEachIndexed { index, tocReference ->
+                                updateNotification(
+                                    context = context,
+                                    notificationManager = notificationManager,
+                                    notificationId = notificationId,
+                                    fileName = fileName,
+                                    message = "Saving chapter $index",
+                                    chaptersProcessed = index + 2 ,
+                                    totalChapters = tocList.size + 2
+                                )
                                 val tocEntity = TableOfContentEntity(
                                     bookId = bookID,
                                     title = tocReference.first,
@@ -231,10 +287,8 @@ class PDFImportWorker(
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "Failed to import book", Toast.LENGTH_SHORT).show()
             } finally {
                 pfd?.close()
-                Toast.makeText(context, "Book imported successfully", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -249,11 +303,11 @@ class PDFImportWorker(
             val file = File(context.filesDir, "$filename.webp")
             if(Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q){
                 FileOutputStream(file).use { outputStream ->
-                    bitmap?.compress(Bitmap.CompressFormat.WEBP, 100, outputStream)
+                    bitmap?.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
                 }
             } else {
                 FileOutputStream(file).use { outputStream ->
-                    bitmap?.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, outputStream)
+                    bitmap?.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
                 }
             }
             file.absolutePath
@@ -268,11 +322,14 @@ class PDFImportWorker(
             .filter { it.isNotEmpty() }
         return paragraphs
     }
-
-    private fun createForegroundInfo(context : Context): ForegroundInfo {
+    private fun sendCompletionNotification(context: Context, notificationManager: NotificationManager, isSuccess: Boolean = true) {
+        val completionNotification = createCompletionNotificationBuilder(context, isSuccess).build()
+        val completionNotificationId = 1235
+        notificationManager.notify(completionNotificationId, completionNotification)
+    }
+    private fun createNotificationBuilder(context : Context,fileName: String): NotificationCompat.Builder {
         val channelId = "book_import_channel"
         val channelName = "Book Import"
-        val notificationId = 1234
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
@@ -281,18 +338,31 @@ class PDFImportWorker(
             NotificationManager.IMPORTANCE_DEFAULT
         )
         notificationManager.createNotificationChannel(channel)
-        val notification = NotificationCompat.Builder(context,
-            channelId
-        )
+        return NotificationCompat.Builder(context,channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Bookshelf")
-            .setContentText("Importing book...")
+            .setContentTitle("Importing $fileName")
+            .setContentText("Loading PDF file")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .build()
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(notificationId, notification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            ForegroundInfo(notificationId, notification)
-        }
+            .setOngoing(true)
+            .setSilent(true)
+    }
+    private fun createCompletionNotificationBuilder(context: Context, isSuccess: Boolean): NotificationCompat.Builder {
+        val channelId = "book_import_completion_channel"
+        val channelName = "Book Import Completion"
+        val channel = NotificationChannel(
+            channelId,
+            channelName,
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+
+        return NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Book Import")
+            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
     }
 }

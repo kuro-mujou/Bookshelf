@@ -64,17 +64,24 @@ class BookImportWorker(
             .padStart(32, '0')
         val inputStream = context.contentResolver.openInputStream(cacheFilePath!!.toUri()) ?: return Result.failure()
         val book = EpubReader().readEpub(inputStream)
+        val notificationId = 1234
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         return try {
-            setForeground(createForegroundInfo(context))
-            saveBookInfo(book, context, bookID, cacheFilePath)
-            saveBookContent(bookID, book, context)
+            val initialNotification = createNotificationBuilder(context,bookTitle).build()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ForegroundInfo(notificationId, initialNotification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                ForegroundInfo(notificationId, initialNotification)
+            }
+            saveBookInfo(book, context, bookID, cacheFilePath, notificationManager, notificationId, bookTitle)
+            saveBookContent(bookID, book, context, notificationManager, notificationId, bookTitle)
+            sendCompletionNotification(context, notificationManager)
             Result.success()
         } catch (e: Exception) {
+            sendCompletionNotification(context, notificationManager, isSuccess = false)
             Result.failure()
         } finally {
-            val notificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.cancel(1234)
+            notificationManager.cancel(notificationId)
         }
     }
 
@@ -82,8 +89,22 @@ class BookImportWorker(
         book: Book,
         context: Context,
         bookID: String,
-        cacheFilePath: String
+        cacheFilePath: String,
+        notificationManager: NotificationManager,
+        notificationId: Int,
+        fileName: String
     ): Long {
+        tableOfContents = flattenTocReferences(book.tableOfContents.tocReferences)
+        totalChapters = tableOfContents.size
+        updateNotification(
+            context = context,
+            notificationManager = notificationManager,
+            notificationId = notificationId,
+            fileName = fileName,
+            message = "Saving book info",
+            chaptersProcessed = 1,
+            totalChapters = totalChapters + 1
+        )
         val coverImage = try {
             book.coverImage
         } catch (e: Exception) {
@@ -95,8 +116,6 @@ class BookImportWorker(
             "error"
         }
         imagePathRepository.saveImagePath(bookID, listOf(coverImagePath))
-        tableOfContents = flattenTocReferences(book.tableOfContents.tocReferences)
-        totalChapters = tableOfContents.size
         val bookEntity = BookEntity(
             bookId = bookID,
             title = book.title,
@@ -111,13 +130,39 @@ class BookImportWorker(
         )
         return bookRepository.insertBook(bookEntity)
     }
-
+    private fun updateNotification(
+        context: Context,
+        notificationManager: NotificationManager,
+        notificationId: Int,
+        fileName: String,
+        message: String,
+        chaptersProcessed: Int,
+        totalChapters: Int,
+    ) {
+        val updatedNotification = createNotificationBuilder(context, fileName)
+            .setContentText(message)
+            .setProgress(totalChapters, chaptersProcessed, false)
+            .build()
+        notificationManager.notify(notificationId, updatedNotification)
+    }
     private suspend fun saveBookContent(
         bookID: String,
         book: Book,
-        context: Context
+        context: Context,
+        notificationManager: NotificationManager,
+        notificationId: Int,
+        fileName: String
     ) {
         tableOfContents.forEachIndexed { index, tocReference ->
+            updateNotification(
+                context = context,
+                notificationManager = notificationManager,
+                notificationId = notificationId,
+                fileName = fileName,
+                message = "Saving chapter $index",
+                chaptersProcessed = index + 1,
+                totalChapters = totalChapters + 1
+            )
             val tocEntity = TableOfContentEntity(
                 bookId = bookID,
                 title = tocReference.title,
@@ -199,11 +244,11 @@ class BookImportWorker(
             val file = File(context.filesDir, "$filename.webp")
             if(Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q){
                 FileOutputStream(file).use { outputStream ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, 100, outputStream)
+                    bitmap.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
                 }
             } else {
                 FileOutputStream(file).use { outputStream ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, outputStream)
+                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
                 }
             }
             file.absolutePath
@@ -462,10 +507,14 @@ class BookImportWorker(
         return null
     }
 
-    private fun createForegroundInfo(context : Context): ForegroundInfo {
+    private fun sendCompletionNotification(context: Context, notificationManager: NotificationManager, isSuccess: Boolean = true) {
+        val completionNotification = createCompletionNotificationBuilder(context, isSuccess).build()
+        val completionNotificationId = 1235
+        notificationManager.notify(completionNotificationId, completionNotification)
+    }
+    private fun createNotificationBuilder(context : Context,fileName: String): NotificationCompat.Builder {
         val channelId = "book_import_channel"
         val channelName = "Book Import"
-        val notificationId = 1234
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
@@ -474,18 +523,31 @@ class BookImportWorker(
             NotificationManager.IMPORTANCE_DEFAULT
         )
         notificationManager.createNotificationChannel(channel)
-        val notification = NotificationCompat.Builder(context,
-            channelId
-        )
+        return NotificationCompat.Builder(context,channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Bookshelf")
-            .setContentText("Importing book...")
+            .setContentTitle("Importing $fileName")
+            .setContentText("Loading EPUB file") // Initial text
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .build()
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(notificationId, notification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            ForegroundInfo(notificationId, notification)
-        }
+            .setOngoing(true)
+            .setSilent(true)
+    }
+    private fun createCompletionNotificationBuilder(context: Context, isSuccess: Boolean): NotificationCompat.Builder {
+        val channelId = "book_import_completion_channel"
+        val channelName = "Book Import Completion"
+        val channel = NotificationChannel(
+            channelId,
+            channelName,
+            NotificationManager.IMPORTANCE_DEFAULT
+        )
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+
+        return NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Book Import")
+            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
     }
 }

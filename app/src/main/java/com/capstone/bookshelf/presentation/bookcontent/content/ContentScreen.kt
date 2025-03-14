@@ -198,6 +198,11 @@ fun ContentScreen(
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
                 currentChapter(pagerState.targetPage,0,autoScrollState.isStart)
             }
+            LaunchedEffect(contentState.isSpeaking) {
+                if(contentState.isSpeaking){
+                    lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(contentState.currentReadingParagraph)
+                }
+            }
             LaunchedEffect(lazyListStates[contentState.currentChapterIndex]) {
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.lastOrNull()?.index }

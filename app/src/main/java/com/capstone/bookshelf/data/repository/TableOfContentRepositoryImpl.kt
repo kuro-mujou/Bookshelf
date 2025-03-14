@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.data.repository
 
+import android.util.Log
 import com.capstone.bookshelf.data.database.dao.TableOfContentDao
 import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
 import com.capstone.bookshelf.data.mapper.toDataClass
@@ -22,6 +23,7 @@ class TableOfContentRepositoryImpl(
             }
     }
     override suspend fun getTableOfContent(bookId: String,tocId: Int): TableOfContent {
+        Log.d("TableOfContentRepositoryImpl", "getTableOfContent: $bookId $tocId")
         return tableOfContentDao.getTableOfContent(bookId,tocId)!!.toDataClass()
     }
 }

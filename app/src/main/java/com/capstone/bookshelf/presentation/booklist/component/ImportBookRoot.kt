@@ -42,6 +42,12 @@ fun ImportBookRoot(
                                 fileName.endsWith(".pdf", ignoreCase = true) -> {
                                     importBookViewModel.processAndSavePdf(context, it.toString(),fileName)
                                 }
+                                fileName.endsWith(".cbz", ignoreCase = true) -> {
+                                    importBookViewModel.processAndSaveCBZ(context, it.toString(),fileName)
+                                }
+                                fileName.endsWith(".cbr", ignoreCase = true) -> {
+                                    importBookViewModel.processAndSaveCBR(context, it.toString(),fileName)
+                                }
                                 else -> {
                                     Toast.makeText(context, "Unsupported file format", Toast.LENGTH_SHORT).show()
                                 }
@@ -58,7 +64,9 @@ fun ImportBookRoot(
     }
     IconButton(
         onClick = {
-            importBookLauncher.launch(arrayOf("application/epub+zip","application/pdf"))
+            importBookLauncher.launch(arrayOf(
+                "application/*"
+            ))
         }
     ) {
         Icon(
