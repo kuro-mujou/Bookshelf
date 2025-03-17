@@ -6,6 +6,7 @@ A brief description of what your project does.
 - Having background music playback
 - Having built-in Audiobook
 - Smoothly auto scrolling feature
+- Write your own novel (under development)
 
 # 📷 Screenshots
 //dont have yet
