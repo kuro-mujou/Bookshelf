@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.capstone.bookshelf.app.Route
-import com.capstone.bookshelf.domain.book.TableOfContentRepository
+import com.capstone.bookshelf.domain.repository.TableOfContentRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest

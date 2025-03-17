@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.domain.book
+package com.capstone.bookshelf.domain.repository
 
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.domain.wrapper.Chapter

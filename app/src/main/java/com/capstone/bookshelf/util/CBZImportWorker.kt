@@ -16,10 +16,10 @@ import com.capstone.bookshelf.R
 import com.capstone.bookshelf.data.database.entity.BookEntity
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
-import com.capstone.bookshelf.domain.book.BookRepository
-import com.capstone.bookshelf.domain.book.ChapterRepository
-import com.capstone.bookshelf.domain.book.ImagePathRepository
-import com.capstone.bookshelf.domain.book.TableOfContentRepository
+import com.capstone.bookshelf.domain.repository.BookRepository
+import com.capstone.bookshelf.domain.repository.ChapterRepository
+import com.capstone.bookshelf.domain.repository.ImagePathRepository
+import com.capstone.bookshelf.domain.repository.TableOfContentRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -30,7 +30,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.math.BigInteger
 import java.security.MessageDigest
-import java.util.regex.Pattern
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
@@ -57,6 +56,11 @@ class CBZImportWorker(
             try {
                 val cbzPath = inputData.getString(BOOK_CACHE_PATH_KEY) ?: return@withContext Result.failure()
                 val fileName = inputData.getString(FILE_NAME_KEY) ?: return@withContext Result.failure()
+                val isAlreadyImported = bookRepository.isBookExist(fileName.substringBeforeLast("."))
+                if (isAlreadyImported) {
+                    sendCompletionNotification(context, notificationManager, isSuccess = false, specialMessage = "Book already imported")
+                    return@withContext Result.failure()
+                }
                 val initialNotification = createNotificationBuilder(context,fileName).build()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     ForegroundInfo(notificationId, initialNotification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
@@ -96,7 +100,6 @@ class CBZImportWorker(
                 notificationId = notificationId,
                 fileName = fileName,
                 message = "Loading $fileName",
-                chaptersProcessed = 1,
             )
             val uri = cbzPath.toUri()
             val pfd = context.contentResolver.openFileDescriptor(uri, "r")
@@ -126,7 +129,6 @@ class CBZImportWorker(
                                     notificationId = notificationId,
                                     fileName = fileName,
                                     message = "Importing ${folderName.substringAfterLast('/')}",
-                                    chaptersProcessed = 2,
                                 )
                                 if (folderName.isNotEmpty()) {
                                     val existingImages = chapterImagesMap[folderName]?.toMutableList() ?: mutableListOf()
@@ -149,7 +151,6 @@ class CBZImportWorker(
                     notificationId = notificationId,
                     fileName = fileName,
                     message = "Saving book info",
-                    chaptersProcessed = 3,
                 )
                 saveBookInfo(
                     bookID = bookID,
@@ -164,7 +165,6 @@ class CBZImportWorker(
                     notificationId = notificationId,
                     fileName = fileName,
                     message = "Saving chapter info",
-                    chaptersProcessed = 4,
                 )
                 saveBookContent(
                     bookID = bookID,
@@ -180,11 +180,10 @@ class CBZImportWorker(
         notificationId: Int,
         fileName: String,
         message: String,
-        chaptersProcessed: Int,
     ) {
         val updatedNotification = createNotificationBuilder(context, fileName)
             .setContentText(message)
-            .setProgress(4, chaptersProcessed, false)
+            .setProgress(0, 0, true)
             .build()
         notificationManager.notify(notificationId, updatedNotification)
     }
@@ -234,10 +233,6 @@ class CBZImportWorker(
         }
         imagePathRepository.saveImagePath(bookID, allImagePaths)
     }
-
-    private fun isLikelyChapterFolder(folderName: String, chapterFolderPattern: Pattern): Boolean {
-        return chapterFolderPattern.matcher(folderName).matches()
-    }
     private fun extractChapterNumber(name: String): Int? {
         val match = Regex("\\d+").find(name)
         return match?.value?.toIntOrNull()
@@ -245,7 +240,7 @@ class CBZImportWorker(
     private fun isImageFile(fileName: String): Boolean {
         val lowerName = fileName.lowercase()
         return lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
-                lowerName.endsWith(".png") || lowerName.endsWith(".gif")
+                lowerName.endsWith(".png") || lowerName.endsWith(".gif") || lowerName.endsWith(".webp")
     }
     private fun extractImageFromZip(context: Context, cbzPath: String, entry: ZipEntry): Bitmap? {
         val uri = cbzPath.toUri()
@@ -257,7 +252,7 @@ class CBZImportWorker(
             var currentEntry: ZipEntry? = zis.nextEntry
             while (currentEntry != null) {
                 if (currentEntry.name == entry.name) {
-                    return BitmapFactory.decodeStream(zis) // Convert input stream to Bitmap
+                    return BitmapFactory.decodeStream(zis)
                 }
                 currentEntry = zis.nextEntry
             }
@@ -288,8 +283,13 @@ class CBZImportWorker(
             "error when loading image"
         }
     }
-    private fun sendCompletionNotification(context: Context, notificationManager: NotificationManager, isSuccess: Boolean = true) {
-        val completionNotification = createCompletionNotificationBuilder(context, isSuccess).build()
+    private fun sendCompletionNotification(
+        context: Context,
+        notificationManager: NotificationManager,
+        isSuccess: Boolean = true,
+        specialMessage: String? = ""
+    ) {
+        val completionNotification = createCompletionNotificationBuilder(context, isSuccess,specialMessage).build()
         val completionNotificationId = 1235
         notificationManager.notify(completionNotificationId, completionNotification)
     }
@@ -312,7 +312,11 @@ class CBZImportWorker(
             .setOngoing(true)
             .setSilent(true)
     }
-    private fun createCompletionNotificationBuilder(context: Context, isSuccess: Boolean): NotificationCompat.Builder {
+    private fun createCompletionNotificationBuilder(
+        context: Context,
+        isSuccess: Boolean,
+        specialMessage: String? = ""
+    ): NotificationCompat.Builder {
         val channelId = "book_import_completion_channel"
         val channelName = "Book Import Completion"
         val channel = NotificationChannel(
@@ -327,7 +331,7 @@ class CBZImportWorker(
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Book Import")
-            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed.")
+            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed. $specialMessage")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
     }

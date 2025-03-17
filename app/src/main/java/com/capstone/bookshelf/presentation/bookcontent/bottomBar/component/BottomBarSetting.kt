@@ -5,8 +5,10 @@ import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -21,7 +23,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,7 +60,8 @@ fun BottomBarSetting(
     style: HazeStyle,
     dataStoreManager: DataStoreManager,
     tts : TextToSpeech,
-    onSwitchChange: (Boolean) -> Unit
+    onKeepScreenOnChange: (Boolean) -> Unit,
+    onBackgroundMusicSetting: () -> Unit
 ) {
     if(bottomBarState.openTTSVoiceMenu){
         VoiceMenuDialog(
@@ -72,8 +76,8 @@ fun BottomBarSetting(
                 bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(false))
             },
             testVoiceButtonClicked = {
-                tts.setLanguage(contentState.currentLanguage)
-                tts.setVoice(contentState.currentVoice)
+                tts.language = contentState.currentLanguage
+                tts.voice = contentState.currentVoice
                 contentState.currentPitch?.let { tts.setPitch(it) }
                 contentState.currentSpeed?.let { tts.setSpeechRate(it) }
                 tts.speak("xin chào", TextToSpeech.QUEUE_FLUSH, null, "utteranceId")
@@ -92,7 +96,7 @@ fun BottomBarSetting(
             }
         )
     }
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
@@ -106,105 +110,168 @@ fun BottomBarSetting(
                     Modifier.background(colorPaletteState.containerColor)
                 }
             ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top,
     ) {
-        Text(
-            modifier = Modifier
-                .padding(4.dp),
-            text = "Setting",
-            style = TextStyle(
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = colorPaletteState.textColor,
-                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-            )
-        )
-        HorizontalDivider(thickness = 2.dp)
-        Row(
-            modifier = Modifier
-                .padding(start = 4.dp, end = 4.dp)
-                .fillMaxWidth()
-                .height(50.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Keep Screen On",
-                style = TextStyle(
-                    color = colorPaletteState.textColor,
-                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                )
-            )
-            Switch(
-                checked = contentState.keepScreenOn,
-                onCheckedChange = {
-                    onSwitchChange(it)
-                },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = colorPaletteState.textColor,
-                    checkedTrackColor = colorPaletteState.textColor.copy(0.5f),
-                    checkedBorderColor = colorPaletteState.textColor,
-                    uncheckedThumbColor = colorPaletteState.textColor,
-                    uncheckedTrackColor = colorPaletteState.textColor.copy(0.5f),
-                    uncheckedBorderColor = colorPaletteState.textColor,
-                )
-            )
-        }
-        HorizontalDivider(thickness = 1.dp)
-        Row(
-            modifier = Modifier
-                .padding(start = 4.dp, end = 4.dp)
-                .fillMaxWidth()
-                .height(50.dp)
-                .clickable {
-                    bottomBarViewModel.onAction(BottomBarAction.OpenSetting(true))
-                    viewModel.loadTTSSetting(dataStoreManager,tts)
-                    bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
-                },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Text to Speech",
-                style = TextStyle(
-                    color = colorPaletteState.textColor,
-                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                )
-            )
-            Icon(
-                modifier = Modifier.size(30.dp),
-                painter = painterResource(id = R.drawable.ic_setting),
-                tint = colorPaletteState.textColor,
-                contentDescription = "text to speech"
-            )
-        }
-        HorizontalDivider(thickness = 1.dp)
-        Row(
+        Column(
             modifier = Modifier
                 .navigationBarsPadding()
-                .padding(start = 4.dp, end = 4.dp)
                 .fillMaxWidth()
-                .height(50.dp)
-                .clickable{
-                    bottomBarViewModel.onAction(BottomBarAction.OpenAutoScrollMenu(true))
-                },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .wrapContentHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top,
         ) {
             Text(
-                text = "Auto Scroll Up",
+                modifier = Modifier
+                    .padding(top = 8.dp, bottom = 8.dp),
+                text = "Setting",
                 style = TextStyle(
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
                     color = colorPaletteState.textColor,
                     fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                 )
             )
-            Icon(
-                modifier = Modifier.size(30.dp),
-                painter = painterResource(id = R.drawable.ic_setting),
-                tint = colorPaletteState.textColor,
-                contentDescription = "auto scroll up"
-            )
+            HorizontalDivider(thickness = 2.dp, color = colorPaletteState.textColor.copy(0.8f))
+            Row(
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
+                    .fillMaxWidth()
+                    .height(50.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_keep_screen_on),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "background music"
+                )
+                Text(
+                    text = "Keep Screen On",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Switch(
+                    checked = contentState.keepScreenOn,
+                    onCheckedChange = {
+                        onKeepScreenOnChange(it)
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = colorPaletteState.textColor,
+                        checkedTrackColor = colorPaletteState.textColor.copy(0.5f),
+                        checkedBorderColor = colorPaletteState.textColor,
+                        uncheckedThumbColor = colorPaletteState.textColor,
+                        uncheckedTrackColor = colorPaletteState.textColor.copy(0.5f),
+                        uncheckedBorderColor = colorPaletteState.textColor,
+                    )
+                )
+            }
+            HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
+            Row(
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        onBackgroundMusicSetting()
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_music_background),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "background music"
+                )
+                Text(
+                    text = "Background Music",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "background music"
+                )
+            }
+            HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
+            Row(
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        bottomBarViewModel.onAction(BottomBarAction.OpenSetting(true))
+                        viewModel.loadTTSSetting(dataStoreManager, tts)
+                        bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_headphones),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "background music"
+                )
+                Text(
+                    text = "Text to Speech",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "text to speech"
+                )
+            }
+            HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
+            Row(
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        bottomBarViewModel.onAction(BottomBarAction.OpenAutoScrollMenu(true))
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_scroll),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "background music"
+                )
+                Text(
+                    text = "Auto Scroll Up",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier.size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "auto scroll up"
+                )
+            }
         }
     }
 }

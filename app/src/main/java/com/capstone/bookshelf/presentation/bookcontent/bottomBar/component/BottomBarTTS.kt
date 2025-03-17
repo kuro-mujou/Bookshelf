@@ -59,7 +59,7 @@ fun BottomBarTTS(
     onPlayPauseIconClick: () -> Unit,
     onNextParagraphIconClick: () -> Unit,
     onNextChapterIconClick: () -> Unit,
-    onTimerIconClick: () -> Unit,
+    onMusicIconClick: () -> Unit,
     onStopIconClick: () -> Unit,
     onTTSSettingIconClick: () -> Unit,
 ) {
@@ -70,7 +70,7 @@ fun BottomBarTTS(
         R.drawable.ic_pause,
         R.drawable.ic_forward,
         R.drawable.ic_skip_to_next,
-        R.drawable.ic_timer,
+        R.drawable.ic_music_background,
         R.drawable.ic_stop,
         R.drawable.ic_setting
     )
@@ -200,14 +200,14 @@ fun BottomBarTTS(
             IconButton(
                 modifier = Modifier.size(50.dp),
                 onClick = {
-                    onTimerIconClick()
+                    onMusicIconClick()
                 }
             ) {
                 Icon(
                     modifier = Modifier.size(30.dp),
                     painter = painterResource(id = iconList[6]),
                     tint = colorPaletteState.textColor,
-                    contentDescription = "timer"
+                    contentDescription = "background music"
                 )
             }
             IconButton(

@@ -14,10 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import com.capstone.bookshelf.R
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import nl.siegmann.epublib.epub.EpubReader
 
 @Composable
 fun ImportBookRoot(
@@ -32,28 +29,18 @@ fun ImportBookRoot(
             val fileName = getFileName(context, it)
             try {
                 scope.launch {
-                    withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(it)?.use { inputStream ->
-                            when {
-                                fileName.endsWith(".epub", ignoreCase = true) -> {
-                                    val book = EpubReader().readEpub(inputStream)
-                                    importBookViewModel.processAndSaveBook(book, context, it.toString())
-                                }
-                                fileName.endsWith(".pdf", ignoreCase = true) -> {
-                                    importBookViewModel.processAndSavePdf(context, it.toString(),fileName)
-                                }
-                                fileName.endsWith(".cbz", ignoreCase = true) -> {
-                                    importBookViewModel.processAndSaveCBZ(context, it.toString(),fileName)
-                                }
-                                fileName.endsWith(".cbr", ignoreCase = true) -> {
-                                    importBookViewModel.processAndSaveCBR(context, it.toString(),fileName)
-                                }
-                                else -> {
-                                    Toast.makeText(context, "Unsupported file format", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        } ?: run {
-                            Toast.makeText(context, "Failed to open file", Toast.LENGTH_SHORT).show()
+                    when {
+                        fileName.endsWith(".epub", ignoreCase = true) -> {
+                            importBookViewModel.processAndSaveBook(context, it.toString())
+                        }
+                        fileName.endsWith(".pdf", ignoreCase = true) -> {
+                            importBookViewModel.processAndSavePdf(context, it.toString(),fileName)
+                        }
+                        fileName.endsWith(".cbz", ignoreCase = true) -> {
+                            importBookViewModel.processAndSaveCBZ(context, it.toString(),fileName)
+                        }
+                        else -> {
+                            Toast.makeText(context, "Unsupported file format", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

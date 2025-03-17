@@ -1,8 +1,8 @@
-package com.capstone.bookshelf.data.repository
+package com.capstone.bookshelf.data.repository_impl
 
 import com.capstone.bookshelf.data.database.dao.ImagePathDao
 import com.capstone.bookshelf.data.database.entity.ImagePathEntity
-import com.capstone.bookshelf.domain.book.ImagePathRepository
+import com.capstone.bookshelf.domain.repository.ImagePathRepository
 
 class ImagePathRepositoryImpl(
     private val imageDao: ImagePathDao

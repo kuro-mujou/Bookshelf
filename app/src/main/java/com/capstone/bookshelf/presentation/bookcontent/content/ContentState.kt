@@ -35,12 +35,12 @@ data class ContentState(
     val currentLanguage : Locale? = null,
     val currentVoice : Voice? = null,
     val scrollTime : Int = 0,
-    val enableBackgroundMusic : Boolean = false,
     val isSpeaking : Boolean = false,
     val isPaused : Boolean = false,
     val isFocused : Boolean = false,
-
     val currentReadingParagraph : Int = 0,
+    //background music
+    val enableBackgroundMusic : Boolean = false,
     //font
     val fontSize : Int = 20,
     val lineSpacing : Int = 15,

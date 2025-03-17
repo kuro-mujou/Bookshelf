@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.presentation.bookcontent.component.tts
 
-import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
@@ -76,7 +75,8 @@ class TTSService: MediaSessionService() {
             .setPauseAtEndOfMediaItems(false)
             .build()
             .apply {
-                repeatMode = Player.REPEAT_MODE_ONE
+                repeatMode = Player.REPEAT_MODE_ALL
+                shuffleModeEnabled = true
                 addListener(serviceHandler)
             }
         val forwardingPlayer =
@@ -84,11 +84,9 @@ class TTSService: MediaSessionService() {
                 override fun getAvailableCommands(): Player.Commands {
                     return super.getAvailableCommands()
                         .buildUpon()
-                        .remove(Player.COMMAND_SEEK_TO_NEXT)
-                        .remove(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                        .remove(Player.COMMAND_SEEK_TO_PREVIOUS)
-                        .remove(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                        .remove(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                        .remove(COMMAND_SEEK_TO_NEXT)
+                        .remove(COMMAND_SEEK_TO_PREVIOUS)
+                        .remove(COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
                         .build()
                 }
             }
@@ -101,7 +99,7 @@ class TTSService: MediaSessionService() {
                     )
                 )
                 .build()
-        val audioManager = this.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioManager = this.getSystemService(AUDIO_SERVICE) as AudioManager
         val playbackAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)

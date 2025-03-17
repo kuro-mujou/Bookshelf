@@ -3,8 +3,17 @@ package com.capstone.bookshelf.presentation.bookcontent.bottomBar
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.component.BottomBarAutoScroll
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.component.BottomBarDefault
@@ -16,6 +25,8 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicMenu
+import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
@@ -28,7 +39,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
-@OptIn(ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalHazeMaterialsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 @UnstableApi
 fun BottomBarManager(
@@ -37,6 +48,7 @@ fun BottomBarManager(
     bottomBarViewModel: BottomBarViewModel,
     autoScrollViewModel: AutoScrollViewModel,
     colorPaletteViewModel: ColorPaletteViewModel,
+    musicViewModel: MusicViewModel,
     hazeState: HazeState,
     bottomBarState: BottomBarState,
     contentState: ContentState,
@@ -47,7 +59,9 @@ fun BottomBarManager(
     connectToService: () -> Unit,
     onSwitchChange: (Boolean) -> Unit
 ){
+    var openBackgroundMusicMenu by remember {mutableStateOf(false)}
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
+    val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     LaunchedEffect(bottomBarState.visibility,contentState.isSpeaking,autoScrollState.stopAutoScroll){
         if(!bottomBarState.visibility) {
             if(contentState.isSpeaking){
@@ -155,9 +169,12 @@ fun BottomBarManager(
             style = style,
             dataStoreManager = dataStoreManager,
             tts = contentState.tts!!,
-            onSwitchChange = {
+            onKeepScreenOnChange = {
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(it))
                 onSwitchChange(it)
+            },
+            onBackgroundMusicSetting = {
+                openBackgroundMusicMenu = true
             }
         )
     }
@@ -198,8 +215,8 @@ fun BottomBarManager(
             onNextChapterIconClick = {
                 viewModel.onTtsUiEvent(TtsUiEvent.SkipToNext)
             },
-            onTimerIconClick = {
-
+            onMusicIconClick = {
+                openBackgroundMusicMenu = true
             },
             onStopIconClick = {
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsSpeaking(false))
@@ -229,5 +246,21 @@ fun BottomBarManager(
             style = style,
             dataStore = dataStoreManager,
         )
+    }
+    if(openBackgroundMusicMenu){
+        ModalBottomSheet(
+            modifier = Modifier.fillMaxSize(),
+            sheetState = modalBottomSheetState,
+            onDismissRequest = { openBackgroundMusicMenu = false },
+            containerColor = colorPaletteState.backgroundColor
+        ) {
+            MusicMenu(
+                musicViewModel = musicViewModel,
+                contentViewModel = viewModel,
+                dataStoreManager = dataStoreManager,
+                colorPalette = colorPaletteState,
+                contentState = contentState
+            )
+        }
     }
 }

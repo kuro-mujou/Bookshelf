@@ -2,8 +2,8 @@ package com.capstone.bookshelf.presentation.booklist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.capstone.bookshelf.domain.book.BookRepository
-import com.capstone.bookshelf.domain.book.ImagePathRepository
+import com.capstone.bookshelf.domain.repository.BookRepository
+import com.capstone.bookshelf.domain.repository.ImagePathRepository
 import com.capstone.bookshelf.util.DataStoreManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -78,7 +78,6 @@ class BookListViewModel(
                 viewModelScope.launch {
                     bookRepository.deleteBooks(listOf(action.book))
                     processDeleteImages(listOf(action.book.id))
-                    deleteCacheFiles(listOf(action.book).map { it.storagePath })
                     _state.update {
                         it.copy(
                             isOpenBottomSheet = false
@@ -134,8 +133,6 @@ class BookListViewModel(
                     bookRepository.deleteBooks(_state.value.selectedBookList)
                     yield()
                     processDeleteImages(_state.value.selectedBookList.map { it.id })
-                    yield()
-                    deleteCacheFiles(_state.value.selectedBookList.map { it.storagePath })
                     _state.update {
                         it.copy(
                             selectedBookList = emptyList(),
@@ -166,16 +163,6 @@ class BookListViewModel(
                 it.copy(
                     isSortedByFavorite = dataStoreManager.isSortedByFavorite.first()
                 )
-            }
-        }
-    }
-    private fun deleteCacheFiles(filePaths: List<String?>) {
-        filePaths.forEach{ path->
-            val file = path?.let { File(it) }
-            if (file != null) {
-                if (file.exists()) {
-                    file.delete()
-                }
             }
         }
     }

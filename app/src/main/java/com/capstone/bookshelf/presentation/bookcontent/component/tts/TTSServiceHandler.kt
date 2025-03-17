@@ -69,6 +69,7 @@ class TTSServiceHandler (
     var currentChapterParagraphs by mutableStateOf<List<String>>(emptyList())
     var textIndentTTS by mutableStateOf(false)
     var textAlignTTS by mutableStateOf(false)
+    var enableBackgroundMusic by mutableStateOf(false)
     fun onTtsPlayerEvent(event: TtsPlayerEvent){
         when(event){
             is TtsPlayerEvent.Backward -> {
@@ -176,18 +177,30 @@ class TTSServiceHandler (
     }
     fun pauseReading(){
         if (textToSpeech?.isSpeaking == true) {
-            player?.pause()
+            if(!enableBackgroundMusic){
+                player?.pause()
+            } else {
+                player?.volume = 1f
+            }
             textToSpeech?.stop()
         }
     }
     fun resumeReading(){
-        player?.play()
+        if(!enableBackgroundMusic) {
+            player?.play()
+        } else {
+            player?.volume = 0.3f
+        }
         startSpeakCurrentParagraph()
     }
     fun stopReading(){
+        if(!enableBackgroundMusic){
+            player?.stop()
+        } else {
+            player?.volume = 1f
+        }
         _isSpeaking.value = false
         _isPaused.value = false
-        player?.stop()
         textToSpeech?.stop()
         _currentParagraphIndex.value = 0
         currentReadingPositionInParagraph = 0

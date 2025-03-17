@@ -129,12 +129,13 @@ fun ContentScreen(
             if (callbackLoadChapter) {
                 triggerLoadChapter = false
                 callbackLoadChapter = false
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateChapterHeader(drawerContainerState.currentTOC?.title!!))
             }
+            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateChapterHeader(
+                drawerContainerState.currentTOC?.title?:""
+            ))
             if(autoScrollState.isStart && autoScrollState.isPaused){
                 delay(autoScrollState.delayAtStart.toLong())
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
-
             }
         }
         val beyondBoundsPageCount = 1

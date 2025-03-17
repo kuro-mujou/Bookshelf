@@ -34,6 +34,7 @@ import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewMo
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentScreen
@@ -64,6 +65,7 @@ fun BookContentScreenRoot(
     val topBarViewModel = koinViewModel<TopBarViewModel>()
     val drawerContainerViewModel = koinViewModel<DrawerContainerViewModel>()
     val autoScrollViewModel = koinViewModel<AutoScrollViewModel>()
+    val musicViewModel = koinViewModel<MusicViewModel>()
     val topBarState by topBarViewModel.state.collectAsStateWithLifecycle()
     val bottomBarState by bottomBarViewModel.state.collectAsStateWithLifecycle()
     val autoScrollState by autoScrollViewModel.state.collectAsStateWithLifecycle()
@@ -125,15 +127,14 @@ fun BookContentScreenRoot(
         LaunchedEffect(contentState.book) {
             if (contentState.book != null) {
                 viewModel.setupTTS(context)
+                viewModel.initialize(context,textMeasurer,dataStoreManager,dataStoreManager.enableBackgroundMusic.first())
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(contentState.book?.currentChapter!!))
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateEnableBackgroundMusic(dataStoreManager.enableBackgroundMusic.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(dataStoreManager.autoScrollSpeed.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtStart(dataStoreManager.delayTimeAtStart.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtEnd(dataStoreManager.delayTimeAtEnd.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoResumeScrollMode(dataStoreManager.autoScrollResumeMode.first()))
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayResume(dataStoreManager.autoScrollResumeDelayTime.first()))
-                viewModel.initialize(context,textMeasurer)
             }
         }
         LaunchedEffect(contentState.isSpeaking) {
@@ -196,6 +197,10 @@ fun BookContentScreenRoot(
                     },
                     onBackIconClick = {
                         onBackClick()
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
+                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
+                        viewModel.stopTTSService(context)
+                        viewModel.stopTTS()
                     }
                 )
             },
@@ -206,6 +211,7 @@ fun BookContentScreenRoot(
                     bottomBarViewModel = bottomBarViewModel,
                     autoScrollViewModel = autoScrollViewModel,
                     colorPaletteViewModel = colorPaletteViewModel,
+                    musicViewModel = musicViewModel,
                     hazeState = hazeState,
                     bottomBarState = bottomBarState,
                     contentState = contentState,

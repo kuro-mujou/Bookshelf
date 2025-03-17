@@ -2,14 +2,16 @@ package com.capstone.bookshelf.di
 
 import androidx.room.Room
 import com.capstone.bookshelf.data.database.LocalBookDatabase
-import com.capstone.bookshelf.data.repository.BookRepositoryImpl
-import com.capstone.bookshelf.data.repository.ChapterRepositoryImpl
-import com.capstone.bookshelf.data.repository.ImagePathRepositoryImpl
-import com.capstone.bookshelf.data.repository.TableOfContentRepositoryImpl
-import com.capstone.bookshelf.domain.book.BookRepository
-import com.capstone.bookshelf.domain.book.ChapterRepository
-import com.capstone.bookshelf.domain.book.ImagePathRepository
-import com.capstone.bookshelf.domain.book.TableOfContentRepository
+import com.capstone.bookshelf.data.repository_impl.BookRepositoryImpl
+import com.capstone.bookshelf.data.repository_impl.ChapterRepositoryImpl
+import com.capstone.bookshelf.data.repository_impl.ImagePathRepositoryImpl
+import com.capstone.bookshelf.data.repository_impl.TableOfContentRepositoryImpl
+import com.capstone.bookshelf.data.repository_impl.MusicPathRepositoryImpl
+import com.capstone.bookshelf.domain.repository.BookRepository
+import com.capstone.bookshelf.domain.repository.ChapterRepository
+import com.capstone.bookshelf.domain.repository.ImagePathRepository
+import com.capstone.bookshelf.domain.repository.MusicPathRepository
+import com.capstone.bookshelf.domain.repository.TableOfContentRepository
 import com.capstone.bookshelf.presentation.SelectedBookViewModel
 import com.capstone.bookshelf.presentation.bookdetail.BookDetailViewModel
 import com.capstone.bookshelf.presentation.booklist.BookListViewModel
@@ -32,12 +34,14 @@ val databaseModule = module{
     single { get<LocalBookDatabase>().chapterDao }
     single { get<LocalBookDatabase>().tableOfContentDao }
     single { get<LocalBookDatabase>().imagePathDao }
+    single { get<LocalBookDatabase>().musicPathDao }
 }
 val repositoryModule = module {
     singleOf(::BookRepositoryImpl).bind<BookRepository>()
     singleOf(::ChapterRepositoryImpl).bind<ChapterRepository>()
     singleOf(::TableOfContentRepositoryImpl).bind<TableOfContentRepository>()
     singleOf(::ImagePathRepositoryImpl).bind<ImagePathRepository>()
+    singleOf(::MusicPathRepositoryImpl).bind<MusicPathRepository>()
 }
 val viewModelModule = module {
     viewModelOf(::SelectedBookViewModel)

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,7 +21,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.OutlinedButton
@@ -31,8 +29,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,22 +40,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.media3.common.util.UnstableApi
-import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarState
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.util.DataStoreManager
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,7 +114,7 @@ fun VoiceMenuDialog(
                         fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
                 )
-                HorizontalDivider(thickness = 2.dp)
+                HorizontalDivider(thickness = 2.dp, color = colorPaletteState.textColor.copy(0.8f))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -388,92 +380,25 @@ fun VoiceMenuDialog(
                         )
                     }
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Enable background music",
-                        style = TextStyle(
-                            color = colorPaletteState.textColor,
-                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                        )
-                    )
-                    Switch(
-                        checked = contentState.enableBackgroundMusic,
-                        onCheckedChange = {
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateEnableBackgroundMusic(it))
-                            scope.launch {
-                                dataStoreManager.setEnableBackgroundMusic(it)
-                            }
+                if (bottomBarState.openSetting) {
+                    OutlinedButton(
+                        onClick = {
+                            testVoiceButtonClicked()
                         },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = colorPaletteState.textColor,
-                            checkedTrackColor = colorPaletteState.textColor.copy(0.5f),
-                            checkedBorderColor = colorPaletteState.textColor,
-                            uncheckedThumbColor = colorPaletteState.textColor,
-                            uncheckedTrackColor = colorPaletteState.textColor.copy(0.5f),
-                            uncheckedBorderColor = colorPaletteState.textColor,
+                        colors = ButtonColors(
+                            containerColor = colorPaletteState.backgroundColor,
+                            contentColor = colorPaletteState.textColor,
+                            disabledContainerColor = colorPaletteState.backgroundColor,
+                            disabledContentColor = colorPaletteState.textColor.copy(alpha = 0.5f)
                         )
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ){
-                    if (contentState.enableBackgroundMusic) {
-                        OutlinedButton(
-                            onClick = {
-
-                            },
-                            colors = ButtonColors(
-                                containerColor = colorPaletteState.backgroundColor,
-                                contentColor = colorPaletteState.textColor,
-                                disabledContainerColor = colorPaletteState.backgroundColor,
-                                disabledContentColor = colorPaletteState.textColor.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = "Test Voice",
+                            style = TextStyle(
+                                color = colorPaletteState.textColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                             )
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ){
-                                Text(
-                                    text = "Upload music",
-                                    style = TextStyle(
-                                        color = colorPaletteState.textColor,
-                                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                    )
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    imageVector = ImageVector.vectorResource(R.drawable.ic_pick_music),
-                                    contentDescription = null,
-                                    tint = colorPaletteState.textColor
-                                )
-                            }
-                        }
-                    }
-                    if (bottomBarState.openSetting) {
-                        OutlinedButton(
-                            onClick = {
-                                testVoiceButtonClicked()
-                            },
-                            colors = ButtonColors(
-                                containerColor = colorPaletteState.backgroundColor,
-                                contentColor = colorPaletteState.textColor,
-                                disabledContainerColor = colorPaletteState.backgroundColor,
-                                disabledContentColor = colorPaletteState.textColor.copy(alpha = 0.5f)
-                            )
-                        ) {
-                            Text(
-                                text = "Test Voice",
-                                style = TextStyle(
-                                    color = colorPaletteState.textColor,
-                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                )
-                            )
-                        }
+                        )
                     }
                 }
             }

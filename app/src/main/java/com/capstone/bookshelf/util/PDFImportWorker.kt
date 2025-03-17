@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.util
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -18,10 +19,10 @@ import com.capstone.bookshelf.R
 import com.capstone.bookshelf.data.database.entity.BookEntity
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
-import com.capstone.bookshelf.domain.book.BookRepository
-import com.capstone.bookshelf.domain.book.ChapterRepository
-import com.capstone.bookshelf.domain.book.ImagePathRepository
-import com.capstone.bookshelf.domain.book.TableOfContentRepository
+import com.capstone.bookshelf.domain.repository.BookRepository
+import com.capstone.bookshelf.domain.repository.ChapterRepository
+import com.capstone.bookshelf.domain.repository.ImagePathRepository
+import com.capstone.bookshelf.domain.repository.TableOfContentRepository
 import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.io.RandomAccessBufferedFileInputStream
@@ -62,6 +63,7 @@ class PDFImportWorker(
     private val imagePathRepository: ImagePathRepository by inject()
     private val md = MessageDigest.getInstance("MD5")
 
+    @SuppressLint("RestrictedApi")
     override suspend fun doWork(): Result {
         return withContext(Dispatchers.IO) {
             val notificationId = 1234
@@ -75,7 +77,17 @@ class PDFImportWorker(
                 } else {
                     ForegroundInfo(notificationId, initialNotification)
                 }
-                processPDFtoBook(context, pdfPath,fileName, notificationManager, notificationId)
+                val result = processPDFtoBook(context, pdfPath,fileName, notificationManager, notificationId)
+                when (result) {
+                    is Result.Success -> {
+                        sendCompletionNotification(context, notificationManager)
+                        return@withContext Result.success()
+                    }
+                    is Result.Failure -> {
+                        sendCompletionNotification(context, notificationManager, isSuccess = false, specialMessage = "Book already imported")
+                        return@withContext Result.failure()
+                    }
+                }
                 sendCompletionNotification(context, notificationManager)
                 Result.success()
             } catch (e: Exception) {
@@ -94,12 +106,10 @@ class PDFImportWorker(
         notificationId: Int,
         fileName: String,
         message: String,
-        chaptersProcessed: Int,
-        totalChapters: Int,
     ) {
         val updatedNotification = createNotificationBuilder(context, fileName)
             .setContentText(message)
-            .setProgress(totalChapters, chaptersProcessed, false)
+            .setProgress(0, 0, true)
             .build()
         notificationManager.notify(notificationId, updatedNotification)
     }
@@ -109,187 +119,183 @@ class PDFImportWorker(
         fileName: String,
         notificationManager: NotificationManager,
         notificationId: Int,
-    ) {
-        return withContext(Dispatchers.IO) {
-            var bookTitle: String?
-            val authors = mutableListOf<String>()
-            var coverImage: Bitmap
-            var bookID: String
-            val tocList = mutableListOf<Pair<String, Int>>()
-            var pfd: ParcelFileDescriptor? = null
-            try {
-                updateNotification(
-                    context = context,
-                    notificationManager = notificationManager,
-                    notificationId = notificationId,
-                    fileName = fileName,
-                    message = "Loading $fileName",
-                    chaptersProcessed = 1,
-                    totalChapters = 3
-                )
-                val uri = pdfUriString.toUri()
-                pfd = context.contentResolver.openFileDescriptor(uri, "r")
-                pfd?.let { fd ->
-                    val inputStream = FileInputStream(fd.fileDescriptor)
-                    inputStream.use {stream->
-                        PDDocument.load(
-                            RandomAccessBufferedFileInputStream(stream),
-                            "",
-                            MemoryUsageSetting.setupTempFileOnly()
-                        ).use { document ->
-                            val info: PDDocumentInformation = document.documentInformation
-                            bookTitle = info.title?: fileName.substring(0, fileName.length - 4)
-                            bookID =
-                                BigInteger(1, md.digest(bookTitle!!.toByteArray())).toString(16)
-                                    .padStart(32, '0')
-                            PdfRenderer(fd).use { renderer ->
-                                val page = renderer.openPage(0)
-                                coverImage = createBitmap(page.width, page.height)
-                                page.render(
-                                    coverImage,
-                                    null,
-                                    null,
-                                    PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
-                                )
-                                page.close()
-                            }
-                            val coverImagePath =
-                                saveImageToPrivateStorage(context, coverImage, "cover_${bookTitle}")
-                            authors.add(info.author?:"Unnamed Author")
-                            val outline: PDDocumentOutline =
-                                document.documentCatalog?.documentOutline ?: return@withContext
-                            var bookmark: PDOutlineItem? = outline.firstChild ?: return@withContext
-                            while (bookmark != null) {
-                                val title = bookmark.title
-                                val pageNumber = when (val destination = bookmark.destination) {
-                                    is PDPageDestination -> destination.retrievePageNumber()
-                                    is PDNamedDestination -> {
-                                        val nameTree = document.documentCatalog?.names?.dests
-                                        nameTree?.getValue(destination.namedDestination)
-                                            ?.retrievePageNumber() ?: -1
-                                    }
+    ): Result {
+        var bookTitle: String?
+        val authors = mutableListOf<String>()
+        var coverImage: Bitmap
+        var bookID: String
+        val tocList = mutableListOf<Pair<String, Int>>()
+        var pfd: ParcelFileDescriptor? = null
+        try {
+            updateNotification(
+                context = context,
+                notificationManager = notificationManager,
+                notificationId = notificationId,
+                fileName = fileName,
+                message = "Loading $fileName",
+            )
+            val uri = pdfUriString.toUri()
+            pfd = context.contentResolver.openFileDescriptor(uri, "r")
+            pfd?.let { fd ->
+                val inputStream = FileInputStream(fd.fileDescriptor)
+                inputStream.use {stream->
+                    PDDocument.load(
+                        RandomAccessBufferedFileInputStream(stream),
+                        "",
+                        MemoryUsageSetting.setupTempFileOnly()
+                    ).use { document ->
+                        val info: PDDocumentInformation = document.documentInformation
+                        bookTitle = info.title?: fileName.substringBeforeLast(".")
+                        val isAlreadyImported = bookRepository.isBookExist(bookTitle!!)
+                        if (isAlreadyImported) {
+                            sendCompletionNotification(context, notificationManager, isSuccess = false, specialMessage = "Book already imported")
+                            return Result.failure()
+                        }
+                        bookID = BigInteger(1,md.digest(bookTitle!!.toByteArray())).toString(16).padStart(32, '0')
+                        PdfRenderer(fd).use { renderer ->
+                            val page = renderer.openPage(0)
+                            coverImage = createBitmap(page.width, page.height)
+                            page.render(
+                                coverImage,
+                                null,
+                                null,
+                                PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                            )
+                            page.close()
+                        }
+                        val coverImagePath = saveImageToPrivateStorage(context, coverImage, "cover_${bookTitle}")
+                        authors.add(info.author?:"Unnamed Author")
+                        val outline: PDDocumentOutline =
+                            document.documentCatalog?.documentOutline ?: return Result.failure()
+                        var bookmark: PDOutlineItem? = outline.firstChild ?: return Result.failure()
+                        while (bookmark != null) {
+                            val title = bookmark.title
+                            val pageNumber = when (val destination = bookmark.destination) {
+                                is PDPageDestination -> destination.retrievePageNumber()
+                                is PDNamedDestination -> {
+                                    val nameTree = document.documentCatalog?.names?.dests
+                                    nameTree?.getValue(destination.namedDestination)
+                                        ?.retrievePageNumber() ?: -1
+                                }
 
-                                    else -> {
-                                        val action = bookmark.action
-                                        if (action is PDActionGoTo) {
-                                            (action.destination as? PDPageDestination)?.retrievePageNumber()
-                                                ?: -1
-                                        } else {
-                                            -1
-                                        }
+                                else -> {
+                                    val action = bookmark.action
+                                    if (action is PDActionGoTo) {
+                                        (action.destination as? PDPageDestination)?.retrievePageNumber()
+                                            ?: -1
+                                    } else {
+                                        -1
                                     }
                                 }
-                                if (pageNumber != -1) {
-                                    tocList.add(title to pageNumber + 1)
-                                } else {
-                                    tocList.add("Sample Bookmark" to 0)
-                                }
-                                bookmark = bookmark.nextSibling
                             }
+                            if (pageNumber != -1) {
+                                tocList.add(title to pageNumber + 1)
+                            } else {
+                                tocList.add("Sample Bookmark" to 0)
+                            }
+                            bookmark = bookmark.nextSibling
+                        }
+                        updateNotification(
+                            context = context,
+                            notificationManager = notificationManager,
+                            notificationId = notificationId,
+                            fileName = fileName,
+                            message = "Saving book info",
+                        )
+                        val bookEntity = BookEntity(
+                            bookId = bookID,
+                            title = bookTitle!!,
+                            coverImagePath = coverImagePath,
+                            authors = authors,
+                            categories = emptyList(),
+                            description = null,
+                            totalChapter = tocList.size,
+                            storagePath = pdfUriString,
+                            ratingsAverage = 0.0,
+                            ratingsCount = 0
+                        )
+                        bookRepository.insertBook(bookEntity)
+                        imagePathRepository.saveImagePath(bookID, listOf(coverImagePath))
+                        val stripper = PDFTextStripper()
+                        stripper.paragraphStart = "\n\n"
+                        stripper.paragraphEnd = ""
+                        stripper.lineSeparator = "\n"
+                        tocList.forEachIndexed { index, tocReference ->
                             updateNotification(
                                 context = context,
                                 notificationManager = notificationManager,
                                 notificationId = notificationId,
                                 fileName = fileName,
-                                message = "Saving book info",
-                                chaptersProcessed = 2,
-                                totalChapters = tocList.size + 2
+                                message = "Saving chapter $index",
                             )
-                            val bookEntity = BookEntity(
+                            val tocEntity = TableOfContentEntity(
                                 bookId = bookID,
-                                title = bookTitle!!,
-                                coverImagePath = coverImagePath,
-                                authors = authors,
-                                categories = emptyList(),
-                                description = null,
-                                totalChapter = tocList.size,
-                                storagePath = pdfUriString,
-                                ratingsAverage = 0.0,
-                                ratingsCount = 0
+                                title = tocReference.first,
+                                index = index
                             )
-                            bookRepository.insertBook(bookEntity)
-                            imagePathRepository.saveImagePath(bookID, listOf(coverImagePath))
-                            val stripper = PDFTextStripper()
-                            stripper.paragraphStart = "\n\n"
-                            stripper.paragraphEnd = ""
-                            stripper.lineSeparator = "\n"
-                            tocList.forEachIndexed { index, tocReference ->
-                                updateNotification(
-                                    context = context,
-                                    notificationManager = notificationManager,
-                                    notificationId = notificationId,
-                                    fileName = fileName,
-                                    message = "Saving chapter $index",
-                                    chaptersProcessed = index + 2 ,
-                                    totalChapters = tocList.size + 2
-                                )
-                                val tocEntity = TableOfContentEntity(
-                                    bookId = bookID,
-                                    title = tocReference.first,
-                                    index = index
-                                )
-                                tableOfContentsRepository.saveTableOfContent(tocEntity)
-                                val startChapterPage = tocList[index].second
-                                val endChapterPage = if (index < tocList.size - 1) {
-                                    tocList[index + 1].second - 1
-                                } else {
-                                    document.numberOfPages
-                                }
-                                stripper.startPage = startChapterPage
-                                stripper.endPage = endChapterPage
-                                val chapterContent = stripper.getText(document).trim()
-                                val paragraphs = parseChapterContentToList(chapterContent)
-                                val chapterEntity = ChapterContentEntity(
-                                    tocId = index,
-                                    bookId = bookID,
-                                    chapterTitle = tocList[index].first,
-                                    content = emptyList(),
-                                )
-                                val chapterContentWithImages = mutableListOf<String>()
-                                var paragraphIndex = 0
-                                for (pageNumber in startChapterPage..endChapterPage) {
-                                    val page = document.getPage(pageNumber - 1)
-                                    val resources: PDResources = page.resources
-                                    val xObjectNames = resources.xObjectNames
-                                    val xObjectSet: Set<COSName>? = xObjectNames?.toSet()
+                            tableOfContentsRepository.saveTableOfContent(tocEntity)
+                            val startChapterPage = tocList[index].second
+                            val endChapterPage = if (index < tocList.size - 1) {
+                                tocList[index + 1].second - 1
+                            } else {
+                                document.numberOfPages
+                            }
+                            stripper.startPage = startChapterPage
+                            stripper.endPage = endChapterPage
+                            val chapterContent = stripper.getText(document).trim()
+                            val paragraphs = parseChapterContentToList(chapterContent)
+                            val chapterEntity = ChapterContentEntity(
+                                tocId = index,
+                                bookId = bookID,
+                                chapterTitle = tocList[index].first,
+                                content = emptyList(),
+                            )
+                            val chapterContentWithImages = mutableListOf<String>()
+                            var paragraphIndex = 0
+                            for (pageNumber in startChapterPage..endChapterPage) {
+                                val page = document.getPage(pageNumber - 1)
+                                val resources: PDResources = page.resources
+                                val xObjectNames = resources.xObjectNames
+                                val xObjectSet: Set<COSName>? = xObjectNames?.toSet()
 
-                                    var imageIndex = 0
-                                    xObjectSet?.let {
-                                        for (xObjectName in it) {
-                                            val xObject = resources.getXObject(xObjectName)
-                                            if (xObject is PDImageXObject) {
-                                                try {
-                                                    val imageFileName = "${bookID}_chapter${index}_image${imageIndex}_page${pageNumber}"
-                                                    val imagePath = saveImageToPrivateStorage(context, xObject.image, imageFileName)
-                                                    if (paragraphIndex < paragraphs.size) {
-                                                        chapterContentWithImages.add(paragraphs[paragraphIndex])
-                                                        paragraphIndex++
-                                                    }
-                                                    chapterContentWithImages.add(imagePath)
-                                                    imagePathRepository.saveImagePath(bookID, listOf(imagePath)) // Still save to general image path, consider chapter specific storage if needed
-                                                    imageIndex++
-                                                } catch (e: Exception) {
-                                                    e.printStackTrace()
+                                var imageIndex = 0
+                                xObjectSet?.let {
+                                    for (xObjectName in it) {
+                                        val xObject = resources.getXObject(xObjectName)
+                                        if (xObject is PDImageXObject) {
+                                            try {
+                                                val imageFileName = "${bookID}_chapter${index}_image${imageIndex}_page${pageNumber}"
+                                                val imagePath = saveImageToPrivateStorage(context, xObject.image, imageFileName)
+                                                if (paragraphIndex < paragraphs.size) {
+                                                    chapterContentWithImages.add(paragraphs[paragraphIndex])
+                                                    paragraphIndex++
                                                 }
+                                                chapterContentWithImages.add(imagePath)
+                                                imagePathRepository.saveImagePath(bookID, listOf(imagePath))
+                                                imageIndex++
+                                            } catch (e: Exception) {
+                                                e.printStackTrace()
                                             }
                                         }
                                     }
                                 }
-                                while (paragraphIndex < paragraphs.size) {
-                                    chapterContentWithImages.add(paragraphs[paragraphIndex])
-                                    paragraphIndex++
-                                }
-                                val updatedChapterEntity = chapterEntity.copy(content = chapterContentWithImages)
-                                chapterRepository.saveChapterContent(updatedChapterEntity)
                             }
+                            while (paragraphIndex < paragraphs.size) {
+                                chapterContentWithImages.add(paragraphs[paragraphIndex])
+                                paragraphIndex++
+                            }
+                            val updatedChapterEntity = chapterEntity.copy(content = chapterContentWithImages)
+                            chapterRepository.saveChapterContent(updatedChapterEntity)
                         }
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                pfd?.close()
             }
+            return Result.success()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return Result.failure()
+        } finally {
+            pfd?.close()
         }
     }
 
@@ -322,8 +328,13 @@ class PDFImportWorker(
             .filter { it.isNotEmpty() }
         return paragraphs
     }
-    private fun sendCompletionNotification(context: Context, notificationManager: NotificationManager, isSuccess: Boolean = true) {
-        val completionNotification = createCompletionNotificationBuilder(context, isSuccess).build()
+    private fun sendCompletionNotification(
+        context: Context,
+        notificationManager: NotificationManager,
+        isSuccess: Boolean = true,
+        specialMessage: String? = ""
+    ) {
+        val completionNotification = createCompletionNotificationBuilder(context, isSuccess,specialMessage).build()
         val completionNotificationId = 1235
         notificationManager.notify(completionNotificationId, completionNotification)
     }
@@ -346,7 +357,11 @@ class PDFImportWorker(
             .setOngoing(true)
             .setSilent(true)
     }
-    private fun createCompletionNotificationBuilder(context: Context, isSuccess: Boolean): NotificationCompat.Builder {
+    private fun createCompletionNotificationBuilder(
+        context: Context,
+        isSuccess: Boolean,
+        specialMessage: String? = ""
+    ): NotificationCompat.Builder {
         val channelId = "book_import_completion_channel"
         val channelName = "Book Import Completion"
         val channel = NotificationChannel(
@@ -361,7 +376,7 @@ class PDFImportWorker(
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Book Import")
-            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed.")
+            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed. $specialMessage")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
     }

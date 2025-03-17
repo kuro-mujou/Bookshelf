@@ -1,10 +1,10 @@
-package com.capstone.bookshelf.data.repository
+package com.capstone.bookshelf.data.repository_impl
 
 import com.capstone.bookshelf.data.database.dao.BookDao
 import com.capstone.bookshelf.data.database.entity.BookEntity
 import com.capstone.bookshelf.data.mapper.toDataClass
 import com.capstone.bookshelf.data.mapper.toEntity
-import com.capstone.bookshelf.domain.book.BookRepository
+import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.wrapper.Book
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

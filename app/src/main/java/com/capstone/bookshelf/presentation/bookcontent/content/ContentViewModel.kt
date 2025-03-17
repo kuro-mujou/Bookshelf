@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.TextMeasurer
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.uri.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,8 +21,9 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.toRoute
 import com.capstone.bookshelf.app.Route
-import com.capstone.bookshelf.domain.book.BookRepository
-import com.capstone.bookshelf.domain.book.ChapterRepository
+import com.capstone.bookshelf.domain.repository.BookRepository
+import com.capstone.bookshelf.domain.repository.ChapterRepository
+import com.capstone.bookshelf.domain.repository.MusicPathRepository
 import com.capstone.bookshelf.domain.wrapper.Chapter
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSService
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSServiceHandler
@@ -43,6 +45,7 @@ import kotlinx.coroutines.launch
 class ContentViewModel(
     private val bookRepository: BookRepository,
     private val chapterRepository: ChapterRepository,
+    private val musicPathRepository: MusicPathRepository,
     private val ttsServiceHandler : TTSServiceHandler,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -50,6 +53,7 @@ class ContentViewModel(
     private val _chapterContent: MutableState<Chapter?> = mutableStateOf(null)
     val chapterContent: State<Chapter?> = _chapterContent
     private val serviceJob = mutableListOf<Job>()
+    val mediaItemList = mutableListOf<MediaItem>()
     private var _state = MutableStateFlow(ContentState())
     val state = _state
         .stateIn(
@@ -57,6 +61,33 @@ class ContentViewModel(
             SharingStarted.WhileSubscribed(5000L),
             _state.value
         )
+    init {
+        viewModelScope.launch {
+            musicPathRepository.getMusicPaths()
+                .collectLatest { sortedMusicItems ->
+                    val selectedItems = sortedMusicItems.filter { it.isSelected }
+                    mediaItemList.clear()
+                    mediaItemList.addAll(selectedItems.map { media3Item ->
+                        MediaItem.Builder()
+                            .setUri(media3Item.uri)
+                            .setMediaMetadata(
+                                MediaMetadata.Builder()
+                                    .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
+                                    .setTitle(_state.value.book?.title)
+                                    .setArtist(_state.value.chapterHeader)
+                                    .build()
+                            )
+                            .build()
+                    })
+                    mediaController?.apply {
+                        setMediaItems(mediaItemList)
+                        prepare()
+                        if(_state.value.enableBackgroundMusic)
+                            play()
+                    }
+                }
+        }
+    }
     fun onContentAction(dataStoreManager : DataStoreManager, action: ContentAction) {
         when(action){
             is ContentAction.UpdateFlagTriggerAdjustScroll -> {
@@ -90,10 +121,25 @@ class ContentViewModel(
                 )
             }
             is ContentAction.UpdateCurrentChapterIndex -> {
-                _state.value = _state.value.copy(
-                    currentChapterIndex = action.index
-                )
-                ttsServiceHandler.updateCurrentChapterIndex(action.index)
+                viewModelScope.launch {
+                    _state.value = _state.value.copy(
+                        currentChapterIndex = action.index
+                    )
+                    if(mediaController?.isPlaying == true){
+                        mediaController?.apply {
+                            val chapter = chapterRepository.getChapterContent(bookId,action.index)
+                            val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
+                                ?.setArtist(chapter?.chapterTitle)?.build()!!
+                            val updatedMediaItem =
+                                currentMediaItem?.buildUpon()?.setMediaMetadata(updatedMetadata)
+                                    ?.build()!!
+                            replaceMediaItem(currentMediaItemIndex, updatedMediaItem)
+                            prepare()
+                            play()
+                        }
+                    }
+                    ttsServiceHandler.updateCurrentChapterIndex(action.index)
+                }
             }
             is ContentAction.UpdateScreenHeight -> {
                 _state.value = _state.value.copy(
@@ -229,11 +275,73 @@ class ContentViewModel(
                     enablePagerScroll = action.enable
                 )
             }
-
             is ContentAction.UpdateEnableBackgroundMusic -> {
-                _state.value = _state.value.copy(
-                    enableBackgroundMusic = action.enable
-                )
+                viewModelScope.launch {
+                    val selectedTrack = musicPathRepository.getSelectedMusicPaths()
+                    val silentMediaItem = MediaItem.Builder()
+                        .setUri("asset:///silent.mp3".toUri())
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
+                                .setTitle(_state.value.book?.title)
+                                .setArtist(_state.value.chapterHeader)
+                                .build()
+                        )
+                        .build()
+                    _state.value = _state.value.copy(
+                        enableBackgroundMusic = action.enable
+                    )
+                    ttsServiceHandler.enableBackgroundMusic = action.enable
+                    mediaItemList.clear()
+                    if(action.enable) {
+                        if (selectedTrack.isNotEmpty()) {
+                            selectedTrack.forEach { track ->
+                                val mediaItem = MediaItem.Builder()
+                                    .setUri(track.uri)
+                                    .setMediaMetadata(
+                                        MediaMetadata.Builder()
+                                            .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
+                                            .setTitle(_state.value.book?.title)
+                                            .setArtist(_state.value.chapterHeader)
+                                            .build()
+                                    )
+                                    .build()
+                                mediaItemList.add(mediaItem)
+                            }
+                        } else {
+                            mediaItemList.add(silentMediaItem)
+                        }
+                        mediaController?.apply {
+                            if(_state.value.isSpeaking) {
+                                volume = 0.3f
+                            }
+                            setMediaItems(mediaItemList,true)
+                            prepare()
+                            play()
+                        }
+                    } else {
+                        if(_state.value.isSpeaking) {
+                            mediaItemList.add(silentMediaItem)
+                            mediaController?.apply {
+                                setMediaItems(mediaItemList)
+                                prepare()
+                                play()
+                            }
+                        } else {
+                            mediaController?.apply {
+                                pause()
+                                stop()
+                            }
+                        }
+                    }
+                }
+            }
+            is ContentAction.UpdatePlayerVolume -> {
+                if(!_state.value.isSpeaking){
+                    mediaController?.apply {
+                        volume = action.volume
+                    }
+                }
             }
         }
     }
@@ -301,6 +409,9 @@ class ContentViewModel(
         }
     }
     fun stopTTSService(context: Context) {
+        mediaController?.pause()
+        mediaController?.stop()
+        mediaController?.release()
         val serviceIntent = Intent(context, TTSService::class.java)
         context.stopService(serviceIntent)
         controllerFuture?.let {
@@ -327,7 +438,12 @@ class ContentViewModel(
     }
     private var mediaController: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
-    fun initialize(context: Context,textMeasurer: TextMeasurer) {
+    fun initialize(
+        context: Context,
+        textMeasurer: TextMeasurer,
+        dataStoreManager: DataStoreManager,
+        enableBackgroundMusic: Boolean
+    ) {
         if (mediaController != null) {
             return
         }
@@ -339,10 +455,12 @@ class ContentViewModel(
         val sessionToken = SessionToken(context, serviceComponentName)
         controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         controllerFuture?.addListener({
-            mediaController = try {
-                controllerFuture?.get()
+            try {
+                mediaController = controllerFuture?.get()
+                mediaController?.prepare()
+                onContentAction(dataStoreManager, ContentAction.UpdateEnableBackgroundMusic(enableBackgroundMusic))
             } catch (e: Exception) {
-                null
+                e.printStackTrace()
             }
         }, ContextCompat.getMainExecutor(context))
         viewModelScope.launch {
@@ -359,9 +477,6 @@ class ContentViewModel(
             ttsServiceHandler.lineSpacingTTS = _state.value.lineSpacing
             ttsServiceHandler.fontFamilyTTS = _state.value.fontFamilies[_state.value.selectedFontFamilyIndex]
             ttsServiceHandler.textIndentTTS = _state.value.textIndent
-            mediaController?.apply{
-                prepare()
-            }
             coroutineScope {
                 serviceJob += launch {
                     ttsServiceHandler.currentParagraphIndex.collectLatest { currentReadingParagraph ->
@@ -425,11 +540,27 @@ class ContentViewModel(
                     .setArtist(_state.value.chapterHeader)
                     .build())
             .build()
-        mediaController?.apply {
-            setMediaItem(mediaItem)
-            prepare()
-            play()
+        if(mediaController?.isPlaying!!){
+            mediaController?.apply {
+                volume = 0.3f
+            }
             ttsServiceHandler.startReading(_state.value.firstVisibleItemIndex)
+        } else {
+            mediaController?.apply {
+                setMediaItems(listOf(mediaItem))
+                prepare()
+                play()
+                ttsServiceHandler.startReading(_state.value.firstVisibleItemIndex)
+            }
+        }
+    }
+    fun removeMediaItemByUri(uri: Uri) {
+        mediaController?.let { controller ->
+            val index = mediaItemList.indexOfFirst { it.localConfiguration?.uri == uri }
+            if (index != -1) {
+                mediaItemList.removeAt(index)
+                controller.removeMediaItem(index)
+            }
         }
     }
 }

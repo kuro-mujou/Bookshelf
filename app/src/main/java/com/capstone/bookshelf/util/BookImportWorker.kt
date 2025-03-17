@@ -16,10 +16,12 @@ import com.capstone.bookshelf.R
 import com.capstone.bookshelf.data.database.entity.BookEntity
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
-import com.capstone.bookshelf.domain.book.BookRepository
-import com.capstone.bookshelf.domain.book.ChapterRepository
-import com.capstone.bookshelf.domain.book.ImagePathRepository
-import com.capstone.bookshelf.domain.book.TableOfContentRepository
+import com.capstone.bookshelf.domain.repository.BookRepository
+import com.capstone.bookshelf.domain.repository.ChapterRepository
+import com.capstone.bookshelf.domain.repository.ImagePathRepository
+import com.capstone.bookshelf.domain.repository.TableOfContentRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import nl.siegmann.epublib.domain.Author
 import nl.siegmann.epublib.domain.Book
 import nl.siegmann.epublib.domain.Resource
@@ -44,7 +46,6 @@ class BookImportWorker(
 ) : CoroutineWorker(context, params), KoinComponent {
 
     companion object {
-        const val BOOK_TITLE_KEY = "book_title"
         const val BOOK_CACHE_PATH_KEY = "book_cache_path"
     }
 
@@ -56,17 +57,21 @@ class BookImportWorker(
     private var tableOfContents = mutableListOf<TOCReference>()
     private var totalChapters = 0
 
-
     override suspend fun doWork(): Result {
-        val bookTitle = inputData.getString(BOOK_TITLE_KEY) ?: return Result.failure()
         val cacheFilePath = inputData.getString(BOOK_CACHE_PATH_KEY)
-        val bookID = BigInteger(1, md.digest(bookTitle.toByteArray())).toString(16)
-            .padStart(32, '0')
         val inputStream = context.contentResolver.openInputStream(cacheFilePath!!.toUri()) ?: return Result.failure()
         val book = EpubReader().readEpub(inputStream)
         val notificationId = 1234
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         return try {
+            val bookTitle = book.title
+            val isAlreadyImported = bookRepository.isBookExist(bookTitle)
+            if (isAlreadyImported) {
+                sendCompletionNotification(context, notificationManager, isSuccess = false, specialMessage = "Book already imported")
+                return Result.failure()
+            }
+            val bookID = BigInteger(1, md.digest(bookTitle.toByteArray())).toString(16)
+                .padStart(32, '0')
             val initialNotification = createNotificationBuilder(context,bookTitle).build()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ForegroundInfo(notificationId, initialNotification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
@@ -81,6 +86,9 @@ class BookImportWorker(
             sendCompletionNotification(context, notificationManager, isSuccess = false)
             Result.failure()
         } finally {
+            withContext(Dispatchers.IO) {
+                inputStream.close()
+            }
             notificationManager.cancel(notificationId)
         }
     }
@@ -102,8 +110,6 @@ class BookImportWorker(
             notificationId = notificationId,
             fileName = fileName,
             message = "Saving book info",
-            chaptersProcessed = 1,
-            totalChapters = totalChapters + 1
         )
         val coverImage = try {
             book.coverImage
@@ -136,12 +142,10 @@ class BookImportWorker(
         notificationId: Int,
         fileName: String,
         message: String,
-        chaptersProcessed: Int,
-        totalChapters: Int,
     ) {
         val updatedNotification = createNotificationBuilder(context, fileName)
             .setContentText(message)
-            .setProgress(totalChapters, chaptersProcessed, false)
+            .setProgress(0, 0, true)
             .build()
         notificationManager.notify(notificationId, updatedNotification)
     }
@@ -160,8 +164,6 @@ class BookImportWorker(
                 notificationId = notificationId,
                 fileName = fileName,
                 message = "Saving chapter $index",
-                chaptersProcessed = index + 1,
-                totalChapters = totalChapters + 1
             )
             val tocEntity = TableOfContentEntity(
                 bookId = bookID,
@@ -507,8 +509,13 @@ class BookImportWorker(
         return null
     }
 
-    private fun sendCompletionNotification(context: Context, notificationManager: NotificationManager, isSuccess: Boolean = true) {
-        val completionNotification = createCompletionNotificationBuilder(context, isSuccess).build()
+    private fun sendCompletionNotification(
+        context: Context,
+        notificationManager: NotificationManager,
+        isSuccess: Boolean = true,
+        specialMessage: String? = ""
+    ) {
+        val completionNotification = createCompletionNotificationBuilder(context, isSuccess, specialMessage).build()
         val completionNotificationId = 1235
         notificationManager.notify(completionNotificationId, completionNotification)
     }
@@ -531,7 +538,11 @@ class BookImportWorker(
             .setOngoing(true)
             .setSilent(true)
     }
-    private fun createCompletionNotificationBuilder(context: Context, isSuccess: Boolean): NotificationCompat.Builder {
+    private fun createCompletionNotificationBuilder(
+        context: Context,
+        isSuccess: Boolean,
+        specialMessage: String? = ""
+    ): NotificationCompat.Builder {
         val channelId = "book_import_completion_channel"
         val channelName = "Book Import Completion"
         val channel = NotificationChannel(
@@ -546,7 +557,7 @@ class BookImportWorker(
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Book Import")
-            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed.")
+            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed. $specialMessage")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
     }

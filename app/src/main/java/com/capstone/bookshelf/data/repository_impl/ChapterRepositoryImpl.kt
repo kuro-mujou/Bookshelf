@@ -1,9 +1,9 @@
-package com.capstone.bookshelf.data.repository
+package com.capstone.bookshelf.data.repository_impl
 
 import com.capstone.bookshelf.data.database.dao.ChapterDao
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.data.mapper.toDataClass
-import com.capstone.bookshelf.domain.book.ChapterRepository
+import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.wrapper.Chapter
 
 class ChapterRepositoryImpl(

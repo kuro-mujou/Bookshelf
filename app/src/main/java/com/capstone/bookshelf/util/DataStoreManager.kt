@@ -37,6 +37,7 @@ object PreferencesKeys {
     val FONT_FAMILY = intPreferencesKey("FONT_FAMILY")
     val IS_SORTED_BY_FAVORITE = booleanPreferencesKey("IS_SORTED_BY_FAVORITE")
     val ENABLE_BACKGROUND_MUSIC = booleanPreferencesKey("ENABLE_BACKGROUND_MUSIC")
+    val PLAYER_VOLUME = floatPreferencesKey("PLAYER_VOLUME")
 }
 class DataStoreManager(val context: Context) {
     private val dataStore = context.dataStore
@@ -99,6 +100,9 @@ class DataStoreManager(val context: Context) {
     }
     val enableBackgroundMusic: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.ENABLE_BACKGROUND_MUSIC] ?: false
+    }
+    val playerVolume: Flow<Float> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.PLAYER_VOLUME] ?: 1f
     }
     suspend fun setKeepScreenOn(value: Boolean) {
         dataStore.edit { preferences ->
@@ -198,6 +202,11 @@ class DataStoreManager(val context: Context) {
     suspend fun setEnableBackgroundMusic(value: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ENABLE_BACKGROUND_MUSIC] = value
+        }
+    }
+    suspend fun setPlayerVolume(value: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PLAYER_VOLUME] = value
         }
     }
 }

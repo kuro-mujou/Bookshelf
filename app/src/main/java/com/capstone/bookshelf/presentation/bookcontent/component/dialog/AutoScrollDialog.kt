@@ -87,7 +87,7 @@ fun AutoScrollMenuDialog(
                         fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
                 )
-                HorizontalDivider(thickness = 2.dp)
+                HorizontalDivider(thickness = 2.dp, color = colorPaletteState.textColor.copy(0.8f))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
