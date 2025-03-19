@@ -12,6 +12,20 @@ data class Book(
     val currentParagraph: Int = 0,
     val isFavorite: Boolean = false,
     val storagePath: String?,
-    val ratingsAverage: Double?,
-    val ratingsCount: Int?,
+    val isEditable: Boolean
+)
+
+data class EmptyBook(
+    val id: String? = "",
+    val title: String? = "",
+    val coverImagePath: String? = "",
+    val authors: List<String>? = emptyList(),
+    val categories: List<String>? = emptyList(),
+    val description: String? = "",
+    val totalChapter: Int? = 0,
+    val currentChapter: Int = 0,
+    val currentParagraph: Int = 0,
+    val isFavorite: Boolean = false,
+    val storagePath: String? = "",
+    val isEditable: Boolean? = false
 )

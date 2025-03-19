@@ -13,5 +13,6 @@ interface BookRepository {
     suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean)
     suspend fun saveBookInfoChapterIndex(bookId: String, chapterIndex: Int)
     suspend fun saveBookInfoParagraphIndex(bookId: String, paragraphIndex: Int)
+    suspend fun saveBookInfoTotalChapter(bookId: String, totalChapter: Int)
     suspend fun deleteBooks(books: List<Book>)
 }

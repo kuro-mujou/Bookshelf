@@ -2,6 +2,7 @@ package com.capstone.bookshelf.data.mapper
 
 import com.capstone.bookshelf.data.database.entity.BookEntity
 import com.capstone.bookshelf.domain.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.EmptyBook
 
 fun Book.toEntity(): BookEntity {
     return BookEntity(
@@ -16,8 +17,7 @@ fun Book.toEntity(): BookEntity {
         currentParagraph = currentParagraph,
         isFavorite = isFavorite,
         storagePath = storagePath,
-        ratingsAverage = ratingsAverage,
-        ratingsCount = ratingsCount,
+        isEditable = isEditable
     )
 }
 
@@ -34,7 +34,23 @@ fun BookEntity.toDataClass(): Book {
         currentParagraph = currentParagraph,
         isFavorite = isFavorite,
         storagePath = storagePath,
-        ratingsAverage = ratingsAverage,
-        ratingsCount = ratingsCount,
+        isEditable = isEditable
+    )
+}
+
+fun EmptyBook.toDataClass(): Book {
+    return Book(
+        id = id ?: "",
+        title = title ?: "",
+        coverImagePath = coverImagePath ?: "",
+        authors = authors ?: emptyList(),
+        categories = categories ?: emptyList(),
+        description = description,
+        totalChapter = totalChapter ?: 0,
+        currentChapter = currentChapter,
+        currentParagraph = currentParagraph,
+        isFavorite = isFavorite,
+        storagePath = storagePath,
+        isEditable = isEditable ?: false
     )
 }

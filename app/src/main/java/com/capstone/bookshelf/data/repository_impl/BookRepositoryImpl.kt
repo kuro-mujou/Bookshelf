@@ -41,6 +41,9 @@ class BookRepositoryImpl(
     override suspend fun saveBookInfoParagraphIndex(bookId: String, paragraphIndex: Int) {
         bookDao.saveBookInfoParagraphIndex(bookId,paragraphIndex)
     }
+    override suspend fun saveBookInfoTotalChapter(bookId: String, totalChapter: Int) {
+        bookDao.saveBookInfoTotalChapter(bookId,totalChapter)
+    }
     override suspend fun deleteBooks(books: List<Book>) {
         val bookEntities = books.map {
             it.toEntity()

@@ -11,3 +11,10 @@ fun TableOfContentEntity.toDataClass(): TableOfContent {
         index = index
     )
 }
+fun TableOfContent.toEntity(): TableOfContentEntity {
+    return TableOfContentEntity(
+        bookId = bookId,
+        title = title,
+        index = index
+    )
+}

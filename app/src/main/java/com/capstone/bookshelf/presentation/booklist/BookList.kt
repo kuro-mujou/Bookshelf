@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.booklist
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,6 +54,19 @@ fun BookList(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround
             ){
+                IconButton(
+                    onClick = {
+                        onAction(
+                            BookListAction.OnWritingNewBook
+                        )
+                    }
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_write_ebook),
+                        contentDescription = "Write new ebook icon",
+                        tint = if(isSystemInDarkTheme()) Color(193, 225, 193) else Color(80, 105, 73)
+                    )
+                }
                 ImportBookRoot(
                     importBookViewModel = importBookViewModel,
                 )
@@ -66,7 +80,12 @@ fun BookList(
                     Icon(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark_star),
                         contentDescription = "Sorting Icon",
-                        tint = if (localBookListState.isSortedByFavorite) Color.Green else Color.Gray
+                        tint = if (localBookListState.isSortedByFavorite)
+                            if(isSystemInDarkTheme())
+                                Color(193, 225, 193)
+                            else
+                                Color(80, 105, 73)
+                        else Color.Gray
                     )
                 }
                 IconButton(
@@ -79,6 +98,7 @@ fun BookList(
                     Icon(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
                         contentDescription = "Delete Icon",
+                        tint = if(isSystemInDarkTheme()) Color(250, 160, 160) else Color(194, 59, 34)
                     )
                 }
             }

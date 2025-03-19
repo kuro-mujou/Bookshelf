@@ -7,5 +7,6 @@ import kotlinx.coroutines.flow.Flow
 interface TableOfContentRepository {
     suspend fun saveTableOfContent(tocEntity: TableOfContentEntity): Long
     suspend fun getTableOfContents(bookId: String): Flow<List<TableOfContent>>
-    suspend fun getTableOfContent(bookId: String, tocId: Int): TableOfContent
+    suspend fun getTableOfContent(bookId: String, tocId: Int): TableOfContent?
+    suspend fun addChapter(bookId: String, chapter: TableOfContent)
 }

@@ -20,6 +20,5 @@ data class BookEntity(
     val currentParagraph: Int = 0,
     val isFavorite: Boolean = false,
     val storagePath: String?,
-    val ratingsAverage: Double?,
-    val ratingsCount: Int?,
+    val isEditable: Boolean
 )

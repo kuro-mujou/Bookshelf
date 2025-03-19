@@ -1,9 +1,5 @@
 package com.capstone.bookshelf.presentation.bookcontent
 
-
-//import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSMediaService
-//import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSMediaViewModel
-//import com.capstone.bookshelf.presentation.bookcontent.component.tts.UIEventTTS
 import android.annotation.SuppressLint
 import android.view.View
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -34,7 +30,6 @@ import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewMo
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
-import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentScreen
@@ -45,6 +40,8 @@ import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerScreen
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBar
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
+import com.capstone.bookshelf.presentation.bookwriter.BookWriterEdit
+import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
@@ -61,14 +58,8 @@ fun BookContentScreenRoot(
     dataStoreManager : DataStoreManager,
     onBackClick: () -> Unit,
 ){
-    val bottomBarViewModel = koinViewModel<BottomBarViewModel>()
-    val topBarViewModel = koinViewModel<TopBarViewModel>()
     val drawerContainerViewModel = koinViewModel<DrawerContainerViewModel>()
-    val autoScrollViewModel = koinViewModel<AutoScrollViewModel>()
-    val musicViewModel = koinViewModel<MusicViewModel>()
-    val topBarState by topBarViewModel.state.collectAsStateWithLifecycle()
-    val bottomBarState by bottomBarViewModel.state.collectAsStateWithLifecycle()
-    val autoScrollState by autoScrollViewModel.state.collectAsStateWithLifecycle()
+    val bookWriterViewModel = koinViewModel<BookWriterViewModel>()
     val contentState by viewModel.state.collectAsStateWithLifecycle()
     val drawerContainerState by drawerContainerViewModel.state.collectAsStateWithLifecycle()
     val colorPaletteState by colorPaletteViewModel.colorPalette.collectAsStateWithLifecycle()
@@ -80,33 +71,21 @@ fun BookContentScreenRoot(
     var pagerState by remember { mutableStateOf<PagerState?>(null) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val drawerLazyColumnState = rememberLazyListState()
-    contentState.book?.let {
-        pagerState = rememberPagerState(
-            initialPage = it.currentChapter,
-            pageCount = { it.totalChapter }
-        )
-    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
-                viewModel.stopTTSService(context)
-                viewModel.stopTTS()
+                if(contentState.book?.isEditable == false) {
+                    viewModel.stopTTSService(context)
+                    viewModel.stopTTS()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
-    }
-    if(!contentState.keepScreenOn){
-        if(autoScrollState.isStart)
-            KeepScreenOn(true)
-        else
-            KeepScreenOn(false)
-    } else {
-        KeepScreenOn(true)
     }
     DrawerScreen(
         drawerContainerState = drawerContainerState,
@@ -119,22 +98,27 @@ fun BookContentScreenRoot(
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(it))
             viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(it))
+            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(it))
             if(contentState.isSpeaking){
                 viewModel.onTtsUiEvent(TtsUiEvent.JumpToRandomChapter)
             }
         },
+        onAddingChapter = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
+            drawerContainerViewModel.onAction(DrawerContainerAction.AddChapter(it))
+            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(drawerContainerState.tableOfContents.size))
+            viewModel.onContentAction(dataStoreManager,ContentAction.GetChapterContent(contentState.currentChapterIndex))
+            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
+        }
     ) {
         LaunchedEffect(contentState.book) {
             if (contentState.book != null) {
-                viewModel.setupTTS(context)
-                viewModel.initialize(context,textMeasurer,dataStoreManager,dataStoreManager.enableBackgroundMusic.first())
+                if(contentState.book?.isEditable == false){
+                    viewModel.setupTTS(context)
+                    viewModel.initialize(context,textMeasurer,dataStoreManager,dataStoreManager.enableBackgroundMusic.first())
+                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
+                }
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(contentState.book?.currentChapter!!))
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
-                autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(dataStoreManager.autoScrollSpeed.first()))
-                autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtStart(dataStoreManager.delayTimeAtStart.first()))
-                autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtEnd(dataStoreManager.delayTimeAtEnd.first()))
-                autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoResumeScrollMode(dataStoreManager.autoScrollResumeMode.first()))
-                autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayResume(dataStoreManager.autoScrollResumeDelayTime.first()))
             }
         }
         LaunchedEffect(contentState.isSpeaking) {
@@ -148,12 +132,18 @@ fun BookContentScreenRoot(
             if(drawerState.currentValue == DrawerValue.Closed) {
                 drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
                 drawerLazyColumnState.scrollToItem(contentState.currentChapterIndex)
+            } else if(drawerState.currentValue == DrawerValue.Open) {
+                drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(true))
             }
         }
         LaunchedEffect(contentState.currentChapterIndex) {
             drawerLazyColumnState.scrollToItem(contentState.currentChapterIndex)
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
-            pagerState?.animateScrollToPage(contentState.currentChapterIndex)
+            if(contentState.book?.isEditable == false) {
+                pagerState?.animateScrollToPage(contentState.currentChapterIndex)
+            } else {
+                viewModel.onContentAction(dataStoreManager,ContentAction.GetChapterContent(contentState.currentChapterIndex))
+            }
         }
         LaunchedEffect(drawerContainerState.drawerState){
             if(drawerContainerState.drawerState){
@@ -184,103 +174,168 @@ fun BookContentScreenRoot(
                 viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSPitch(contentState.currentPitch!!))
             }
         }
-        Scaffold(
-            topBar = {
-                TopBar(
-                    hazeState = hazeState,
-                    topBarState = topBarState.visibility,
-                    colorPaletteState = colorPaletteState,
-                    onMenuIconClick ={
-                        drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(true))
-                        topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
-                        bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
-                    },
-                    onBackIconClick = {
-                        onBackClick()
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
-                        viewModel.stopTTSService(context)
-                        viewModel.stopTTS()
-                    }
-                )
-            },
-            bottomBar = {
-                BottomBarManager(
-                    viewModel = viewModel,
-                    topBarViewModel = topBarViewModel,
-                    bottomBarViewModel = bottomBarViewModel,
-                    autoScrollViewModel = autoScrollViewModel,
-                    colorPaletteViewModel = colorPaletteViewModel,
-                    musicViewModel = musicViewModel,
-                    hazeState = hazeState,
-                    bottomBarState = bottomBarState,
-                    contentState = contentState,
-                    autoScrollState = autoScrollState,
+        if(contentState.book?.isEditable == true){
+            drawerContainerState.currentTOC?.let {
+                BookWriterEdit(
+                    contentViewModel = viewModel,
                     drawerContainerState = drawerContainerState,
-                    colorPaletteState = colorPaletteState,
-                    dataStoreManager = dataStoreManager,
-                    connectToService = {
-                        scope.launch {
-                            viewModel.loadTTSSetting(dataStoreManager, contentState.tts!!)
-                            bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
-                            bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
-                            viewModel.onContentAction(
-                                dataStoreManager,
-                                ContentAction.UpdateCurrentReadingParagraph(contentState.firstVisibleItemIndex)
-                            )
-                            delay(1000)
-                            viewModel.onContentAction(dataStoreManager, ContentAction.UpdateIsSpeaking(true))
-                            viewModel.play()
-                        }
-                    },
-                    onSwitchChange = {
-                        scope.launch {
-                            dataStoreManager.setKeepScreenOn(it)
-                        }
-                    }
+                    contentState = contentState
                 )
-            },
-            content = {
-                pagerState?.let {
-                    ContentScreen(
-                        viewModel = viewModel,
-                        autoScrollViewModel = autoScrollViewModel,
+            }
+        } else {
+            val bottomBarViewModel = koinViewModel<BottomBarViewModel>()
+            val topBarViewModel = koinViewModel<TopBarViewModel>()
+            val autoScrollViewModel = koinViewModel<AutoScrollViewModel>()
+            val topBarState by topBarViewModel.state.collectAsStateWithLifecycle()
+            val bottomBarState by bottomBarViewModel.state.collectAsStateWithLifecycle()
+            val autoScrollState by autoScrollViewModel.state.collectAsStateWithLifecycle()
+            if(!contentState.keepScreenOn){
+                if(autoScrollState.isStart)
+                    KeepScreenOn(true)
+                else
+                    KeepScreenOn(false)
+            } else {
+                KeepScreenOn(true)
+            }
+            contentState.book?.let {
+                pagerState = rememberPagerState(
+                    initialPage = it.currentChapter,
+                    pageCount = { it.totalChapter }
+                )
+            }
+            Scaffold(
+                topBar = {
+                    TopBar(
                         hazeState = hazeState,
-                        pagerState = it,
-                        drawerContainerState = drawerContainerState,
-                        contentState = contentState,
+                        topBarState = topBarState.visibility,
                         colorPaletteState = colorPaletteState,
-                        autoScrollState = autoScrollState,
-                        dataStoreManager = dataStoreManager,
-                        updateSystemBar = {
-                            topBarViewModel.onAction(TopBarAction.UpdateVisibility(!topBarState.visibility))
-                            bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(!bottomBarState.visibility))
+                        onMenuIconClick = {
+                            drawerContainerViewModel.onAction(
+                                DrawerContainerAction.UpdateDrawerState(
+                                    true
+                                )
+                            )
+                            topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
+                            bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                         },
-                        currentChapter = { index, pos, isInAutoScrollMode ->
-                            if (isInAutoScrollMode) {
-                                viewModel.onContentAction(dataStoreManager,
-                                    ContentAction.UpdatePreviousChapterIndex(
-                                        contentState.currentChapterIndex
-                                    )
-                                )
-                            } else {
-                                viewModel.onContentAction(dataStoreManager,
-                                    ContentAction.UpdatePreviousChapterIndex(
-                                        index
-                                    )
-                                )
-                            }
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(index))
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(index))
+                        onBackIconClick = {
+                            onBackClick()
                             viewModel.onContentAction(
                                 dataStoreManager,
-                                ContentAction.UpdateCurrentReadingParagraph(pos)
+                                ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex)
                             )
+                            viewModel.onContentAction(
+                                dataStoreManager,
+                                ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex)
+                            )
+                            viewModel.stopTTSService(context)
+                            viewModel.stopTTS()
                         }
                     )
+                },
+                bottomBar = {
+                    BottomBarManager(
+                        viewModel = viewModel,
+                        topBarViewModel = topBarViewModel,
+                        bottomBarViewModel = bottomBarViewModel,
+                        autoScrollViewModel = autoScrollViewModel,
+                        colorPaletteViewModel = colorPaletteViewModel,
+                        hazeState = hazeState,
+                        bottomBarState = bottomBarState,
+                        contentState = contentState,
+                        autoScrollState = autoScrollState,
+                        drawerContainerState = drawerContainerState,
+                        colorPaletteState = colorPaletteState,
+                        dataStoreManager = dataStoreManager,
+                        connectToService = {
+                            scope.launch {
+                                viewModel.loadTTSSetting(dataStoreManager, contentState.tts!!)
+                                bottomBarViewModel.onAction(
+                                    BottomBarAction.UpdateBottomBarDefaultState(
+                                        false
+                                    )
+                                )
+                                bottomBarViewModel.onAction(
+                                    BottomBarAction.UpdateBottomBarTTSState(
+                                        true
+                                    )
+                                )
+                                viewModel.onContentAction(
+                                    dataStoreManager,
+                                    ContentAction.UpdateCurrentReadingParagraph(contentState.firstVisibleItemIndex)
+                                )
+                                delay(1000)
+                                viewModel.onContentAction(
+                                    dataStoreManager,
+                                    ContentAction.UpdateIsSpeaking(true)
+                                )
+                                viewModel.play()
+                            }
+                        },
+                        onSwitchChange = {
+                            scope.launch {
+                                dataStoreManager.setKeepScreenOn(it)
+                            }
+                        }
+                    )
+                },
+                content = {
+                    pagerState?.let {
+                        LaunchedEffect(Unit) {
+                            autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(dataStoreManager.autoScrollSpeed.first()))
+                            autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtStart(dataStoreManager.delayTimeAtStart.first()))
+                            autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtEnd(dataStoreManager.delayTimeAtEnd.first()))
+                            autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoResumeScrollMode(dataStoreManager.autoScrollResumeMode.first()))
+                            autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayResume(dataStoreManager.autoScrollResumeDelayTime.first()))
+                        }
+                        ContentScreen(
+                            viewModel = viewModel,
+                            autoScrollViewModel = autoScrollViewModel,
+                            hazeState = hazeState,
+                            pagerState = it,
+                            drawerContainerState = drawerContainerState,
+                            contentState = contentState,
+                            colorPaletteState = colorPaletteState,
+                            autoScrollState = autoScrollState,
+                            dataStoreManager = dataStoreManager,
+                            updateSystemBar = {
+                                topBarViewModel.onAction(TopBarAction.UpdateVisibility(!topBarState.visibility))
+                                bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(!bottomBarState.visibility))
+                            },
+                            currentChapter = { index, pos, isInAutoScrollMode ->
+                                if (isInAutoScrollMode) {
+                                    viewModel.onContentAction(
+                                        dataStoreManager,
+                                        ContentAction.UpdatePreviousChapterIndex(
+                                            contentState.currentChapterIndex
+                                        )
+                                    )
+                                } else {
+                                    viewModel.onContentAction(
+                                        dataStoreManager,
+                                        ContentAction.UpdatePreviousChapterIndex(
+                                            index
+                                        )
+                                    )
+                                }
+                                viewModel.onContentAction(
+                                    dataStoreManager,
+                                    ContentAction.UpdateCurrentChapterIndex(index)
+                                )
+                                viewModel.onContentAction(
+                                    dataStoreManager,
+                                    ContentAction.UpdateBookInfoCurrentChapterIndex(index)
+                                )
+                                viewModel.onContentAction(
+                                    dataStoreManager,
+                                    ContentAction.UpdateCurrentReadingParagraph(pos)
+                                )
+                            }
+                        )
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 }
 @Composable

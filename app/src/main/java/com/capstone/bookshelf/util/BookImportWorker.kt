@@ -4,7 +4,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -34,9 +33,6 @@ import org.jsoup.nodes.TextNode
 import org.jsoup.select.NodeVisitor
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import java.math.BigInteger
 import java.security.MessageDigest
 
@@ -117,7 +113,12 @@ class BookImportWorker(
             null
         }
         val coverImagePath = if (coverImage != null) {
-            saveImageToPrivateStorage(context, book.coverImage, "cover_${book.title}")
+            val bitmap = BitmapFactory.decodeStream(book.coverImage.inputStream)
+            saveImageToPrivateStorage(
+                context = context,
+                bitmap = bitmap,
+                filename = "cover_${book.title}"
+            )
         } else {
             "error"
         }
@@ -131,8 +132,7 @@ class BookImportWorker(
             description = null,
             totalChapter = totalChapters,
             storagePath = cacheFilePath,
-            ratingsAverage = 0.0,
-            ratingsCount = 0
+            isEditable = false
         )
         return bookRepository.insertBook(bookEntity)
     }
@@ -233,34 +233,6 @@ class BookImportWorker(
         }
         return chapterContent
     }
-
-    @Suppress("DEPRECATION")
-    private fun saveImageToPrivateStorage(
-        context: Context,
-        imageResource: Resource,
-        filename: String
-    ): String {
-        return try {
-            val bitmap = BitmapFactory.decodeStream(imageResource.inputStream)
-
-            val file = File(context.filesDir, "$filename.webp")
-            if(Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q){
-                FileOutputStream(file).use { outputStream ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
-                }
-            } else {
-                FileOutputStream(file).use { outputStream ->
-                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
-                }
-            }
-            file.absolutePath
-        } catch (e: IOException) {
-            e.printStackTrace()
-            "error when loading image"
-        }
-    }
-
-
     private fun parseChapterToList(
         html: String,
         book: Book,
@@ -386,9 +358,10 @@ class BookImportWorker(
                                         val actualSrc = src.replace("../", "")
                                         val resource = getImageResourceFromBook(actualSrc, book)
                                         resource?.let {
+                                            val bitmap = BitmapFactory.decodeStream(it.inputStream)
                                             val imagePath = saveImageToPrivateStorage(
                                                 context = context,
-                                                imageResource = it,
+                                                bitmap = bitmap,
                                                 filename = "image_${bookID}_${tocID}_${i}"
                                             )
                                             pathList.add(imagePath)
@@ -408,9 +381,10 @@ class BookImportWorker(
                                             val actualSrc = src.replace("../", "")
                                             val resource = getImageResourceFromBook(actualSrc, book)
                                             resource?.let {
+                                                val bitmap = BitmapFactory.decodeStream(it.inputStream)
                                                 val imagePath = saveImageToPrivateStorage(
                                                     context = context,
-                                                    imageResource = it,
+                                                    bitmap = bitmap,
                                                     filename = "image_${bookID}_${tocID}_${i}"
                                                 )
                                                 pathList.add(imagePath)
@@ -430,9 +404,10 @@ class BookImportWorker(
                                             val resource =
                                                 actualSrc?.let { getImageResourceFromBook(it, book) }
                                             resource?.let {
+                                                val bitmap = BitmapFactory.decodeStream(it.inputStream)
                                                 val imagePath = saveImageToPrivateStorage(
                                                     context = context,
-                                                    imageResource = it,
+                                                    bitmap = bitmap,
                                                     filename = "image_${bookID}_${tocID}_${i}"
                                                 )
                                                 pathList.add(imagePath)

@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.PrimaryTabRow
@@ -58,6 +59,7 @@ fun DrawerScreen(
     colorPaletteState: ColorPalette,
     hazeState: HazeState,
     onDrawerItemClick: (Int) -> Unit,
+    onAddingChapter: (String) -> Unit,
     content: @Composable () -> Unit
 ){
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
@@ -83,13 +85,17 @@ fun DrawerScreen(
                     .fillMaxHeight()
                     .width(300.dp)
                     .then(
-                        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                            Modifier.hazeEffect(
-                                state = hazeState,
-                                style = style
-                            )
-                        }else{
-                            Modifier.background(colorPaletteState.containerColor)
+                        if(contentState.book?.isEditable == true){
+                            Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                        } else {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                Modifier.hazeEffect(
+                                    state = hazeState,
+                                    style = style
+                                )
+                            } else {
+                                Modifier.background(colorPaletteState.containerColor)
+                            }
                         }
                     ),
             ){
@@ -119,92 +125,138 @@ fun DrawerScreen(
                             .wrapContentHeight()
                             .padding(8.dp)
                     ) {
-                        contentState.book?.title?.let {
+                        contentState.book?.let {
                             Text(
-                                text = it,
+                                text = it.title,
                                 style = TextStyle(
                                     fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                                    color = colorPaletteState.textColor,
+                                    color = if(it.isEditable){
+                                        MaterialTheme.colorScheme.onBackground
+                                    } else{
+                                        colorPaletteState.textColor
+                                    },
                                     fontWeight = FontWeight.Medium,
-                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
+                                    fontFamily = if(it.isEditable){
+                                        MaterialTheme.typography.bodyMedium.fontFamily
+                                    } else{
+                                        contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                    },
                                 )
                             )
                         }
-                        contentState.book?.authors?.joinToString(",")?.let {
+                        contentState.book?.let {
                             Text(
-                                text = it,
+                                text = it.authors.joinToString(","),
                                 style = TextStyle(
-                                    color = colorPaletteState.textColor,
+                                    color = if(it.isEditable){
+                                        MaterialTheme.colorScheme.onBackground
+                                    } else{
+                                        colorPaletteState.textColor
+                                    },
                                     fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                     fontWeight = FontWeight.Normal,
-                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
+                                    fontFamily = if(it.isEditable){
+                                        MaterialTheme.typography.bodyMedium.fontFamily
+                                    } else{
+                                        contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                    },
                                 ),
                             )
                         }
                     }
                 }
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                ) {
-                    PrimaryTabRow(
+                if(contentState.book?.isEditable == true){
+                    TableOfContents(
+                        drawerContainerState = drawerContainerState,
+                        contentState = contentState,
+                        drawerLazyColumnState = drawerLazyColumnState,
+                        colorPaletteState = colorPaletteState,
+                        onDrawerItemClick = {contentPageIndex->
+                            onDrawerItemClick(contentPageIndex)
+                        },
+                        onAddingChapter = {
+                            onAddingChapter(it)
+                        }
+                    )
+                } else {
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight(),
-                        selectedTabIndex = selectedTabIndex,
-                        indicator = {TabRowDefaults.PrimaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(selectedTabIndex, matchContentSize = true),
-                            width = Dp.Unspecified,
-                            color = colorPaletteState.textColor
-                        )},
-                        containerColor = Color.Transparent,
-                        contentColor = colorPaletteState.textColor,
+                            .fillMaxSize()
                     ) {
-                        tabItems.forEachIndexed { index, item ->
-                            Tab(
-                                selected = index == selectedTabIndex,
-                                onClick = {
-                                    selectedTabIndex = index
-                                },
-                                text = {
-                                    Text(
-                                        text = item.title,
-                                        style = TextStyle(
-                                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
+                        PrimaryTabRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight(),
+                            selectedTabIndex = selectedTabIndex,
+                            indicator = {
+                                TabRowDefaults.PrimaryIndicator(
+                                    modifier = Modifier.tabIndicatorOffset(
+                                        selectedTabIndex,
+                                        matchContentSize = true
+                                    ),
+                                    width = Dp.Unspecified,
+                                    color = colorPaletteState.textColor
+                                )
+                            },
+                            containerColor = Color.Transparent,
+                            contentColor = colorPaletteState.textColor,
+                            divider = {
+                                HorizontalDivider(
+                                    color = colorPaletteState.backgroundColor
+                                )
+                            }
+                        ) {
+                            tabItems.forEachIndexed { index, item ->
+                                Tab(
+                                    selected = index == selectedTabIndex,
+                                    onClick = {
+                                        selectedTabIndex = index
+                                    },
+                                    text = {
+                                        Text(
+                                            text = item.title,
+                                            style = TextStyle(
+                                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
+                                            )
                                         )
-                                    )
-                                },
-                            )
-                        }
-                    }
-                    when(selectedTabIndex) {
-                        0 -> {
-                            TableOfContents(
-                                drawerContainerState = drawerContainerState,
-                                contentState = contentState,
-                                drawerLazyColumnState = drawerLazyColumnState,
-                                colorPaletteState = colorPaletteState,
-                                onDrawerItemClick = {contentPageIndex->
-                                    onDrawerItemClick(contentPageIndex)
-                                },
-                            )
-                        }
-                        1 -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize()
-                            ){
-                                Text(text = "Note")
+                                    },
+                                )
                             }
                         }
-                        2 -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize()
-                            ){
-                                Text(text = "BookMark")
+                        when (selectedTabIndex) {
+                            0 -> {
+                                TableOfContents(
+                                    drawerContainerState = drawerContainerState,
+                                    contentState = contentState,
+                                    drawerLazyColumnState = drawerLazyColumnState,
+                                    colorPaletteState = colorPaletteState,
+                                    onDrawerItemClick = { contentPageIndex ->
+                                        onDrawerItemClick(contentPageIndex)
+                                    },
+                                    onAddingChapter = {
+                                        onAddingChapter(it)
+                                    }
+                                )
                             }
-                        }
-                    }
 
+                            1 -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Text(text = "Note")
+                                }
+                            }
+
+                            2 -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Text(text = "BookMark")
+                                }
+                            }
+                        }
+
+                    }
                 }
             }
         },

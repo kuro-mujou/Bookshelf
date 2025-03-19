@@ -6,10 +6,12 @@ import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
@@ -59,6 +61,7 @@ fun ImportBookRoot(
         Icon(
             imageVector = ImageVector.vectorResource(R.drawable.ic_add_epub),
             contentDescription = "Add Icon",
+            tint = if(isSystemInDarkTheme()) Color(255, 250, 160) else Color(131,105,83)
         )
     }
 }

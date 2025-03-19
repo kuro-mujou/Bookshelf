@@ -268,33 +268,37 @@ class TTSServiceHandler (
         }
     }
     fun moveToNextChapterOrStop(){
-        if (_currentChapterIndex.value + 1 <= totalChapter) {
-            CoroutineScope(Dispatchers.Default).launch {
-                textToSpeech?.stop()
-                currentReadingPositionInParagraph = 0
-                _currentParagraphIndex.value = 0
-                _currentChapterIndex.value += 1
-                delay(1000L)
-                if(_isSpeaking.value && !_isPaused.value)
-                    startSpeakCurrentParagraph()
+        if(_isSpeaking.value) {
+            if (_currentChapterIndex.value + 1 <= totalChapter) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    textToSpeech?.stop()
+                    currentReadingPositionInParagraph = 0
+                    _currentParagraphIndex.value = 0
+                    _currentChapterIndex.value += 1
+                    delay(1000L)
+                    if (_isSpeaking.value && !_isPaused.value)
+                        startSpeakCurrentParagraph()
+                }
+            } else {
+                stopReading()
             }
-        } else {
-            stopReading()
         }
     }
     fun moveToPreviousChapterOrStop(){
-        if (_currentChapterIndex.value -1 >= 0) {
-            CoroutineScope(Dispatchers.Default).launch {
-                textToSpeech?.stop()
-                currentReadingPositionInParagraph = 0
-                _currentParagraphIndex.value = 0
-                _currentChapterIndex.value -= 1
-                delay(1000L)
-                if(_isSpeaking.value && !_isPaused.value)
-                    startSpeakCurrentParagraph()
+        if(_isSpeaking.value) {
+            if (_currentChapterIndex.value - 1 >= 0) {
+                CoroutineScope(Dispatchers.Default).launch {
+                    textToSpeech?.stop()
+                    currentReadingPositionInParagraph = 0
+                    _currentParagraphIndex.value = 0
+                    _currentChapterIndex.value -= 1
+                    delay(1000L)
+                    if (_isSpeaking.value && !_isPaused.value)
+                        startSpeakCurrentParagraph()
+                }
+            } else {
+                stopReading()
             }
-        } else {
-            stopReading()
         }
     }
     private fun jumpToRandomChapter(){

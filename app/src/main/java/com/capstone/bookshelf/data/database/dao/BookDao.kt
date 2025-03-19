@@ -35,6 +35,9 @@ interface BookDao {
     @Query("UPDATE books SET currentParagraph = :paragraphIndex WHERE bookId = :bookId")
     suspend fun saveBookInfoParagraphIndex(bookId: String, paragraphIndex: Int)
 
+    @Query("UPDATE books SET totalChapter = :totalChapter WHERE bookId = :bookId")
+    suspend fun saveBookInfoTotalChapter(bookId: String, totalChapter: Int)
+
     @Transaction
     @Delete
     suspend fun deleteBooks(bookEntities: List<BookEntity>)

@@ -3,6 +3,7 @@ package com.capstone.bookshelf.presentation.booklist.component
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -144,7 +145,10 @@ fun BookView(
                     imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
                     contentDescription = null,
                     tint = if (book.isFavorite)
-                        Color.Green
+                        if(isSystemInDarkTheme())
+                            Color(193, 225, 193)
+                        else
+                            Color(80, 105, 73)
                     else
                         Color.Gray,
                 )

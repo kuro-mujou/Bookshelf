@@ -38,4 +38,6 @@ sealed interface ContentAction {
     data class UpdateTextIndent(val textIndent: Boolean) : ContentAction
     data class UpdateLineSpacing(val lineSpacing: Int) : ContentAction
     data class UpdateKeepScreenOn(val keepScreenOn: Boolean) : ContentAction
+
+    data class GetChapterContent(val index: Int) : ContentAction
 }

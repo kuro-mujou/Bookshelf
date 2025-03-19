@@ -5,8 +5,8 @@ import com.capstone.bookshelf.data.database.LocalBookDatabase
 import com.capstone.bookshelf.data.repository_impl.BookRepositoryImpl
 import com.capstone.bookshelf.data.repository_impl.ChapterRepositoryImpl
 import com.capstone.bookshelf.data.repository_impl.ImagePathRepositoryImpl
-import com.capstone.bookshelf.data.repository_impl.TableOfContentRepositoryImpl
 import com.capstone.bookshelf.data.repository_impl.MusicPathRepositoryImpl
+import com.capstone.bookshelf.data.repository_impl.TableOfContentRepositoryImpl
 import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
@@ -16,6 +16,7 @@ import com.capstone.bookshelf.presentation.SelectedBookViewModel
 import com.capstone.bookshelf.presentation.bookdetail.BookDetailViewModel
 import com.capstone.bookshelf.presentation.booklist.BookListViewModel
 import com.capstone.bookshelf.presentation.booklist.component.AsyncImportBookViewModel
+import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.singleOf
@@ -48,6 +49,7 @@ val viewModelModule = module {
     viewModelOf(::BookListViewModel)
     viewModelOf(::AsyncImportBookViewModel)
     viewModelOf(::BookDetailViewModel)
+    viewModelOf(::BookWriterViewModel)
 }
 val dataStoreModule = module {
     single{ DataStoreManager(androidContext())}

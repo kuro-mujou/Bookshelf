@@ -1,9 +1,9 @@
 package com.capstone.bookshelf.data.repository_impl
 
-import android.util.Log
 import com.capstone.bookshelf.data.database.dao.TableOfContentDao
 import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
 import com.capstone.bookshelf.data.mapper.toDataClass
+import com.capstone.bookshelf.data.mapper.toEntity
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
 import com.capstone.bookshelf.domain.wrapper.TableOfContent
 import kotlinx.coroutines.flow.Flow
@@ -22,8 +22,11 @@ class TableOfContentRepositoryImpl(
                 entity.map{it.toDataClass()}
             }
     }
-    override suspend fun getTableOfContent(bookId: String,tocId: Int): TableOfContent {
-        Log.d("TableOfContentRepositoryImpl", "getTableOfContent: $bookId $tocId")
-        return tableOfContentDao.getTableOfContent(bookId,tocId)!!.toDataClass()
+    override suspend fun getTableOfContent(bookId: String,tocId: Int): TableOfContent? {
+        return tableOfContentDao.getTableOfContent(bookId,tocId)?.toDataClass()
+    }
+
+    override suspend fun addChapter(bookId: String, chapter: TableOfContent) {
+        tableOfContentDao.insertTableOfContent(chapter.toEntity())
     }
 }

@@ -24,10 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.IOException
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
@@ -203,8 +200,7 @@ class CBZImportWorker(
             description = null,
             totalChapter = totalChapters,
             storagePath = cacheFilePath,
-            ratingsAverage = 0.0,
-            ratingsCount = 0
+            isEditable = false
         )
         return bookRepository.insertBook(bookEntity)
     }
@@ -259,29 +255,6 @@ class CBZImportWorker(
         }
 
         return null
-    }
-    @Suppress("DEPRECATION")
-    private fun saveImageToPrivateStorage(
-        context: Context,
-        bitmap: Bitmap?,
-        filename: String
-    ): String {
-        return try {
-            val file = File(context.filesDir, "$filename.webp")
-            if(Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q){
-                FileOutputStream(file).use { outputStream ->
-                    bitmap?.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
-                }
-            } else {
-                FileOutputStream(file).use { outputStream ->
-                    bitmap?.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
-                }
-            }
-            file.absolutePath
-        } catch (e: IOException) {
-            e.printStackTrace()
-            "error when loading image"
-        }
     }
     private fun sendCompletionNotification(
         context: Context,

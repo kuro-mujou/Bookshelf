@@ -40,10 +40,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.io.File
 import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.IOException
 import java.math.BigInteger
 import java.security.MessageDigest
 
@@ -211,8 +208,7 @@ class PDFImportWorker(
                             description = null,
                             totalChapter = tocList.size,
                             storagePath = pdfUriString,
-                            ratingsAverage = 0.0,
-                            ratingsCount = 0
+                            isEditable = false
                         )
                         bookRepository.insertBook(bookEntity)
                         imagePathRepository.saveImagePath(bookID, listOf(coverImagePath))
@@ -296,30 +292,6 @@ class PDFImportWorker(
             return Result.failure()
         } finally {
             pfd?.close()
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun saveImageToPrivateStorage(
-        context: Context,
-        bitmap: Bitmap?,
-        filename: String
-    ): String {
-        return try {
-            val file = File(context.filesDir, "$filename.webp")
-            if(Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q){
-                FileOutputStream(file).use { outputStream ->
-                    bitmap?.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
-                }
-            } else {
-                FileOutputStream(file).use { outputStream ->
-                    bitmap?.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
-                }
-            }
-            file.absolutePath
-        } catch (e: IOException) {
-            e.printStackTrace()
-            "error when loading image"
         }
     }
     private fun parseChapterContentToList(text: String): List<String> {

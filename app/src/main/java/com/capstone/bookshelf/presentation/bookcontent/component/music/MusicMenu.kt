@@ -8,7 +8,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -69,18 +68,19 @@ import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @UnstableApi
 @Composable
 fun MusicMenu(
-    musicViewModel: MusicViewModel,
     contentViewModel: ContentViewModel,
     dataStoreManager: DataStoreManager,
     colorPalette: ColorPalette,
     contentState: ContentState
 ){
+    val musicViewModel = koinViewModel<MusicViewModel>()
     val state by musicViewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val context = LocalContext.current
@@ -220,9 +220,9 @@ fun MusicMenu(
                     items(
                         items = state.musicList,
                         key = { it.id!! }
-                    ) {
+                    ) { listItem->
                         MusicItemView(
-                            music = it,
+                            music = listItem,
                             colorPalette = colorPalette,
                             contentState = contentState,
                             onFavoriteClick = { musicItem ->
@@ -231,8 +231,8 @@ fun MusicMenu(
                             onItemClick = { musicItem ->
                                 musicViewModel.onEvent(MusicListAction.OnItemClick(musicItem))
                             },
-                            onDelete ={
-                                musicViewModel.onEvent(MusicListAction.OnDelete(it))
+                            onDelete ={ musicItem ->
+                                musicViewModel.onEvent(MusicListAction.OnDelete(musicItem))
                             }
                         )
                     }
@@ -330,7 +330,10 @@ fun MusicItemView(
                     music.name?.let {
                         Text(
                             text = it,
-                            color = colorPalette.textColor,
+                            style = TextStyle(
+                                color = colorPalette.textColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            ),
                             modifier = Modifier
                                 .weight(1f)
                                 .basicMarquee(

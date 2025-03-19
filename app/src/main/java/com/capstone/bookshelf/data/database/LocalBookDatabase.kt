@@ -23,7 +23,7 @@ import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
         MusicPathEntity::class
     ],
     exportSchema = false,
-    version = 1
+    version = 3
 )
 @TypeConverters(StringListTypeConverter::class)
 abstract class LocalBookDatabase : RoomDatabase() {

@@ -53,7 +53,7 @@ class ContentViewModel(
     private val _chapterContent: MutableState<Chapter?> = mutableStateOf(null)
     val chapterContent: State<Chapter?> = _chapterContent
     private val serviceJob = mutableListOf<Job>()
-    val mediaItemList = mutableListOf<MediaItem>()
+    private val mediaItemList = mutableListOf<MediaItem>()
     private var _state = MutableStateFlow(ContentState())
     val state = _state
         .stateIn(
@@ -341,6 +341,11 @@ class ContentViewModel(
                     mediaController?.apply {
                         volume = action.volume
                     }
+                }
+            }
+            is ContentAction.GetChapterContent -> {
+                viewModelScope.launch {
+                    getChapter(action.index)
                 }
             }
         }

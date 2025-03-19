@@ -141,6 +141,10 @@ class BookListViewModel(
                     }
                 }
             }
+
+            is BookListAction.OnWritingNewBook -> {
+
+            }
         }
     }
 

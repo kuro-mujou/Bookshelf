@@ -26,7 +26,6 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicMenu
-import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
@@ -48,7 +47,6 @@ fun BottomBarManager(
     bottomBarViewModel: BottomBarViewModel,
     autoScrollViewModel: AutoScrollViewModel,
     colorPaletteViewModel: ColorPaletteViewModel,
-    musicViewModel: MusicViewModel,
     hazeState: HazeState,
     bottomBarState: BottomBarState,
     contentState: ContentState,
@@ -255,7 +253,6 @@ fun BottomBarManager(
             containerColor = colorPaletteState.backgroundColor
         ) {
             MusicMenu(
-                musicViewModel = musicViewModel,
                 contentViewModel = viewModel,
                 dataStoreManager = dataStoreManager,
                 colorPalette = colorPaletteState,

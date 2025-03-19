@@ -32,6 +32,8 @@ import com.capstone.bookshelf.presentation.booklist.BookList
 import com.capstone.bookshelf.presentation.booklist.BookListAction
 import com.capstone.bookshelf.presentation.booklist.BookListViewModel
 import com.capstone.bookshelf.presentation.booklist.component.AsyncImportBookViewModel
+import com.capstone.bookshelf.presentation.bookwriter.BookWriterCreate
+import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
 import com.capstone.bookshelf.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.util.DataStoreManager
 import kotlinx.coroutines.flow.first
@@ -54,10 +56,10 @@ fun SetupNavGraph(
             composable<Route.Home>(
                 exitTransition = { slideOutHorizontally() },
                 popEnterTransition = { slideInHorizontally() },
-            ){
+            ){nav ->
                 val bookListViewModel = koinViewModel<BookListViewModel>()
                 val selectedBookViewModel =
-                    it.sharedKoinViewModel<SelectedBookViewModel>(navController)
+                    nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
                 LaunchedEffect(true) {
                     selectedBookViewModel.onSelectBook(null)
                 }
@@ -78,22 +80,19 @@ fun SetupNavGraph(
                                     Route.BookDetail(action.book.id)
                                 )
                             }
+                            is BookListAction.OnWritingNewBook -> {
+                                navController.navigate(
+                                    Route.WriteBook
+                                )
+                            }
                             else -> Unit
                         }
                     }
                 )
             }
             composable<Route.BookDetail>(
-                enterTransition = {
-                    slideInHorizontally { initialOffset ->
-                        initialOffset
-                    }
-                },
-                exitTransition = {
-                    slideOutHorizontally { initialOffset ->
-                        initialOffset
-                    }
-                }
+                exitTransition = { slideOutHorizontally() },
+                popEnterTransition = { slideInHorizontally() },
             ) { nav ->
                 val selectedBookViewModel =
                     nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
@@ -119,16 +118,25 @@ fun SetupNavGraph(
                 var isContentLoading by remember { mutableStateOf(true) }
                 val selectedBookViewModel =
                     nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
+                val selectedBook by selectedBookViewModel.selectedBook.collectAsStateWithLifecycle()
                 val colorPaletteViewModel = koinViewModel<ColorPaletteViewModel>()
                 val viewModel = koinViewModel<ContentViewModel>()
                 val dataStoreManager = DataStoreManager(LocalContext.current)
-                val selectedBook by selectedBookViewModel.selectedBook.collectAsStateWithLifecycle()
                 if(isContentLoading){
                     LoadingAnimation()
                 }
-                BackHandler {
-
-                }
+                BackHandler(
+                    onBack = {
+                        if(selectedBook?.isEditable == true){
+                            navController.navigate(Route.Home){
+                                popUpTo(Route.Home){
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                )
                 LaunchedEffect(selectedBook) {
                     selectedBook?.let {
                         viewModel.onContentAction(dataStoreManager,ContentAction.SelectedBook(it))
@@ -149,8 +157,26 @@ fun SetupNavGraph(
                     colorPaletteViewModel = colorPaletteViewModel,
                     dataStoreManager = dataStoreManager,
                     onBackClick = {
+                        selectedBookViewModel.onSelectBook(null)
                         navController.navigateUp()
                     },
+                )
+            }
+            composable<Route.WriteBook>(
+                exitTransition = { slideOutHorizontally() },
+                popEnterTransition = { slideInHorizontally() },
+            ){nav ->
+                val bookWriterViewModel = koinViewModel<BookWriterViewModel>()
+                val selectedBookViewModel =
+                    nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
+                BookWriterCreate(
+                    viewModel = bookWriterViewModel,
+                    onNavigateToBookContent = { bookId,book ->
+                        selectedBookViewModel.onSelectBook(book)
+                        navController.navigate(
+                            Route.BookContent(bookId)
+                        )
+                    }
                 )
             }
         }
