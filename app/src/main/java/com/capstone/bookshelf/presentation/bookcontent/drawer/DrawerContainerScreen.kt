@@ -59,7 +59,7 @@ fun DrawerScreen(
     colorPaletteState: ColorPalette,
     hazeState: HazeState,
     onDrawerItemClick: (Int) -> Unit,
-    onAddingChapter: (String) -> Unit,
+    onAddingChapter: (String,String) -> Unit,
     content: @Composable () -> Unit
 ){
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
@@ -174,8 +174,8 @@ fun DrawerScreen(
                         onDrawerItemClick = {contentPageIndex->
                             onDrawerItemClick(contentPageIndex)
                         },
-                        onAddingChapter = {
-                            onAddingChapter(it)
+                        onAddingChapter = { chapterTitle, headerSize ->
+                            onAddingChapter(chapterTitle, headerSize)
                         }
                     )
                 } else {
@@ -233,8 +233,8 @@ fun DrawerScreen(
                                     onDrawerItemClick = { contentPageIndex ->
                                         onDrawerItemClick(contentPageIndex)
                                     },
-                                    onAddingChapter = {
-                                        onAddingChapter(it)
+                                    onAddingChapter = { chapterTitle, headerSize->
+                                        onAddingChapter( chapterTitle, headerSize)
                                     }
                                 )
                             }

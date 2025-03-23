@@ -174,7 +174,7 @@ fun SetupNavGraph(
                     onNavigateToBookContent = { bookId,book ->
                         selectedBookViewModel.onSelectBook(book)
                         navController.navigate(
-                            Route.BookContent(bookId)
+                            Route.Home
                         )
                     }
                 )

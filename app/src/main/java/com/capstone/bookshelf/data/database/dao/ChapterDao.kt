@@ -15,4 +15,7 @@ interface ChapterDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertChapterContent(chapterContent: ChapterContentEntity)
+
+    @Query("UPDATE chapter_content SET content = :content WHERE bookId = :bookId AND tocId = :tocId")
+    suspend fun updateChapterContent(bookId: String,tocId: Int, content: List<String>)
 }

@@ -103,9 +103,9 @@ fun BookContentScreenRoot(
                 viewModel.onTtsUiEvent(TtsUiEvent.JumpToRandomChapter)
             }
         },
-        onAddingChapter = {
+        onAddingChapter = { chapterTitle, headerSize->
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
-            drawerContainerViewModel.onAction(DrawerContainerAction.AddChapter(it))
+            drawerContainerViewModel.onAction(DrawerContainerAction.AddChapter(chapterTitle,headerSize))
             viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(drawerContainerState.tableOfContents.size))
             viewModel.onContentAction(dataStoreManager,ContentAction.GetChapterContent(contentState.currentChapterIndex))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
@@ -177,6 +177,7 @@ fun BookContentScreenRoot(
         if(contentState.book?.isEditable == true){
             drawerContainerState.currentTOC?.let {
                 BookWriterEdit(
+                    bookWriterViewModel = bookWriterViewModel,
                     contentViewModel = viewModel,
                     drawerContainerState = drawerContainerState,
                     contentState = contentState

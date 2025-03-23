@@ -69,11 +69,13 @@ class DrawerContainerViewModel(
                     tableOfContentRepository.addChapter(bookId, newChapter)
                     bookRepository.saveBookInfoTotalChapter(bookId, currentSize + 1)
                     bookRepository.saveBookInfoChapterIndex(bookId, currentSize)
+                    val contentList = mutableListOf<String>()
+                    contentList.add("<${action.headerSize.lowercase()}>${action.chapter}</${action.headerSize.lowercase()}>")
                     val newChapterContent = ChapterContentEntity(
                         bookId = bookId,
                         tocId = currentSize,
                         chapterTitle = action.chapter,
-                        content = emptyList()
+                        content = contentList
                     )
                     chapterRepository.saveChapterContent(newChapterContent)
                 }

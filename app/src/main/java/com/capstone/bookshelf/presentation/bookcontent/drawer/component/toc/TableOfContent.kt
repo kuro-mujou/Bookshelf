@@ -66,7 +66,7 @@ fun TableOfContents(
     drawerLazyColumnState: LazyListState,
     colorPaletteState: ColorPalette,
     onDrawerItemClick: (Int) -> Unit,
-    onAddingChapter: (String) -> Unit,
+    onAddingChapter: (String,String) -> Unit,
 ) {
     var searchInput by remember { mutableStateOf("") }
     var targetDatabaseIndex by remember { mutableIntStateOf(-1) }
@@ -99,8 +99,8 @@ fun TableOfContents(
             onDismissRequest = {
                 showAddDialog = false
             },
-            onConfirm = {
-                onAddingChapter(it)
+            onConfirm = {chapterTitle, headerSize ->
+                onAddingChapter(chapterTitle,headerSize)
                 showAddDialog = false
             }
         )

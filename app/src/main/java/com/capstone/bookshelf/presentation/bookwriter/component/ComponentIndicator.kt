@@ -1,192 +1,99 @@
 package com.capstone.bookshelf.presentation.bookwriter.component
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import com.capstone.bookshelf.R
 
 @Composable
-fun ComponentIndicator(
-    onAddSubTitle: () -> Unit,
-    onAddParagraph: () -> Unit,
-    onEditChapterTitle: () -> Unit
+fun Indicator(
+    onAdd: () -> Unit,
+    onDelete: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit
 ){
-    Box(
-        modifier = Modifier.background(Color.Transparent),
-        contentAlignment = Alignment.CenterEnd
-    ){
-        HorizontalDivider(
-            thickness = 2.dp,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Row{
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(color = MaterialTheme.colorScheme.primary)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .clickable {
-                        onEditChapterTitle()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color.White
-                )
+    Row {
+        IconButton(
+            onClick = {
+                onAdd()
             }
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(color = MaterialTheme.colorScheme.primary)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .clickable {
-                        onAddParagraph()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color.White
-                )
+        ) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_music),
+                contentDescription = null,
+            )
+        }
+        IconButton(
+            onClick = {
+                onDelete()
             }
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(color = MaterialTheme.colorScheme.primary)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .clickable {
-                        onAddSubTitle()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color.White
-                )
+        ) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete),
+                contentDescription = null,
+            )
+        }
+        IconButton(
+            onClick = {
+                onMoveUp()
             }
+        ) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_up),
+                contentDescription = null,
+            )
+        }
+        IconButton(
+            onClick = {
+                onMoveDown()
+            }
+        ) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_down),
+                contentDescription = null,
+            )
         }
     }
 }
-
-
 @Composable
 fun ChapterTitleIndicator(
-    onAddSubTitle: () -> Unit,
     onAddParagraph: () -> Unit,
-    onEditChapterTitle: () -> Unit
+    onAddImage: () -> Unit,
+    onAddSubTitle: () -> Unit,
 ){
-    Box(
-        modifier = Modifier.background(Color.Transparent),
-        contentAlignment = Alignment.CenterEnd
-    ){
-        HorizontalDivider(
-            thickness = 2.dp,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Row{
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(color = MaterialTheme.colorScheme.primary)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .clickable {
-                        onEditChapterTitle()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color.White
-                )
+    Row {
+        IconButton(
+            onClick = {
+                onAddParagraph()
             }
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(color = MaterialTheme.colorScheme.primary)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .clickable {
-                        onAddParagraph()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color.White
-                )
+        ) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_music),
+                contentDescription = null,
+            )
+        }
+        IconButton(
+            onClick = {
+                onAddSubTitle()
             }
-            Box(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(color = MaterialTheme.colorScheme.primary)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                    .clickable {
-                        onAddSubTitle()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    tint = Color.White
-                )
+        ) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_subtitile),
+                contentDescription = null,
+            )
+        }
+        IconButton(
+            onClick = {
+                onAddImage()
             }
+        ) {
+            Icon(
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_image),
+                contentDescription = null,
+            )
         }
     }
 }

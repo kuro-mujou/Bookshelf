@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.util.calculateHeaderSize
 
 @Immutable
 @UnstableApi
@@ -30,17 +31,6 @@ data class HeaderContent(
     val level : Int
 ){
     val fontSize = mutableFloatStateOf(calculateHeaderSize(level,contentState.fontSize))
-}
-private fun calculateHeaderSize(level : Int, fontSize: Int): Float {
-    return when(level){
-        1 -> fontSize*2f
-        2 -> fontSize*1.5f
-        3 -> fontSize*1.17f
-        4 -> fontSize*1f
-        5 -> fontSize*0.83f
-        6 -> fontSize*0.75f
-        else -> fontSize.toFloat()
-    }
 }
 @Immutable
 @UnstableApi

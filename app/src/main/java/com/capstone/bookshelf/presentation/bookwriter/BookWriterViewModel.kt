@@ -26,9 +26,11 @@ class BookWriterViewModel(
 ) : ViewModel() {
     private val md = MessageDigest.getInstance("MD5")
     private val _bookID = MutableStateFlow("")
-    val bookID: StateFlow<String> = _bookID.asStateFlow()
     private val _book = MutableStateFlow(EmptyBook())
+
+    val bookID: StateFlow<String> = _bookID.asStateFlow()
     val book: StateFlow<EmptyBook> = _book.asStateFlow()
+    
     fun onAction(action: BookWriterAction){
         when(action){
             is BookWriterAction.AddBookInfo ->{
@@ -72,6 +74,20 @@ class BookWriterViewModel(
                     if (coverImagePath != "error") {
                         imagePathRepository.saveImagePath(bookIdTemp, listOf(coverImagePath))
                     }
+                }
+            }
+
+            is BookWriterAction.AddChapter -> {
+
+            }
+            is BookWriterAction.AddImage -> {
+                action.context.contentResolver.openInputStream(action.imageUri.toUri()).use {
+//                    val bitmap = BitmapFactory.decodeStream(it)
+//                    coverImagePath = saveImageToPrivateStorage(
+//                        context = action.context,
+//                        bitmap = bitmap,
+//                        filename = "cover_${action.bookTitle}"
+//                    )
                 }
             }
         }

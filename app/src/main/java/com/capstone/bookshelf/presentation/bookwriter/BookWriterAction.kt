@@ -9,4 +9,6 @@ sealed interface BookWriterAction {
         val authorName: String,
         val coverImagePath: String
     ): BookWriterAction
+    data class AddChapter(val chapterTitle: String): BookWriterAction
+    data class AddImage(val context: Context,val imageUri: String): BookWriterAction
 }
