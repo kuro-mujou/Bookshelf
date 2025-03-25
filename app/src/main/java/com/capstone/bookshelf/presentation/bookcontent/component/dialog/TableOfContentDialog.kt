@@ -1,7 +1,9 @@
 package com.capstone.bookshelf.presentation.bookcontent.component.dialog
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -17,7 +19,6 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,7 +45,6 @@ fun AddTOCDialog(
         var expanded by remember { mutableStateOf(false) }
         val options = listOf("H1", "H2", "H3")
         var selectedHeaderSize by remember { mutableStateOf(options[0]) }
-
         Surface(
             modifier = Modifier.clip(RoundedCornerShape(15.dp))
         ){
@@ -62,14 +62,18 @@ fun AddTOCDialog(
                         Text(text = "Add new Chapter")
                     }
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded }
                 ) {
-                    TextField(
+                    OutlinedTextField(
                         value = selectedHeaderSize,
                         onValueChange = {},
                         readOnly = true,
+                        label = {
+                            Text(text = "Header Size")
+                        },
                         trailingIcon = {
                             IconButton(onClick = { expanded = !expanded }) {
                                 Icon(
@@ -78,7 +82,9 @@ fun AddTOCDialog(
                                 )
                             }
                         },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryEditable, true)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryEditable, true)
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,

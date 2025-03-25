@@ -8,21 +8,15 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,18 +25,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
+import com.capstone.bookshelf.presentation.bookwriter.component.BottomBar
 import com.capstone.bookshelf.presentation.bookwriter.component.ComponentContainer
 import com.capstone.bookshelf.presentation.bookwriter.component.Paragraph
 import com.capstone.bookshelf.presentation.bookwriter.component.ParagraphType
@@ -69,6 +64,7 @@ fun BookWriterEdit(
     val lazyListState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val density = LocalDensity.current
     val context = LocalContext.current
     val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
     val headerPattern = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
@@ -125,23 +121,7 @@ fun BookWriterEdit(
                 modifier = Modifier
                     .background(color = Color(91, 72, 0, 255))
             ) {
-                Row(
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Button 1", modifier = Modifier
-                            .padding(8.dp)
-                            .clickable { /* Do something */ })
-                    Text(
-                        "Button 2", modifier = Modifier
-                            .padding(8.dp)
-                            .clickable { /* Do something */ })
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+                BottomBar()
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -174,7 +154,7 @@ fun BookWriterEdit(
                     onSizeChange = {
                         if(isKeyboardVisible && !onAdding) {
                             scope.launch {
-                                lazyListState.animateScrollBy(it.toFloat())
+                                lazyListState.animateScrollBy(with(density){24.sp.toPx()})
                             }
                         }
                     },
@@ -232,8 +212,10 @@ fun BookWriterEdit(
                         contentList[index] = paragraph.copy(text = newText)
                     },
                     onMoveUp = {
-                        contentList.move(it, it - 1)
-                        focusRequesters.move(it, it - 1)
+                        if (it - 1 >= 1) {
+                            contentList.move(it, it - 1)
+                            focusRequesters.move(it, it - 1)
+                        }
                     },
                     onMoveDown = {
                         if (it + 1 <= contentList.size) {

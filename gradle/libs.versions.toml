@@ -1,5 +1,5 @@
 [versions]
-agp = "8.9.0"
+agp = "8.9.1"
 koinAndroid = "4.0.2"
 koinAndroidxCompose = "4.0.2"
 koinAndroidxNavigation = "4.0.2"
