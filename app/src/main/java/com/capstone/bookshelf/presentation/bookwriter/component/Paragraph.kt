@@ -15,5 +15,5 @@ enum class ParagraphType{
     SUBTITLE,
     PARAGRAPH,
     IMAGE,
-    ADD_IMAGE,
+    NONE
 }

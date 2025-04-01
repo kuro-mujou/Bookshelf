@@ -32,6 +32,9 @@ class BookRepositoryImpl(
                 bookEntity.map{it.toDataClass()}
             }
     }
+    override suspend fun getBook(bookId: String): Book? {
+        return bookDao.getBook(bookId)?.toDataClass()
+    }
     override suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean) {
         bookDao.setBookAsFavorite(bookId, isFavorite)
     }

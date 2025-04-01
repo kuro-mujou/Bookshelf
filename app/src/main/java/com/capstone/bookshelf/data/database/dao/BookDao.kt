@@ -23,6 +23,10 @@ interface BookDao {
     fun readAllBooksSortByFavorite(): Flow<List<BookEntity>>
 
     @Transaction
+    @Query("SELECT * FROM books WHERE bookId = :bookId LIMIT 1")
+    suspend fun getBook(bookId: String): BookEntity?
+
+    @Transaction
     @Query("SELECT * FROM books WHERE title = :title LIMIT 1")
     suspend fun isBookExist(title: String): BookEntity?
 

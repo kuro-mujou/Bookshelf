@@ -6,10 +6,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,7 +20,6 @@ import androidx.navigation.compose.navigation
 import com.capstone.bookshelf.presentation.SelectedBookViewModel
 import com.capstone.bookshelf.presentation.bookcontent.BookContentScreenRoot
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
-import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookdetail.BookDetailAction
 import com.capstone.bookshelf.presentation.bookdetail.BookDetailScreenRoot
@@ -34,10 +30,7 @@ import com.capstone.bookshelf.presentation.booklist.BookListViewModel
 import com.capstone.bookshelf.presentation.booklist.component.AsyncImportBookViewModel
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterCreate
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
-import com.capstone.bookshelf.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.util.DataStoreManager
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.yield
 import org.koin.androidx.compose.koinViewModel
 
 @UnstableApi
@@ -115,16 +108,12 @@ fun SetupNavGraph(
                 exitTransition = { slideOutHorizontally() },
                 popEnterTransition = { slideInHorizontally() },
             ){ nav ->
-                var isContentLoading by remember { mutableStateOf(true) }
                 val selectedBookViewModel =
                     nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
                 val selectedBook by selectedBookViewModel.selectedBook.collectAsStateWithLifecycle()
                 val colorPaletteViewModel = koinViewModel<ColorPaletteViewModel>()
                 val viewModel = koinViewModel<ContentViewModel>()
                 val dataStoreManager = DataStoreManager(LocalContext.current)
-                if(isContentLoading){
-                    LoadingAnimation()
-                }
                 BackHandler(
                     onBack = {
                         if(selectedBook?.isEditable == true){
@@ -137,25 +126,11 @@ fun SetupNavGraph(
                         }
                     }
                 )
-                LaunchedEffect(selectedBook) {
-                    selectedBook?.let {
-                        viewModel.onContentAction(dataStoreManager,ContentAction.SelectedBook(it))
-                    }
-                    colorPaletteViewModel.updateBackgroundColor(Color(dataStoreManager.backgroundColor.first()))
-                    colorPaletteViewModel.updateTextColor(Color(dataStoreManager.textColor.first()))
-                    colorPaletteViewModel.updateSelectedColorSet(dataStoreManager.selectedColorSet.first())
-                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFontSize(dataStoreManager.fontSize.first()))
-                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTextAlign(dataStoreManager.textAlign.first()))
-                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTextIndent(dataStoreManager.textIndent.first()))
-                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateLineSpacing(dataStoreManager.lineSpacing.first()))
-                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
-                    yield()
-                    isContentLoading = false
-                }
                 BookContentScreenRoot(
                     viewModel = viewModel,
                     colorPaletteViewModel = colorPaletteViewModel,
                     dataStoreManager = dataStoreManager,
+                    selectedBook = selectedBook,
                     onBackClick = {
                         selectedBookViewModel.onSelectBook(null)
                         navController.navigateUp()

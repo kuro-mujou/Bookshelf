@@ -5,8 +5,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -14,45 +16,60 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.ParagraphStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
+import com.capstone.bookshelf.presentation.bookwriter.BookWriterState
 import com.capstone.bookshelf.util.calculateHeaderSize
+import com.mohamedrejeb.richeditor.model.rememberRichTextState
+import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
+import com.mohamedrejeb.richeditor.ui.material3.RichTextEditorDefaults
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SdCardPath")
 @Composable
 fun ComponentContainer(
+    bookWriterState: BookWriterState,
     paragraph: Paragraph,
     index: Int,
     focusRequester: FocusRequester,
-    onSizeChange: () -> Unit,
-    onAdd: (Int, Int) -> Unit,
+    onSizeChange: (Int) -> Unit,
+    onAdd: (Int, Int, ParagraphType) -> Unit,
     onEditing: (String) -> Unit,
     onDelete: (Int) -> Unit,
     onMoveUp: (Int) -> Unit,
@@ -61,10 +78,7 @@ fun ComponentContainer(
     focusedItem: (Int) -> Unit
 ) {
     var text by remember(paragraph.text) { mutableStateOf(paragraph.text) }
-    val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
-    val headerPatten = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
-    val headerLevel = Regex("""<h([1-6])>.*?</h\1>""")
-    val htmlTagPattern = Regex(pattern = """<[^>]+>""")
+    val state = rememberRichTextState()
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
@@ -73,6 +87,85 @@ fun ComponentContainer(
             }
         }
     )
+    LaunchedEffect(Unit) {
+        state.toggleParagraphStyle(
+            ParagraphStyle(
+                textAlign = TextAlign.Justify,
+                textIndent = TextIndent(32.sp)
+            )
+        )
+        state.setText(paragraph.text)
+    }
+    LaunchedEffect(bookWriterState.selectedItem) {
+        if(bookWriterState.selectedItem != index)
+            state.clearSpanStyles()
+    }
+    LaunchedEffect(bookWriterState.toggleBold) {
+        if(bookWriterState.selectedItem == index) {
+            if (bookWriterState.toggleBold)
+                state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
+            else
+                state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Normal))
+        }
+    }
+    LaunchedEffect(bookWriterState.toggleItalic) {
+        if(bookWriterState.selectedItem == index) {
+            if (bookWriterState.toggleItalic)
+                state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
+            else
+                state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Normal))
+        }
+    }
+    LaunchedEffect(bookWriterState.toggleUnderline) {
+        if(bookWriterState.selectedItem == index) {
+            if (bookWriterState.toggleUnderline) {
+                state.removeSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
+                state.addSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
+            } else if(!bookWriterState.toggleStrikethrough)
+                state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.None))
+        }
+    }
+    LaunchedEffect(bookWriterState.toggleStrikethrough) {
+        if(bookWriterState.selectedItem == index) {
+            if (bookWriterState.toggleStrikethrough) {
+                state.removeSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
+                state.addSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
+            } else if(!bookWriterState.toggleUnderline)
+                state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.None))
+        }
+    }
+    LaunchedEffect(bookWriterState.toggleAlign) {
+        if(bookWriterState.selectedItem == index) {
+            when (bookWriterState.toggleAlign) {
+                1 -> {
+                    state.toggleParagraphStyle(
+                        ParagraphStyle(
+                            textAlign = TextAlign.Justify,
+                            textIndent = TextIndent(32.sp)
+                        )
+                    )
+                }
+
+                2 -> {
+                    state.toggleParagraphStyle(
+                        ParagraphStyle(
+                            textAlign = TextAlign.Start,
+                            textIndent = TextIndent(32.sp)
+                        )
+                    )
+                }
+
+                3 -> {
+                    state.toggleParagraphStyle(
+                        ParagraphStyle(
+                            textAlign = TextAlign.Center,
+                            textIndent = TextIndent.None
+                        )
+                    )
+                }
+            }
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth(),
@@ -82,7 +175,9 @@ fun ComponentContainer(
             modifier = Modifier
                 .padding(top = 4.dp, bottom = 4.dp,start = 8.dp, end = 8.dp)
                 .fillMaxWidth()
-                .background(color = Color(91, 72, 0, 255), RoundedCornerShape(15.dp))
+                .background(color = Color(91, 72, 0, 255), RoundedCornerShape(15.dp)),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             AnimatedVisibility(
                 visible = paragraph.isControllerVisible,
@@ -91,19 +186,22 @@ fun ComponentContainer(
                     ParagraphType.TITLE -> {
 
                     }
-                    ParagraphType.SUBTITLE,ParagraphType.PARAGRAPH, ParagraphType.IMAGE,ParagraphType.ADD_IMAGE -> {
+                    ParagraphType.SUBTITLE,ParagraphType.PARAGRAPH, ParagraphType.IMAGE -> {
                         TopIndicator(
                             onAddParagraph = {
-                                onAdd(index, index - 1)
+                                onVisibilityChange(index, false)
+                                onAdd(index, index - 1,ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAdd(index, index - 1)
+                                onAdd(index, index - 1,ParagraphType.IMAGE)
                             },
                             onAddSubTitle = {
-                                onAdd(index, index - 1)
+                                onVisibilityChange(index, false)
+                                onAdd(index, index - 1,ParagraphType.SUBTITLE)
                             },
                         )
                     }
+                    else -> {}
                 }
             }
             when (paragraph.type){
@@ -123,9 +221,9 @@ fun ComponentContainer(
                                 }
                             }
                             .onSizeChanged{
-                                onSizeChange()
+                                onSizeChange(index)
                             },
-                        value = htmlTagPattern.replace(text, replacement = ""),
+                        value = bookWriterState.htmlTagPattern.replace(text, replacement = ""),
                         onValueChange = {
                             text = it
                             onEditing(it)
@@ -140,11 +238,13 @@ fun ComponentContainer(
                         ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next
+                            imeAction = ImeAction.Next,
+                            capitalization = KeyboardCapitalization.Sentences
                         ),
                         keyboardActions = KeyboardActions(
                             onNext = {
-                                onAdd(index, index + 1)
+                                onVisibilityChange(index, false)
+                                onAdd(index, index + 1,ParagraphType.PARAGRAPH)
                             }
                         ),
                         textStyle = TextStyle(
@@ -170,7 +270,7 @@ fun ComponentContainer(
                                 }
                             }
                             .onSizeChanged{
-                                onSizeChange()
+                                onSizeChange(index)
                             },
                         value = text,
                         onValueChange = {
@@ -179,7 +279,8 @@ fun ComponentContainer(
                         },
                         placeholder = {
                             Text(
-                                text = "subtitle $index",
+                                modifier = Modifier.fillMaxWidth(),
+                                text = "subtitle - $index",
                                 style = TextStyle(
                                     fontSize = calculateHeaderSize(paragraph.headerLevel).sp,
                                     textAlign = TextAlign.Center,
@@ -194,6 +295,9 @@ fun ComponentContainer(
                             unfocusedContainerColor = Color.Transparent,
                             disabledContainerColor = Color.Transparent,
                         ),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Sentences
+                        ),
                         textStyle = TextStyle(
                             fontSize = calculateHeaderSize(paragraph.headerLevel!!).sp,
                             textAlign = TextAlign.Center,
@@ -201,7 +305,8 @@ fun ComponentContainer(
                     )
                 }
                 ParagraphType.PARAGRAPH -> {
-                    TextField(
+                    RichTextEditor(
+                        state = state,
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
@@ -216,68 +321,66 @@ fun ComponentContainer(
                                 }
                             }
                             .onSizeChanged{
-                                onSizeChange()
+                                onSizeChange(index)
                             },
-                        value = text,
-                        onValueChange = {
-                            text = it
-                            onEditing(it)
-                        },
-                        placeholder = {
-                            Text(
-                                text = "paragraph $index",
-                                style = TextStyle(
-                                    fontSize = 16.sp,
-                                    textIndent = TextIndent(32.sp)
-                                )
-                            )
-                        },
-                        colors = TextFieldDefaults.colors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                        ),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next
+                            imeAction = ImeAction.Next,
+                            capitalization = KeyboardCapitalization.Sentences
                         ),
                         keyboardActions = KeyboardActions(
                             onNext = {
-                                onAdd(index, index + 1)
+                                onVisibilityChange(index, false)
+                                onAdd(index, index + 1,ParagraphType.PARAGRAPH)
                             }
                         ),
-                        textStyle = TextStyle(
-                            fontSize = 16.sp,
-                            textIndent = TextIndent(32.sp)
-                        )
+                        colors = RichTextEditorDefaults.richTextEditorColors(
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            containerColor = Color.Transparent,
+                        ),
+                        placeholder = {
+                            Text(
+                                modifier = Modifier.fillMaxWidth(),
+                                text = "paragraph - $index",
+                                style = TextStyle(
+                                    textIndent = state.currentParagraphStyle.textIndent,
+                                    textAlign = state.currentParagraphStyle.textAlign
+                                )
+                            )
+                        },
                     )
                 }
                 ParagraphType.IMAGE -> {
-                    AsyncImage(
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .height(300.dp),
-                        model = text,
-                        contentDescription = null,
-                    )
-                }
-                ParagraphType.ADD_IMAGE -> {
-                    IconButton(
-                        modifier = Modifier.size(70.dp),
-                        onClick = {
-                            imagePicker.launch("image/*")
+                    if(text == "") {
+                        IconButton(
+                            modifier = Modifier.size(70.dp),
+                            onClick = {
+                                imagePicker.launch("image/*")
+                            }
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(50.dp),
+                                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_image),
+                                contentDescription = null
+                            )
                         }
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(50.dp),
-                            imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_image),
-                            contentDescription = null
+                        Text(text = "Pick Image")
+                        Spacer(modifier = Modifier.height(8.dp))
+                    } else {
+                        AsyncImage(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(15.dp)),
+                            model = text,
+                            contentDescription = null,
+                            contentScale = ContentScale.FillWidth
                         )
                     }
                 }
+                else -> {}
             }
             AnimatedVisibility(
                 visible = paragraph.isControllerVisible,
@@ -286,26 +389,30 @@ fun ComponentContainer(
                     ParagraphType.TITLE -> {
                         ChapterTitleIndicator(
                             onAddParagraph = {
-                                onAdd(index, index + 1)
+                                onVisibilityChange(index, false)
+                                onAdd(index, index + 1,ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAdd(index, index + 1)
+                                onAdd(index, index + 1,ParagraphType.IMAGE)
                             },
                             onAddSubTitle = {
-                                onAdd(index, index + 1)
+                                onVisibilityChange(index, false)
+                                onAdd(index, index + 1,ParagraphType.SUBTITLE)
                             }
                         )
                     }
-                    ParagraphType.PARAGRAPH,ParagraphType.SUBTITLE,ParagraphType.IMAGE,ParagraphType.ADD_IMAGE -> {
+                    ParagraphType.PARAGRAPH,ParagraphType.SUBTITLE,ParagraphType.IMAGE -> {
                         BottomIndicator(
                             onAddParagraph = {
-                                onAdd(index, index + 1)
+                                onVisibilityChange(index, false)
+                                onAdd(index, index + 1,ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAdd(index, index + 1)
+                                onAdd(index, index + 1,ParagraphType.IMAGE)
                             },
                             onAddSubTitle = {
-                                onAdd(index, index + 1)
+                                onVisibilityChange(index, false)
+                                onAdd(index, index + 1,ParagraphType.SUBTITLE)
                             },
                             onDelete = {
                                 onDelete(index)
@@ -318,6 +425,7 @@ fun ComponentContainer(
                             }
                         )
                     }
+                    else -> {}
                 }
             }
         }

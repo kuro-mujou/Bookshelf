@@ -2,6 +2,7 @@ package com.capstone.bookshelf.presentation.bookwriter.component
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -16,7 +17,9 @@ fun TopIndicator(
     onAddImage: () -> Unit,
     onAddSubTitle: () -> Unit,
 ){
-    Row {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+    ){
         IconButton(onClick = { onAddParagraph() }) {
             Icon(
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_paragraph),
@@ -47,7 +50,9 @@ fun BottomIndicator(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit
 ){
-    Row {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+    ) {
         IconButton(onClick = { onAddParagraph() }) {
             Icon(
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_paragraph),
@@ -93,7 +98,9 @@ fun ChapterTitleIndicator(
     onAddImage: () -> Unit,
     onAddSubTitle: () -> Unit,
 ){
-    Row {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+    ) {
         IconButton(
             onClick = {
                 onAddParagraph()

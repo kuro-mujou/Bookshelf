@@ -90,6 +90,13 @@ class ContentViewModel(
     }
     fun onContentAction(dataStoreManager : DataStoreManager, action: ContentAction) {
         when(action){
+            is ContentAction.LoadBook -> {
+                viewModelScope.launch {
+                    _state.value = _state.value.copy(
+                        book = bookRepository.getBook(bookId)
+                    )
+                }
+            }
             is ContentAction.UpdateFlagTriggerAdjustScroll -> {
                 _state.value = _state.value.copy(
                     flagTriggerAdjustScroll = action.value

@@ -72,13 +72,13 @@ class DataStoreManager(val context: Context) {
         preferences[PreferencesKeys.AUTO_SCROLL_RESUME_DELAY_TIME] ?: 2000
     }
     val backgroundColor: Flow<Int> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.BACKGROUND_COLOR] ?: Color.White.toArgb()
+        preferences[PreferencesKeys.BACKGROUND_COLOR] ?: Color(0xFFD3C3A3).toArgb()
     }
     val textColor: Flow<Int> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.TEXT_COLOR] ?: Color.Black.toArgb()
+        preferences[PreferencesKeys.TEXT_COLOR] ?: Color(0xFF3A3129).toArgb()
     }
     val selectedColorSet: Flow<Int> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.SELECTED_COLOR_SET] ?: 5
+        preferences[PreferencesKeys.SELECTED_COLOR_SET] ?: 1
     }
     val fontSize: Flow<Int> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.FONT_SIZE] ?: 20

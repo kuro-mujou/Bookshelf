@@ -12,6 +12,7 @@ espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
 composeBom = "2025.03.00"
+richeditorCompose = "1.0.0-rc10"
 roomRuntime = "2.6.1"
 slf4jAndroid = "1.7.36"
 lottieCompose = "6.6.3"
@@ -62,6 +63,8 @@ koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koinC
 
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottieCompose" }
 
+richeditor-compose = { module = "com.mohamedrejeb.richeditor:richeditor-compose", version.ref = "richeditorCompose" }
+
 slf4j-android = { module = "org.slf4j:slf4j-android", version.ref = "slf4jAndroid" }
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.19.1" }
 
@@ -87,9 +90,8 @@ androidx-media3-common-ktx = { group = "androidx.media3", name = "media3-common-
 androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3Session" }
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3Ui" }
 androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3Exoplayer" }
+
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
-
-
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

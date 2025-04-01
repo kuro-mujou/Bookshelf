@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.viewinterop.AndroidView
@@ -24,6 +25,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
+import com.capstone.bookshelf.domain.wrapper.Book
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarManager
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewModel
@@ -42,11 +44,13 @@ import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterEdit
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
+import com.capstone.bookshelf.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import org.koin.androidx.compose.koinViewModel
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -56,8 +60,10 @@ fun BookContentScreenRoot(
     viewModel: ContentViewModel,
     colorPaletteViewModel : ColorPaletteViewModel,
     dataStoreManager : DataStoreManager,
+    selectedBook : Book?,
     onBackClick: () -> Unit,
 ){
+    var isContentLoading by remember { mutableStateOf(true) }
     val drawerContainerViewModel = koinViewModel<DrawerContainerViewModel>()
     val bookWriterViewModel = koinViewModel<BookWriterViewModel>()
     val contentState by viewModel.state.collectAsStateWithLifecycle()
@@ -71,6 +77,9 @@ fun BookContentScreenRoot(
     var pagerState by remember { mutableStateOf<PagerState?>(null) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val drawerLazyColumnState = rememberLazyListState()
+    if(isContentLoading){
+        LoadingAnimation()
+    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
@@ -86,6 +95,23 @@ fun BookContentScreenRoot(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
+    }
+    LaunchedEffect(Unit) {
+        if(selectedBook == null){
+            viewModel.onContentAction(dataStoreManager,ContentAction.LoadBook)
+        } else {
+            viewModel.onContentAction(dataStoreManager,ContentAction.SelectedBook(selectedBook))
+        }
+        colorPaletteViewModel.updateBackgroundColor(Color(dataStoreManager.backgroundColor.first()))
+        colorPaletteViewModel.updateTextColor(Color(dataStoreManager.textColor.first()))
+        colorPaletteViewModel.updateSelectedColorSet(dataStoreManager.selectedColorSet.first())
+        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFontSize(dataStoreManager.fontSize.first()))
+        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTextAlign(dataStoreManager.textAlign.first()))
+        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTextIndent(dataStoreManager.textIndent.first()))
+        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateLineSpacing(dataStoreManager.lineSpacing.first()))
+        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
+        yield()
+        isContentLoading = false
     }
     DrawerScreen(
         drawerContainerState = drawerContainerState,

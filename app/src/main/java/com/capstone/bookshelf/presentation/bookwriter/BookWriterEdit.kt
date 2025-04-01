@@ -8,9 +8,12 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,30 +24,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
-import com.capstone.bookshelf.presentation.bookwriter.component.BottomBar
 import com.capstone.bookshelf.presentation.bookwriter.component.ComponentContainer
+import com.capstone.bookshelf.presentation.bookwriter.component.EditorControls
 import com.capstone.bookshelf.presentation.bookwriter.component.Paragraph
 import com.capstone.bookshelf.presentation.bookwriter.component.ParagraphType
 import com.capstone.bookshelf.util.move
-import com.capstone.bookshelf.util.rememberKeyboardAsState
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @SuppressLint("SdCardPath")
@@ -56,37 +53,30 @@ fun BookWriterEdit(
     drawerContainerState: DrawerContainerState,
     contentState: ContentState
 ){
+    val bookWriterState by bookWriterViewModel.bookWriterState.collectAsStateWithLifecycle()
     val chapterContent by contentViewModel.chapterContent
-    val isKeyboardVisible by rememberKeyboardAsState()
+    val isImeVisible = WindowInsets.isImeVisible
     val contentList = remember { mutableStateListOf<Paragraph>() }
     val focusRequesters = remember { mutableStateListOf(FocusRequester()) }
-    val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
-    val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
-    val context = LocalContext.current
-    val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
-    val headerPattern = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
-    val headerLevel = Regex("""<h([1-6])>.*?</h\1>""")
-    val htmlTagPattern = Regex(pattern = """<[^>]+>""")
-    var onAdding by remember { mutableStateOf(false) }
 
     LaunchedEffect(contentState.currentChapterIndex) {
         contentList.clear()
         contentList.addAll(
             chapterContent?.content?.map {
-                if(linkPattern.containsMatchIn(it)){
+                if(bookWriterState.linkPattern.containsMatchIn(it)){
                     Paragraph(
                         text = it,
                         type = ParagraphType.IMAGE
                     )
-                } else if(headerPattern.containsMatchIn(it)) {
-                    if (htmlTagPattern.replace(it, replacement = "").isNotEmpty()) {
+                } else if(bookWriterState.headerPattern.containsMatchIn(it)) {
+                    if (bookWriterState.htmlTagPattern.replace(it, replacement = "").isNotEmpty()) {
                         Paragraph(
                             text = it,
                             type = ParagraphType.TITLE,
-                            headerLevel = headerLevel.find(it)?.groupValues[1]?.toInt()
+                            headerLevel = bookWriterState.headerLevel.find(it)?.groupValues[1]?.toInt()
                         )
                     } else{
                         Paragraph(
@@ -106,9 +96,123 @@ fun BookWriterEdit(
         focusRequesters.clear()
         focusRequesters.addAll(List(contentList.size){FocusRequester()})
     }
-    LaunchedEffect(isKeyboardVisible) {
-        if (!isKeyboardVisible) {
+    LaunchedEffect(isImeVisible) {
+        if(!isImeVisible){
+            bookWriterViewModel.onAction(BookWriterAction.UpdateSelectedItem(-1))
             focusManager.clearFocus()
+            bookWriterViewModel.onAction(BookWriterAction.UpdateBoldState(false))
+            bookWriterViewModel.onAction(BookWriterAction.UpdateItalicState(false))
+            bookWriterViewModel.onAction(BookWriterAction.UpdateUnderlineState(false))
+            bookWriterViewModel.onAction(BookWriterAction.UpdateStrikethroughState(false))
+            bookWriterViewModel.onAction(BookWriterAction.UpdateAlignState(1))
+        }
+    }
+    LaunchedEffect(bookWriterState.selectedItem){
+        if(bookWriterState.selectedItem >= 0 && !bookWriterState.addingState){
+            lazyListState.animateScrollToItem(bookWriterState.selectedItem)
+        }
+    }
+    LaunchedEffect(bookWriterState.addingState){
+        if(bookWriterState.addingState) {
+            try {
+                if (bookWriterState.addIndex < bookWriterState.selectedItem) {
+                    if (bookWriterState.addIndex < 1) {
+                        focusRequesters.add(1, FocusRequester())
+                        contentList.add(
+                            1,
+                            when (bookWriterState.addType) {
+                                ParagraphType.IMAGE -> {
+                                    Paragraph(text = "", type = ParagraphType.IMAGE)
+                                }
+
+                                ParagraphType.SUBTITLE -> {
+                                    Paragraph(
+                                        text = "",
+                                        type = ParagraphType.SUBTITLE,
+                                        headerLevel = 4
+                                    )
+                                }
+                                else -> {
+                                    Paragraph(text = "test text", type = ParagraphType.PARAGRAPH)
+                                }
+                            }
+                        )
+                        lazyListState.animateScrollToItem(1)
+                        delay(300)
+                        if (bookWriterState.addType != ParagraphType.IMAGE) {
+                            focusRequesters[1].requestFocus()
+                        } else {
+                            focusManager.clearFocus()
+                        }
+                    } else {
+                        focusRequesters.add(bookWriterState.selectedItem, FocusRequester())
+                        contentList.add(
+                            bookWriterState.selectedItem,
+                            when (bookWriterState.addType) {
+                                ParagraphType.IMAGE -> {
+                                    Paragraph(text = "", type = ParagraphType.IMAGE)
+                                }
+
+                                ParagraphType.SUBTITLE -> {
+                                    Paragraph(
+                                        text = "",
+                                        type = ParagraphType.SUBTITLE,
+                                        headerLevel = 4
+                                    )
+                                }
+
+                                else -> {
+                                    Paragraph(text = "", type = ParagraphType.PARAGRAPH)
+                                }
+                            }
+                        )
+                        lazyListState.animateScrollToItem(bookWriterState.selectedItem)
+                        delay(300)
+                        if (bookWriterState.addType != ParagraphType.IMAGE) {
+                            focusRequesters[bookWriterState.selectedItem].requestFocus()
+                        } else {
+                            focusManager.clearFocus()
+                        }
+                    }
+                } else if (bookWriterState.addIndex > bookWriterState.selectedItem) {
+                    focusRequesters.add(bookWriterState.addIndex, FocusRequester())
+                    contentList.add(
+                        bookWriterState.addIndex,
+                        when (bookWriterState.addType) {
+                            ParagraphType.IMAGE -> {
+                                Paragraph(text = "", type = ParagraphType.IMAGE)
+                            }
+
+                            ParagraphType.SUBTITLE -> {
+                                Paragraph(text = "", type = ParagraphType.SUBTITLE, headerLevel = 4)
+                            }
+
+                            else -> {
+                                Paragraph(text = "", type = ParagraphType.PARAGRAPH)
+                            }
+                        }
+                    )
+                    lazyListState.animateScrollToItem(bookWriterState.addIndex)
+                    delay(300)
+                    if (bookWriterState.addType != ParagraphType.IMAGE) {
+                        focusRequesters[bookWriterState.addIndex].requestFocus()
+                    } else {
+                        focusManager.clearFocus()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                bookWriterViewModel.onAction(BookWriterAction.UpdateAddIndex(-1))
+                bookWriterViewModel.onAction(BookWriterAction.UpdateAddType(ParagraphType.NONE))
+                bookWriterViewModel.onAction(BookWriterAction.UpdateAddingState(false))
+            }
+        }
+    }
+    LaunchedEffect(bookWriterState.triggerScroll){
+        if(bookWriterState.triggerScroll){
+            lazyListState.animateScrollBy(with(density){24.sp.toPx()})
+            bookWriterViewModel.onAction(BookWriterAction.UpdateTriggerScroll(false))
         }
     }
     Scaffold(
@@ -121,7 +225,25 @@ fun BookWriterEdit(
                 modifier = Modifier
                     .background(color = Color(91, 72, 0, 255))
             ) {
-                BottomBar()
+                EditorControls(
+                    bookWriterState = bookWriterState,
+                    onBoldClick = {
+                        bookWriterViewModel.onAction(BookWriterAction.ToggleBold)
+                    },
+                    onItalicClick = {
+                        bookWriterViewModel.onAction(BookWriterAction.ToggleItalic)
+                    },
+                    onUnderlineClick = {
+                        bookWriterViewModel.onAction(BookWriterAction.ToggleUnderline)
+                    },
+                    onStrikethroughClick = {
+                        bookWriterViewModel.onAction(BookWriterAction.ToggleStrikethrough)
+                    },
+                    onAlignClick = {
+                        bookWriterViewModel.onAction(BookWriterAction.ToggleAlign)
+                    }
+                )
+                Spacer(modifier = Modifier.navigationBarsPadding())
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -136,7 +258,6 @@ fun BookWriterEdit(
                     interactionSource = remember { MutableInteractionSource() },
                     onClick = {
                         focusManager.clearFocus()
-                        keyboardController?.hide()
                         contentList.forEachIndexed { index, paragraph ->
                             contentList[index] = paragraph.copy(isControllerVisible = false)
                         }
@@ -148,63 +269,23 @@ fun BookWriterEdit(
                 key = { _, item -> item.id }
             ) { index, paragraph ->
                 ComponentContainer(
+                    bookWriterState = bookWriterState,
                     paragraph = paragraph,
                     index = index,
                     focusRequester = focusRequesters.getOrNull(index) ?: FocusRequester(),
-                    onSizeChange = {
-                        if(isKeyboardVisible && !onAdding) {
-                            scope.launch {
-                                lazyListState.animateScrollBy(with(density){24.sp.toPx()})
-                            }
+                    onSizeChange = { index ->
+                        if(isImeVisible && !bookWriterState.addingState && index == bookWriterState.selectedItem) {
+                            bookWriterViewModel.onAction(BookWriterAction.UpdateTriggerScroll(true))
                         }
                     },
-                    onAdd = { selectedItemIndex, newIndex ->
-                        if (newIndex < selectedItemIndex) {
-                            if (newIndex < 0) {
-                                scope.launch {
-                                    onAdding = true
-                                    focusRequesters.add(0, FocusRequester())
-                                    contentList.add(
-                                        0,
-                                        Paragraph(text = "", type = ParagraphType.PARAGRAPH)
-                                    )
-                                    lazyListState.animateScrollToItem(0)
-                                    delay(300)
-                                    focusRequesters[0].requestFocus()
-                                    onAdding = false
-                                }
-                            } else {
-                                scope.launch {
-                                    onAdding = true
-                                    focusRequesters.add(selectedItemIndex, FocusRequester())
-                                    contentList.add(
-                                        selectedItemIndex,
-                                        Paragraph(text = "", type = ParagraphType.PARAGRAPH)
-                                    )
-                                    lazyListState.animateScrollToItem(selectedItemIndex)
-                                    delay(300)
-                                    focusRequesters[selectedItemIndex].requestFocus()
-                                    onAdding = false
-                                }
-                            }
-                        } else if (newIndex > selectedItemIndex) {
-                            scope.launch {
-                                onAdding = true
-                                focusRequesters.add(newIndex, FocusRequester())
-                                contentList.add(
-                                    newIndex,
-                                    Paragraph(text = "", type = ParagraphType.PARAGRAPH)
-                                )
-                                lazyListState.animateScrollToItem(newIndex)
-                                delay(300)
-                                focusRequesters[newIndex].requestFocus()
-                                onAdding = false
-                            }
-                        }
+                    onAdd = { selectedItemIndex, newIndex, type ->
+                        bookWriterViewModel.onAction(BookWriterAction.UpdateSelectedItem(selectedItemIndex))
+                        bookWriterViewModel.onAction(BookWriterAction.UpdateAddType(type))
+                        bookWriterViewModel.onAction(BookWriterAction.UpdateAddIndex(newIndex))
+                        bookWriterViewModel.onAction(BookWriterAction.UpdateAddingState(true))
                     },
                     onDelete = {
                         focusManager.clearFocus()
-                        keyboardController?.hide()
                         contentList.removeAt(it)
                         focusRequesters.removeAt(it)
                     },
@@ -230,11 +311,7 @@ fun BookWriterEdit(
                         }
                     },
                     focusedItem = {
-                        if(!onAdding) {
-                            scope.launch {
-                                lazyListState.animateScrollToItem(it)
-                            }
-                        }
+                        bookWriterViewModel.onAction(BookWriterAction.UpdateSelectedItem(it))
                     }
                 )
             }
