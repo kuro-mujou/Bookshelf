@@ -17,6 +17,7 @@ import com.capstone.bookshelf.util.saveImageToPrivateStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -57,28 +58,30 @@ class BookWriterViewModel(
                             )
                         }
                     }
-                    val bookIdTemp = BigInteger(1, md.digest(action.bookTitle.toByteArray())).toString(16).padStart(32, '0')
+                    val bookIdTemp = BigInteger(1, md.digest((action.bookTitle + "(Draft)").toByteArray())).toString(16).padStart(32, '0')
                     val book = BookEntity(
                         bookId = bookIdTemp,
-                        title = action.bookTitle,
+                        title = action.bookTitle + "(Draft)",
                         authors = listOf(action.authorName),
                         coverImagePath = coverImagePath,
                         categories = emptyList(),
                         description = null,
                         totalChapter = 0,
                         storagePath = null,
-                        isEditable = true
+                        isEditable = true,
+                        fileType = "editable epub"
                     )
                     _book.value = EmptyBook(
-                        id = _bookID.value,
-                        title = action.bookTitle,
+                        id = bookIdTemp,
+                        title = action.bookTitle + "(Draft)",
                         authors = listOf(action.authorName),
                         coverImagePath = coverImagePath,
                         categories = emptyList(),
                         description = null,
                         totalChapter = 0,
                         storagePath = null,
-                        isEditable = true
+                        isEditable = true,
+                        fileType = "editable epub"
                     )
                     _bookID.value = bookIdTemp
                     bookRepository.insertBook(book)
@@ -102,81 +105,113 @@ class BookWriterViewModel(
                 }
             }
             is BookWriterAction.UpdateAddIndex ->{
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     addIndex = action.newAddIndex
-                )
+                ) }
             }
             is BookWriterAction.UpdateAddType -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     addType = action.newAddType
-                )
+                ) }
             }
             is BookWriterAction.UpdateAddingState -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     addingState = action.onAdding
-                )
+                ) }
             }
             is BookWriterAction.UpdateSelectedItem -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     selectedItem = action.selectedItem
-                )
+                ) }
             }
             is BookWriterAction.UpdateTriggerScroll -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     triggerScroll = action.triggerScroll
-                )
+                ) }
             }
             is BookWriterAction.ToggleBold -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
-                    toggleBold = !_bookWriterState.value.toggleBold
-                )
+                _bookWriterState.update { it.copy(
+                    toggleBold = !it.toggleBold
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleBold = !_bookWriterState.value.toggleBold
+//                )
             }
             is BookWriterAction.ToggleItalic -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
-                    toggleItalic = !_bookWriterState.value.toggleItalic
-                )
+                _bookWriterState.update { it.copy(
+                    toggleItalic = !it.toggleItalic
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleItalic = !_bookWriterState.value.toggleItalic
+//                )
             }
             is BookWriterAction.ToggleUnderline -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
-                    toggleUnderline = !_bookWriterState.value.toggleUnderline,
+                _bookWriterState.update { it.copy(
+                    toggleUnderline = !it.toggleUnderline,
                     toggleStrikethrough = false,
-                )
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleUnderline = !_bookWriterState.value.toggleUnderline,
+//                    toggleStrikethrough = false,
+//                )
             }
             is BookWriterAction.ToggleStrikethrough -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
-                    toggleStrikethrough = !_bookWriterState.value.toggleStrikethrough,
+                _bookWriterState.update { it.copy(
+                    toggleStrikethrough = !it.toggleStrikethrough,
                     toggleUnderline = false,
-                )
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleStrikethrough = !_bookWriterState.value.toggleStrikethrough,
+//                    toggleUnderline = false,
+//                )
             }
             is BookWriterAction.ToggleAlign -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
-                    toggleAlign = if(_bookWriterState.value.toggleAlign < 3) _bookWriterState.value.toggleAlign + 1 else 1
-                )
+                _bookWriterState.update { it.copy(
+                    toggleAlign = if(it.toggleAlign < 3) it.toggleAlign + 1 else 1
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleAlign = if(_bookWriterState.value.toggleAlign < 3) _bookWriterState.value.toggleAlign + 1 else 1
+//                )
             }
             is BookWriterAction.UpdateAlignState -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     toggleAlign = action.alignState
-                )
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleAlign = action.alignState
+//                )
             }
             is BookWriterAction.UpdateBoldState -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     toggleBold = action.boldState
-                )
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleBold = action.boldState
+//                )
             }
             is BookWriterAction.UpdateItalicState -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     toggleItalic = action.italicState
-                )
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleItalic = action.italicState
+//                )
             }
             is BookWriterAction.UpdateStrikethroughState -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     toggleStrikethrough = action.strikethroughState
-                )
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleStrikethrough = action.strikethroughState
+//                )
             }
             is BookWriterAction.UpdateUnderlineState -> {
-                _bookWriterState.value = _bookWriterState.value.copy(
+                _bookWriterState.update { it.copy(
                     toggleUnderline = action.underlineState
-                )
+                ) }
+//                _bookWriterState.value = _bookWriterState.value.copy(
+//                    toggleUnderline = action.underlineState
+//                )
             }
         }
     }

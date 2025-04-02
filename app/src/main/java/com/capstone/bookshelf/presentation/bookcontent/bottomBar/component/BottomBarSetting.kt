@@ -61,7 +61,7 @@ fun BottomBarSetting(
     dataStoreManager: DataStoreManager,
     tts : TextToSpeech,
     onKeepScreenOnChange: (Boolean) -> Unit,
-    onBackgroundMusicSetting: () -> Unit
+    onBackgroundMusicSetting: () -> Unit,
 ) {
     if(bottomBarState.openTTSVoiceMenu){
         VoiceMenuDialog(
@@ -203,41 +203,43 @@ fun BottomBarSetting(
                     contentDescription = "background music"
                 )
             }
-            HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
-            Row(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .clickable {
-                        bottomBarViewModel.onAction(BottomBarAction.OpenSetting(true))
-                        viewModel.loadTTSSetting(dataStoreManager, tts)
-                        bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Icon(
-                    modifier = Modifier.size(24.dp).padding(end = 8.dp),
-                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_headphones),
-                    tint = colorPaletteState.textColor,
-                    contentDescription = "background music"
-                )
-                Text(
-                    text = "Text to Speech",
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        color = colorPaletteState.textColor,
-                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+            if(contentState.book?.fileType != "cbz") {
+                HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
+                Row(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .clickable {
+                            bottomBarViewModel.onAction(BottomBarAction.OpenSetting(true))
+                            viewModel.loadTTSSetting(dataStoreManager, tts)
+                            bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Icon(
+                        modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_headphones),
+                        tint = colorPaletteState.textColor,
+                        contentDescription = "text to speech"
                     )
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    modifier = Modifier.size(30.dp),
-                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                    tint = colorPaletteState.textColor,
-                    contentDescription = "text to speech"
-                )
+                    Text(
+                        text = "Text to Speech",
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                        )
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        modifier = Modifier.size(30.dp),
+                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                        tint = colorPaletteState.textColor,
+                        contentDescription = "text to speech"
+                    )
+                }
             }
             HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
             Row(
@@ -254,7 +256,7 @@ fun BottomBarSetting(
                     modifier = Modifier.size(24.dp).padding(end = 8.dp),
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_scroll),
                     tint = colorPaletteState.textColor,
-                    contentDescription = "background music"
+                    contentDescription = "auto scroll up"
                 )
                 Text(
                     text = "Auto Scroll Up",

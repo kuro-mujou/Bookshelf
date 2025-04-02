@@ -50,7 +50,7 @@ class PDFImportWorker(
 ) : CoroutineWorker(context, workerParams) , KoinComponent {
 
     companion object {
-        const val BOOK_CACHE_PATH_KEY = "book_cache_path"
+        const val BOOK_PATH_KEY = "book_cache_path"
         const val FILE_NAME_KEY = "file_name"
     }
 
@@ -66,7 +66,7 @@ class PDFImportWorker(
             val notificationId = 1234
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             try {
-                val pdfPath = inputData.getString(BOOK_CACHE_PATH_KEY) ?: return@withContext Result.failure()
+                val pdfPath = inputData.getString(BOOK_PATH_KEY) ?: return@withContext Result.failure()
                 val fileName = inputData.getString(FILE_NAME_KEY) ?: return@withContext Result.failure()
                 val initialNotification = createNotificationBuilder(context,fileName).build()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -143,12 +143,12 @@ class PDFImportWorker(
                     ).use { document ->
                         val info: PDDocumentInformation = document.documentInformation
                         bookTitle = info.title?: fileName.substringBeforeLast(".")
-                        val isAlreadyImported = bookRepository.isBookExist(bookTitle!!)
+                        val isAlreadyImported = bookRepository.isBookExist(bookTitle)
                         if (isAlreadyImported) {
                             sendCompletionNotification(context, notificationManager, isSuccess = false, specialMessage = "Book already imported")
                             return Result.failure()
                         }
-                        bookID = BigInteger(1,md.digest(bookTitle!!.toByteArray())).toString(16).padStart(32, '0')
+                        bookID = BigInteger(1,md.digest(bookTitle.toByteArray())).toString(16).padStart(32, '0')
                         PdfRenderer(fd).use { renderer ->
                             val page = renderer.openPage(0)
                             coverImage = createBitmap(page.width, page.height)
@@ -201,14 +201,15 @@ class PDFImportWorker(
                         )
                         val bookEntity = BookEntity(
                             bookId = bookID,
-                            title = bookTitle!!,
+                            title = bookTitle,
                             coverImagePath = coverImagePath,
                             authors = authors,
                             categories = emptyList(),
                             description = null,
                             totalChapter = tocList.size,
                             storagePath = pdfUriString,
-                            isEditable = false
+                            isEditable = false,
+                            fileType = "pdf"
                         )
                         bookRepository.insertBook(bookEntity)
                         imagePathRepository.saveImagePath(bookID, listOf(coverImagePath))

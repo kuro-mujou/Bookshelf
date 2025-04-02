@@ -59,6 +59,7 @@ import com.capstone.bookshelf.presentation.bookcontent.content.content_component
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ParagraphContent
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ParagraphText
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
+import com.capstone.bookshelf.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -165,6 +166,9 @@ fun ContentScreen(
             var isAnimationRunning by remember { mutableStateOf(false) }
             var animationJob by remember { mutableStateOf<Job?>(null) }
             val density = LocalDensity.current
+            if(data == null && contentState.currentChapterIndex == page){
+                LoadingAnimation()
+            }
             LaunchedEffect(Unit) {
                 snapshotFlow {
                     Pair(
@@ -181,6 +185,7 @@ fun ContentScreen(
                     }
                 }
             }
+
             LaunchedEffect(triggerLoadChapter) {
                 if (triggerLoadChapter && data == null) {
                     viewModel.getChapter((page))

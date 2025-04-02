@@ -117,7 +117,7 @@ class BookImportWorker(
             saveImageToPrivateStorage(
                 context = context,
                 bitmap = bitmap,
-                filename = "cover_${book.title}"
+                filename = "cover_${bookID}"
             )
         } else {
             "error"
@@ -125,14 +125,15 @@ class BookImportWorker(
         imagePathRepository.saveImagePath(bookID, listOf(coverImagePath))
         val bookEntity = BookEntity(
             bookId = bookID,
-            title = book.title,
+            title = fileName,
             coverImagePath = coverImagePath,
             authors = normalizeAuthorName(book.metadata.authors),
             categories = book.metadata.types,
             description = null,
             totalChapter = totalChapters,
             storagePath = cacheFilePath,
-            isEditable = false
+            isEditable = false,
+            fileType = "epub"
         )
         return bookRepository.insertBook(bookEntity)
     }

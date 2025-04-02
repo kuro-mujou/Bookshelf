@@ -42,7 +42,7 @@ object PreferencesKeys {
 class DataStoreManager(val context: Context) {
     private val dataStore = context.dataStore
     val keepScreenOn: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.KEEP_SCREEN_ON] ?: false
+        preferences[PreferencesKeys.KEEP_SCREEN_ON] == true
     }
     val ttsSpeed: Flow<Float> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.TTS_SPEED] ?: 1f
@@ -66,7 +66,7 @@ class DataStoreManager(val context: Context) {
         preferences[PreferencesKeys.DELAY_TIME_AT_END] ?: 3000
     }
     val autoScrollResumeMode: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.AUTO_SCROLL_RESUME_MODE] ?: false
+        preferences[PreferencesKeys.AUTO_SCROLL_RESUME_MODE] == true
     }
     val autoScrollResumeDelayTime: Flow<Int> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.AUTO_SCROLL_RESUME_DELAY_TIME] ?: 2000
@@ -78,16 +78,16 @@ class DataStoreManager(val context: Context) {
         preferences[PreferencesKeys.TEXT_COLOR] ?: Color(0xFF3A3129).toArgb()
     }
     val selectedColorSet: Flow<Int> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.SELECTED_COLOR_SET] ?: 1
+        preferences[PreferencesKeys.SELECTED_COLOR_SET] ?: 0
     }
     val fontSize: Flow<Int> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.FONT_SIZE] ?: 20
     }
     val textAlign: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.TEXT_ALIGN] ?: true
+        preferences[PreferencesKeys.TEXT_ALIGN] != false
     }
     val textIndent: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.TEXT_INDENT] ?: true
+        preferences[PreferencesKeys.TEXT_INDENT] != false
     }
     val lineSpacing: Flow<Int> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.LINE_SPACING] ?: 14
@@ -96,10 +96,10 @@ class DataStoreManager(val context: Context) {
         preferences[PreferencesKeys.FONT_FAMILY] ?: 0
     }
     val isSortedByFavorite: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.IS_SORTED_BY_FAVORITE] ?: true
+        preferences[PreferencesKeys.IS_SORTED_BY_FAVORITE] != false
     }
     val enableBackgroundMusic: Flow<Boolean> = dataStore.data.map { preferences ->
-        preferences[PreferencesKeys.ENABLE_BACKGROUND_MUSIC] ?: false
+        preferences[PreferencesKeys.ENABLE_BACKGROUND_MUSIC] == true
     }
     val playerVolume: Flow<Float> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.PLAYER_VOLUME] ?: 1f

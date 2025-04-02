@@ -47,7 +47,7 @@ fun BottomBarDefault(
     onThemeIconClick: () -> Unit,
     onTTSIconClick: () -> Unit,
     onAutoScrollIconClick: () -> Unit,
-    onSettingIconClick: () -> Unit,
+    onSettingIconClick: () -> Unit
 ){
     Column(
         modifier = Modifier
@@ -106,20 +106,21 @@ fun BottomBarDefault(
                     contentDescription = "theme"
                 )
             }
-            IconButton(
-                modifier = Modifier.size(50.dp),
-                onClick = {
-                    onTTSIconClick()
+            if(contentState.book?.fileType != "cbz") {
+                IconButton(
+                    modifier = Modifier.size(50.dp),
+                    onClick = {
+                        onTTSIconClick()
+                    }
+                ) {
+                    Icon(
+                        modifier = Modifier.size(30.dp),
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_headphones),
+                        tint = colorPaletteState.textColor,
+                        contentDescription = "start tts"
+                    )
                 }
-            ) {
-                Icon(
-                    modifier = Modifier.size(30.dp),
-                    imageVector = ImageVector.vectorResource(R.drawable.ic_headphones),
-                    tint = colorPaletteState.textColor,
-                    contentDescription = "start tts"
-                )
             }
-
             IconButton(
                 modifier = Modifier.size(50.dp),
                 onClick = {

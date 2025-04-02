@@ -20,5 +20,6 @@ data class BookEntity(
     val currentParagraph: Int = 0,
     val isFavorite: Boolean = false,
     val storagePath: String?,
-    val isEditable: Boolean
+    val isEditable: Boolean,
+    val fileType: String
 )

@@ -55,19 +55,15 @@ class BookListViewModel(
     fun onAction(action: BookListAction) {
         when (action) {
             is BookListAction.OnBookClick -> {
-                _state.update {
-                    it.copy(
-                        selectedBook = action.book
-                    )
-                }
+                _state.update { it.copy(
+                    selectedBook = action.book
+                ) }
             }
             is BookListAction.OnBookLongClick -> {
-                _state.update {
-                    it.copy(
-                        selectedBook = action.book,
-                        isOpenBottomSheet = action.isOpenBottomSheet
-                    )
-                }
+                _state.update { it.copy(
+                    selectedBook = action.book,
+                    isOpenBottomSheet = action.isOpenBottomSheet
+                ) }
             }
             is BookListAction.OnBookBookmarkClick -> {
                 viewModelScope.launch {
@@ -78,54 +74,42 @@ class BookListViewModel(
                 viewModelScope.launch {
                     bookRepository.deleteBooks(listOf(action.book))
                     processDeleteImages(listOf(action.book.id))
-                    _state.update {
-                        it.copy(
-                            isOpenBottomSheet = false
-                        )
-                    }
+                    _state.update { it.copy(
+                        isOpenBottomSheet = false
+                    ) }
                 }
             }
             is BookListAction.OnBookListBookmarkClick -> {
                 viewModelScope.launch {
-                    _state.update {
-                        it.copy(
-                            isSortedByFavorite = action.isSortListByFavorite
-                        )
-                    }
+                    _state.update { it.copy(
+                        isSortedByFavorite = action.isSortListByFavorite
+                    ) }
                     dataStoreManager.setSortByFavorite(action.isSortListByFavorite)
                 }
             }
             is BookListAction.OnViewBookDetailClick -> {
-                _state.update {
-                    it.copy(
-                        isOpenBottomSheet = false,
-                        selectedBook = action.book
-                    )
-                }
+                _state.update { it.copy(
+                    isOpenBottomSheet = false,
+                    selectedBook = action.book
+                ) }
             }
 
             is BookListAction.OnBookCheckBoxClick -> {
                 if(action.checked){
-                    _state.update {
-                        it.copy(
-                            selectedBookList = _state.value.selectedBookList + action.book
-                        )
-                    }
+                    _state.update { it.copy(
+                        selectedBookList = _state.value.selectedBookList + action.book
+                    ) }
                 }else{
-                    _state.update {
-                        it.copy(
-                            selectedBookList = _state.value.selectedBookList - action.book
-                        )
-                    }
+                    _state.update { it.copy(
+                        selectedBookList = _state.value.selectedBookList - action.book
+                    ) }
                 }
             }
 
             is BookListAction.OnDeletingBooks -> {
-                _state.update {
-                    it.copy(
-                        isOnDeleteBooks = action.deleteState
-                    )
-                }
+                _state.update { it.copy(
+                    isOnDeleteBooks = action.deleteState
+                ) }
             }
 
             is BookListAction.OnConfirmDeleteBooks -> {
@@ -133,12 +117,10 @@ class BookListViewModel(
                     bookRepository.deleteBooks(_state.value.selectedBookList)
                     yield()
                     processDeleteImages(_state.value.selectedBookList.map { it.id })
-                    _state.update {
-                        it.copy(
-                            selectedBookList = emptyList(),
-                            isOnDeleteBooks = false
-                        )
-                    }
+                    _state.update { it.copy(
+                        selectedBookList = emptyList(),
+                        isOnDeleteBooks = false
+                    ) }
                 }
             }
 
@@ -163,11 +145,9 @@ class BookListViewModel(
 
     private fun observeBookSetting(){
         viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    isSortedByFavorite = dataStoreManager.isSortedByFavorite.first()
-                )
-            }
+            _state.update { it.copy(
+                isSortedByFavorite = dataStoreManager.isSortedByFavorite.first()
+            ) }
         }
     }
 }

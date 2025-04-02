@@ -37,23 +37,35 @@ class DrawerContainerViewModel(
     fun onAction(action: DrawerContainerAction) {
         when (action) {
             is DrawerContainerAction.UpdateDrawerState -> {
-                _state.value = _state.value.copy(
+                _state.update { it.copy(
                     drawerState = action.drawerState
-                )
+                ) }
+//
+//                _state.value = _state.value.copy(
+//                    drawerState = action.drawerState
+//                )
             }
 
             is DrawerContainerAction.UpdateCurrentTOC -> {
                 val tocList = _state.value.tableOfContents
                 if (action.toc in tocList.indices) {
-                    _state.value = _state.value.copy(
+                    _state.update { it.copy(
                         currentTOC = tocList[action.toc]
-                    )
+                    ) }
+//
+//                    _state.value = _state.value.copy(
+//                        currentTOC = tocList[action.toc]
+//                    )
                 } else {
                     viewModelScope.launch {
                         val currentTOC = tableOfContentRepository.getTableOfContent(bookId, action.toc)
-                        _state.value = _state.value.copy(
+                        _state.update { it.copy(
                             currentTOC = currentTOC
-                        )
+                        ) }
+//
+//                        _state.value = _state.value.copy(
+//                            currentTOC = currentTOC
+//                        )
                     }
                 }
             }

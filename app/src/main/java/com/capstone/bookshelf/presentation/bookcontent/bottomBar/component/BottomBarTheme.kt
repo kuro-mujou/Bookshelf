@@ -248,172 +248,186 @@ fun BottomBarTheme(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Row (
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ){
-            Text(
-                modifier = Modifier.padding(start = 8.dp).width(120.dp),
-                text = "Font Size",
-                style = TextStyle(
-                    color = colorPaletteState.textColor,
-                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                )
-            )
-            Slider(
-                modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
-                value = contentState.fontSize.toFloat(),
-                onValueChange = { value ->
-                    viewModel.onContentAction(dataStore,ContentAction.UpdateFontSize(value.roundToInt()))
-                },
-                onValueChangeFinished = {
-                    scope.launch {
-                        dataStore.setFontSize(contentState.fontSize)
-                    }
-                },
-                colors = SliderDefaults.colors(
-                    activeTrackColor = colorPaletteState.textColor,
-                    activeTickColor = colorPaletteState.containerColor,
-                    inactiveTickColor = colorPaletteState.containerColor.copy(alpha = 0.5f),
-                    inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f),
-                ),
-                valueRange = 12f..48f,
-                thumb = {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .background(
-                                color = colorPaletteState.textColor,
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ){
-                        Text(
-                            text = "${contentState.fontSize}",
-                            style = TextStyle(
-                                color = colorPaletteState.containerColor,
-                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                            )
-                        )
-                    }
-                },
-                steps = 8
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row (
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ){
-            Text(
-                modifier = Modifier.padding(start = 8.dp).width(120.dp),
-                text = "Line Spacing",
-                style = TextStyle(
-                    color = colorPaletteState.textColor,
-                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                )
-            )
-            Slider(
-                modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
-                value = contentState.lineSpacing.toFloat(),
-                onValueChange = { value ->
-                    viewModel.onContentAction(dataStore,ContentAction.UpdateLineSpacing(value.roundToInt()))
-                },
-                onValueChangeFinished = {
-                    scope.launch {
-                        dataStore.setLineSpacing(contentState.lineSpacing)
-                    }
-                },
-                colors = SliderDefaults.colors(
-                    activeTrackColor = colorPaletteState.textColor,
-                    activeTickColor = colorPaletteState.containerColor,
-                    inactiveTickColor = colorPaletteState.containerColor.copy(alpha = 0.5f),
-                    inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f),
-                ),
-                valueRange = 4f..24f,
-                thumb = {
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .background(
-                                color = colorPaletteState.textColor,
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ){
-                        Text(
-                            text = "${contentState.lineSpacing}",
-                            style = TextStyle(
-                                color = colorPaletteState.containerColor,
-                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                            )
-                        )
-                    }
-                },
-                steps = 9
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .padding(start = 8.dp,end = 4.dp)
-                    .weight(1f)
-                    .height(40.dp)
-                    .border(width = 1.dp, color = colorPaletteState.textColor)
-                    .background(color = colorPaletteState.containerColor)
-                    .clickable(
-                        onClick = {
-                            viewModel.onContentAction(dataStore,ContentAction.UpdateTextAlign(!contentState.textAlign))
-                            scope.launch {
-                                dataStore.setTextAlign(!contentState.textAlign)
-                            }
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ){
-                val displayState = if(contentState.textAlign) "Justify" else "Left"
+        if(contentState.book?.fileType != "cbz") {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = "Align: $displayState",
+                    modifier = Modifier.padding(start = 8.dp).width(120.dp),
+                    text = "Font Size",
                     style = TextStyle(
                         color = colorPaletteState.textColor,
                         fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
+                )
+                Slider(
+                    modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
+                    value = contentState.fontSize.toFloat(),
+                    onValueChange = { value ->
+                        viewModel.onContentAction(
+                            dataStore,
+                            ContentAction.UpdateFontSize(value.roundToInt())
+                        )
+                    },
+                    onValueChangeFinished = {
+                        scope.launch {
+                            dataStore.setFontSize(contentState.fontSize)
+                        }
+                    },
+                    colors = SliderDefaults.colors(
+                        activeTrackColor = colorPaletteState.textColor,
+                        activeTickColor = colorPaletteState.containerColor,
+                        inactiveTickColor = colorPaletteState.containerColor.copy(alpha = 0.5f),
+                        inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f),
+                    ),
+                    valueRange = 12f..48f,
+                    thumb = {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    color = colorPaletteState.textColor,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${contentState.fontSize}",
+                                style = TextStyle(
+                                    color = colorPaletteState.containerColor,
+                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                )
+                            )
+                        }
+                    },
+                    steps = 8
                 )
             }
-            Box(
-                modifier = Modifier
-                    .padding(start = 4.dp,end = 8.dp)
-                    .weight(1f)
-                    .height(40.dp)
-                    .border(width = 1.dp, color = colorPaletteState.textColor)
-                    .background(color = colorPaletteState.containerColor)
-                    .clickable(
-                        onClick = {
-                            viewModel.onContentAction(dataStore,ContentAction.UpdateTextIndent(!contentState.textIndent))
-                            scope.launch {
-                                dataStore.setTextIndent(!contentState.textIndent)
-                            }
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ){
-                val displayState = if(contentState.textIndent) "Indent" else "No Indent"
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = displayState,
+                    modifier = Modifier.padding(start = 8.dp).width(120.dp),
+                    text = "Line Spacing",
                     style = TextStyle(
                         color = colorPaletteState.textColor,
                         fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
                 )
+                Slider(
+                    modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
+                    value = contentState.lineSpacing.toFloat(),
+                    onValueChange = { value ->
+                        viewModel.onContentAction(
+                            dataStore,
+                            ContentAction.UpdateLineSpacing(value.roundToInt())
+                        )
+                    },
+                    onValueChangeFinished = {
+                        scope.launch {
+                            dataStore.setLineSpacing(contentState.lineSpacing)
+                        }
+                    },
+                    colors = SliderDefaults.colors(
+                        activeTrackColor = colorPaletteState.textColor,
+                        activeTickColor = colorPaletteState.containerColor,
+                        inactiveTickColor = colorPaletteState.containerColor.copy(alpha = 0.5f),
+                        inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f),
+                    ),
+                    valueRange = 4f..24f,
+                    thumb = {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    color = colorPaletteState.textColor,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${contentState.lineSpacing}",
+                                style = TextStyle(
+                                    color = colorPaletteState.containerColor,
+                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                )
+                            )
+                        }
+                    },
+                    steps = 9
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 4.dp)
+                        .weight(1f)
+                        .height(40.dp)
+                        .border(width = 1.dp, color = colorPaletteState.textColor)
+                        .background(color = colorPaletteState.containerColor)
+                        .clickable(
+                            onClick = {
+                                viewModel.onContentAction(
+                                    dataStore,
+                                    ContentAction.UpdateTextAlign(!contentState.textAlign)
+                                )
+                                scope.launch {
+                                    dataStore.setTextAlign(!contentState.textAlign)
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val displayState = if (contentState.textAlign) "Justify" else "Left"
+                    Text(
+                        text = "Align: $displayState",
+                        style = TextStyle(
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                        )
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .padding(start = 4.dp, end = 8.dp)
+                        .weight(1f)
+                        .height(40.dp)
+                        .border(width = 1.dp, color = colorPaletteState.textColor)
+                        .background(color = colorPaletteState.containerColor)
+                        .clickable(
+                            onClick = {
+                                viewModel.onContentAction(
+                                    dataStore,
+                                    ContentAction.UpdateTextIndent(!contentState.textIndent)
+                                )
+                                scope.launch {
+                                    dataStore.setTextIndent(!contentState.textIndent)
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val displayState = if (contentState.textIndent) "Indent" else "No Indent"
+                    Text(
+                        text = displayState,
+                        style = TextStyle(
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                        )
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(4.dp))

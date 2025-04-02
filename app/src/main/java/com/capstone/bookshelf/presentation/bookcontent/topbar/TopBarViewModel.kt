@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 class TopBarViewModel : ViewModel() {
 
@@ -19,9 +20,12 @@ class TopBarViewModel : ViewModel() {
     fun onAction(action: TopBarAction) {
         when(action){
             is TopBarAction.UpdateVisibility -> {
-                _state.value = _state.value.copy(
+                _state.update { it.copy(
                     visibility = action.visibility
-                )
+                ) }
+//                _state.value = _state.value.copy(
+//                    visibility = action.visibility
+//                )
             }
         }
     }

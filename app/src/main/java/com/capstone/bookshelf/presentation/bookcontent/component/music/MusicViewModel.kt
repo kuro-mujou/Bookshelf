@@ -58,30 +58,26 @@ class MusicViewModel(
             }
             is MusicListAction.OnDelete -> {
                 viewModelScope.launch {
-                    _state.update {
-                        it.copy(
-                            musicList = _state.value.musicList - event.musicItem
-                        )
-                    }
+                    _state.update { it.copy(
+                        musicList = _state.value.musicList - event.musicItem
+                    ) }
                     processDeleteMusic(event.musicItem)
                 }
             }
             is MusicListAction.OnVolumeChange -> {
                 viewModelScope.launch {
-                    _state.update {
-                        it.copy(
-                            playerVolume = event.volume
-                        )
-                    }
+                    _state.update { it.copy(
+                        playerVolume = event.volume
+                    ) }
                 }
             }
         }
     }
     fun updateState(volume: Float){
         viewModelScope.launch {
-            _state.value.copy(
+            _state.update { it.copy(
                 playerVolume = volume
-            )
+            ) }
         }
     }
     private fun saveMusicToPrivateStorage(context: Context, uri: Uri, fileName: String): String {

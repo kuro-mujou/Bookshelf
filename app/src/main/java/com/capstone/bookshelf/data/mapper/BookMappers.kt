@@ -17,7 +17,8 @@ fun Book.toEntity(): BookEntity {
         currentParagraph = currentParagraph,
         isFavorite = isFavorite,
         storagePath = storagePath,
-        isEditable = isEditable
+        isEditable = isEditable,
+        fileType = fileType
     )
 }
 
@@ -34,7 +35,8 @@ fun BookEntity.toDataClass(): Book {
         currentParagraph = currentParagraph,
         isFavorite = isFavorite,
         storagePath = storagePath,
-        isEditable = isEditable
+        isEditable = isEditable,
+        fileType = fileType
     )
 }
 
@@ -51,6 +53,7 @@ fun EmptyBook.toDataClass(): Book {
         currentParagraph = currentParagraph,
         isFavorite = isFavorite,
         storagePath = storagePath,
-        isEditable = isEditable ?: false
+        isEditable = isEditable == true,
+        fileType = fileType ?: ""
     )
 }

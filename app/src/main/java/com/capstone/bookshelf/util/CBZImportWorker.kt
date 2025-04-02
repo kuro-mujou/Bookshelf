@@ -52,8 +52,9 @@ class CBZImportWorker(
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             try {
                 val cbzPath = inputData.getString(BOOK_CACHE_PATH_KEY) ?: return@withContext Result.failure()
-                val fileName = inputData.getString(FILE_NAME_KEY) ?: return@withContext Result.failure()
-                val isAlreadyImported = bookRepository.isBookExist(fileName.substringBeforeLast("."))
+                var fileName = inputData.getString(FILE_NAME_KEY)  ?: return@withContext Result.failure()
+                fileName  = fileName.substringBeforeLast(".")
+                val isAlreadyImported = bookRepository.isBookExist(fileName)
                 if (isAlreadyImported) {
                     sendCompletionNotification(context, notificationManager, isSuccess = false, specialMessage = "Book already imported")
                     return@withContext Result.failure()
@@ -200,7 +201,8 @@ class CBZImportWorker(
             description = null,
             totalChapter = totalChapters,
             storagePath = cacheFilePath,
-            isEditable = false
+            isEditable = false,
+            fileType = "cbz"
         )
         return bookRepository.insertBook(bookEntity)
     }

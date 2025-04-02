@@ -12,7 +12,8 @@ data class Book(
     val currentParagraph: Int = 0,
     val isFavorite: Boolean = false,
     val storagePath: String?,
-    val isEditable: Boolean
+    val isEditable: Boolean,
+    val fileType: String
 )
 
 data class EmptyBook(
@@ -27,5 +28,6 @@ data class EmptyBook(
     val currentParagraph: Int = 0,
     val isFavorite: Boolean = false,
     val storagePath: String? = "",
-    val isEditable: Boolean? = false
+    val isEditable: Boolean? = false,
+    val fileType: String? = ""
 )

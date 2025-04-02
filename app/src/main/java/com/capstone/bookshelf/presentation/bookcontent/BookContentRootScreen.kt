@@ -32,6 +32,7 @@ import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewMo
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollAction
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
+import com.capstone.bookshelf.presentation.bookcontent.component.fab.CustomFab
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentScreen
@@ -231,6 +232,17 @@ fun BookContentScreenRoot(
                 )
             }
             Scaffold(
+                floatingActionButton = {
+                    if(contentState.book?.fileType == "cbz") {
+                        CustomFab(
+                            colorPaletteState = colorPaletteState,
+                            onFabClick = {
+                                topBarViewModel.onAction(TopBarAction.UpdateVisibility(!topBarState.visibility))
+                                bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(!bottomBarState.visibility))
+                            }
+                        )
+                    }
+                },
                 topBar = {
                     TopBar(
                         hazeState = hazeState,
