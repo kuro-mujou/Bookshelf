@@ -200,6 +200,8 @@ class CBZImportWorker(
             categories = emptyList(),
             description = null,
             totalChapter = totalChapters,
+            currentChapter = 0,
+            currentParagraph = 0,
             storagePath = cacheFilePath,
             isEditable = false,
             fileType = "cbz"

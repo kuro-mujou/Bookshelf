@@ -28,7 +28,7 @@ fun SaturationRhombus(
 ) {
     BoxWithConstraints(modifier) {
         val density = LocalDensity.current.density
-        val length = maxWidth.value * density
+        val length = this.maxWidth.value * density
         val colorPoints: MutableList<ColorPoint> = remember {
             getPointsInRhombus(length)
         }
@@ -41,7 +41,7 @@ fun SaturationRhombus(
         }
         var isTouched by remember { mutableStateOf(false) }
         val canvasModifier = Modifier
-            .size(maxWidth)
+            .size(this.maxWidth)
             .pointerMotionEvents(
                 onDown = {
                     val position = it.position

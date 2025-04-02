@@ -207,6 +207,8 @@ class PDFImportWorker(
                             categories = emptyList(),
                             description = null,
                             totalChapter = tocList.size,
+                            currentChapter = 0,
+                            currentParagraph = 0,
                             storagePath = pdfUriString,
                             isEditable = false,
                             fileType = "pdf"

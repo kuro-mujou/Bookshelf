@@ -36,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,7 +75,6 @@ fun VoiceMenuDialog(
     var languageMenuExpanded by remember { mutableStateOf(false) }
     var voiceMenuExpanded by remember { mutableStateOf(false) }
     val filteredVoices = voices?.filter { it.locale == contentState.currentLanguage }
-    val scope = rememberCoroutineScope()
     Dialog(
         onDismissRequest = {
             if(contentState.currentVoice == null){
@@ -185,9 +183,9 @@ fun VoiceMenuDialog(
                                         )
                                     },
                                     onClick = {
-                                        viewModel.onContentAction(dataStoreManager, ContentAction.UpdateTTSLanguage(locale))
+                                        viewModel.onContentAction(ContentAction.UpdateTTSLanguage(locale))
                                         languageMenuExpanded = false
-                                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSVoice(null))
+                                        viewModel.onContentAction(ContentAction.UpdateTTSVoice(null))
                                     },
                                     colors = MenuItemColors(
                                         textColor = colorPaletteState.textColor,
@@ -281,7 +279,7 @@ fun VoiceMenuDialog(
                                         }
                                     },
                                     onClick = {
-                                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSVoice(voice))
+                                        viewModel.onContentAction(ContentAction.UpdateTTSVoice(voice))
                                         voiceMenuExpanded = false
                                     },
                                 )
@@ -317,7 +315,7 @@ fun VoiceMenuDialog(
                         speedSliderValue = (value * 100).roundToInt() / 100f
                     },
                     onValueChangeFinished = {
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSSpeed(speedSliderValue))
+                        viewModel.onContentAction(ContentAction.UpdateTTSSpeed(speedSliderValue))
                     },
                     colors = SliderDefaults.colors(
                         activeTrackColor = colorPaletteState.textColor,
@@ -362,7 +360,7 @@ fun VoiceMenuDialog(
                         pitchSliderValue = (value * 100).roundToInt() / 100f
                     },
                     onValueChangeFinished = {
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSPitch(pitchSliderValue))
+                        viewModel.onContentAction(ContentAction.UpdateTTSPitch(pitchSliderValue))
                     },
                     colors = SliderDefaults.colors(
                         activeTrackColor = colorPaletteState.textColor,

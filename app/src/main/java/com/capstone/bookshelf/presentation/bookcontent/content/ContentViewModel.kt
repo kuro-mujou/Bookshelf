@@ -73,7 +73,7 @@ class ContentViewModel(
                             .setUri(media3Item.uri)
                             .setMediaMetadata(
                                 MediaMetadata.Builder()
-                                    .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
+                                    .setArtworkUri(_state.value.book?.coverImagePath?.toUri())
                                     .setTitle(_state.value.book?.title)
                                     .setArtist(_state.value.chapterHeader)
                                     .build()
@@ -82,9 +82,10 @@ class ContentViewModel(
                     })
                     mediaController?.apply {
                         setMediaItems(mediaItemList)
-                        prepare()
-                        if(_state.value.enableBackgroundMusic)
+                        if(_state.value.enableBackgroundMusic) {
+                            prepare()
                             play()
+                        }
                     }
                 }
         }
@@ -426,16 +427,14 @@ class ContentViewModel(
                                     .build()
                                 mediaItemList.add(mediaItem)
                             }
-                        } else {
-                            mediaItemList.add(silentMediaItem)
-                        }
-                        mediaController?.apply {
-                            if(_state.value.isSpeaking) {
-                                volume = 0.3f
+                            mediaController?.apply {
+                                if(_state.value.isSpeaking) {
+                                    volume = 0.3f
+                                }
+                                setMediaItems(mediaItemList,true)
+                                prepare()
+                                play()
                             }
-                            setMediaItems(mediaItemList,true)
-                            prepare()
-                            play()
                         }
                     } else {
                         if(_state.value.isSpeaking) {
@@ -560,7 +559,6 @@ class ContentViewModel(
     fun initialize(
         context: Context,
         textMeasurer: TextMeasurer,
-        dataStoreManager: DataStoreManager,
         enableBackgroundMusic: Boolean
     ) {
         if (mediaController != null) {

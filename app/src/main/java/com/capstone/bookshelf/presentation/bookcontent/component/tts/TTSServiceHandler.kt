@@ -193,7 +193,7 @@ class TTSServiceHandler (
         }
         startSpeakCurrentParagraph()
     }
-    fun stopReading(){
+    fun stopReading() {
         if(!enableBackgroundMusic){
             player?.stop()
         } else {

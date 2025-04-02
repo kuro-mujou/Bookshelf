@@ -168,7 +168,7 @@ fun BottomBarManager(
             dataStoreManager = dataStoreManager,
             tts = contentState.tts!!,
             onKeepScreenOnChange = {
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(it))
+                viewModel.onContentAction(ContentAction.UpdateKeepScreenOn(it))
                 onSwitchChange(it)
             },
             onBackgroundMusicSetting = {
@@ -201,9 +201,9 @@ fun BottomBarManager(
             onPlayPauseIconClick = {
                 if(contentState.isSpeaking){
                     if(!contentState.isPaused){
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsPaused(true))
+                        viewModel.onContentAction(ContentAction.UpdateIsPaused(true))
                     } else {
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsPaused(false))
+                        viewModel.onContentAction(ContentAction.UpdateIsPaused(false))
                     }
                 }
             },
@@ -217,10 +217,8 @@ fun BottomBarManager(
                 openBackgroundMusicMenu = true
             },
             onStopIconClick = {
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsSpeaking(false))
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsPaused(false))
-                bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
-                topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
+                viewModel.onContentAction(ContentAction.UpdateIsSpeaking(false))
+                viewModel.onContentAction(ContentAction.UpdateIsPaused(false))
                 viewModel.onTtsUiEvent(TtsUiEvent.Stop)
             },
             onTTSSettingIconClick = {

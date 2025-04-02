@@ -243,7 +243,7 @@ fun BottomBarTheme(
                         scope.launch {
                             dataStore.setFontFamily(index)
                         }
-                        viewModel.onContentAction(dataStore,ContentAction.UpdateSelectedFontFamilyIndex(index))
+                        viewModel.onContentAction(ContentAction.UpdateSelectedFontFamilyIndex(index))
                     }
                 )
             }
@@ -267,10 +267,7 @@ fun BottomBarTheme(
                     modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
                     value = contentState.fontSize.toFloat(),
                     onValueChange = { value ->
-                        viewModel.onContentAction(
-                            dataStore,
-                            ContentAction.UpdateFontSize(value.roundToInt())
-                        )
+                        viewModel.onContentAction(ContentAction.UpdateFontSize(value.roundToInt()))
                     },
                     onValueChangeFinished = {
                         scope.launch {
@@ -324,10 +321,7 @@ fun BottomBarTheme(
                     modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
                     value = contentState.lineSpacing.toFloat(),
                     onValueChange = { value ->
-                        viewModel.onContentAction(
-                            dataStore,
-                            ContentAction.UpdateLineSpacing(value.roundToInt())
-                        )
+                        viewModel.onContentAction(ContentAction.UpdateLineSpacing(value.roundToInt()))
                     },
                     onValueChangeFinished = {
                         scope.launch {
@@ -379,10 +373,7 @@ fun BottomBarTheme(
                         .background(color = colorPaletteState.containerColor)
                         .clickable(
                             onClick = {
-                                viewModel.onContentAction(
-                                    dataStore,
-                                    ContentAction.UpdateTextAlign(!contentState.textAlign)
-                                )
+                                viewModel.onContentAction(ContentAction.UpdateTextAlign(!contentState.textAlign))
                                 scope.launch {
                                     dataStore.setTextAlign(!contentState.textAlign)
                                 }
@@ -408,10 +399,7 @@ fun BottomBarTheme(
                         .background(color = colorPaletteState.containerColor)
                         .clickable(
                             onClick = {
-                                viewModel.onContentAction(
-                                    dataStore,
-                                    ContentAction.UpdateTextIndent(!contentState.textIndent)
-                                )
+                                viewModel.onContentAction(ContentAction.UpdateTextIndent(!contentState.textIndent))
                                 scope.launch {
                                     dataStore.setTextIndent(!contentState.textIndent)
                                 }

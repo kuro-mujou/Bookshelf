@@ -88,7 +88,6 @@ dependencies {
     //room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
     annotationProcessor(libs.androidx.room.compiler)
     ksp(libs.androidx.room.compiler)
     //palette
@@ -123,8 +122,9 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.exoplayer)
     //rich text editor
-    implementation(libs.richeditor.compose){
-
+    implementation(libs.richeditor.compose) {
+        exclude(group = "org.jetbrains.compose.material", module = "material")
+        exclude(group = "org.jetbrains.compose.material3", module = "material3")
     }
 
     testImplementation(libs.junit)

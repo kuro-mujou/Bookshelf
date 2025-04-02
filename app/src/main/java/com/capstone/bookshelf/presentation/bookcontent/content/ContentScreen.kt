@@ -131,9 +131,7 @@ fun ContentScreen(
                 triggerLoadChapter = false
                 callbackLoadChapter = false
             }
-            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateChapterHeader(
-                drawerContainerState.currentTOC?.title?:""
-            ))
+            viewModel.onContentAction(ContentAction.UpdateChapterHeader(drawerContainerState.currentTOC?.title?:""))
             if(autoScrollState.isStart && autoScrollState.isPaused){
                 delay(autoScrollState.delayAtStart.toLong())
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
@@ -201,7 +199,7 @@ fun ContentScreen(
                 }
             }
             LaunchedEffect(pagerState.targetPage) {
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
                 currentChapter(pagerState.targetPage,0,autoScrollState.isStart)
             }
             LaunchedEffect(contentState.isSpeaking) {
@@ -214,7 +212,7 @@ fun ContentScreen(
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
-                                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateLastVisibleItemIndex(index))
+                                viewModel.onContentAction(ContentAction.UpdateLastVisibleItemIndex(index))
                             }
                         }
                 }
@@ -225,7 +223,7 @@ fun ContentScreen(
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
-                                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFirstVisibleItemIndex(index))
+                                viewModel.onContentAction(ContentAction.UpdateFirstVisibleItemIndex(index))
                             }
                         }
                 }
@@ -235,12 +233,7 @@ fun ContentScreen(
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     snapshotFlow { it.isScrollInProgress && !pagerState.isScrollInProgress }.collect { scrolling ->
                         if (scrolling && (contentState.isSpeaking || contentState.isPaused) && contentState.currentReadingParagraph == contentState.firstVisibleItemIndex) {
-                            viewModel.onContentAction(
-                                dataStoreManager,
-                                ContentAction.UpdateFlagTriggerAdjustScroll(
-                                    true
-                                )
-                            )
+                            viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(true))
                         }
                     }
                 }
@@ -254,12 +247,7 @@ fun ContentScreen(
                     ) {
                         if (contentState.isSpeaking) {
                             it.animateScrollToItem(contentState.currentReadingParagraph)
-                            viewModel.onContentAction(
-                                dataStoreManager,
-                                ContentAction.UpdateFlagTriggerAdjustScroll(
-                                    false
-                                )
-                            )
+                            viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
                         }
                     }
                 }
@@ -267,7 +255,7 @@ fun ContentScreen(
 
             LaunchedEffect(contentState.flagTriggerScrolling){
                 if(contentState.flagTriggerScrolling)
-                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartScrolling(true))
+                    viewModel.onContentAction(ContentAction.UpdateFlagStartScrolling(true))
             }
 
             LaunchedEffect(contentState.flagStartScrolling){
@@ -275,24 +263,14 @@ fun ContentScreen(
                     if (contentState.flagStartScrolling) {
                         if (contentState.currentReadingParagraph != contentState.firstVisibleItemIndex) {
                             it.animateScrollToItem(contentState.currentReadingParagraph)
-                            viewModel.onContentAction(
-                                dataStoreManager,
-                                ContentAction.UpdateFlagTriggerAdjustScroll(
-                                    false
-                                )
-                            )
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagScrollAdjusted(true))
-
+                            viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                            viewModel.onContentAction(ContentAction.UpdateFlagScrollAdjusted(true))
                         } else if (!contentState.flagTriggerAdjustScroll) {
                             it.animateScrollBy(value = contentState.screenHeight.toFloat())
-                            viewModel.onContentAction(dataStoreManager,
-                                ContentAction.UpdateFlagTriggerAdjustScroll(
-                                    false
-                                )
-                            )
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartScrolling(false))
+                            viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                            viewModel.onContentAction(ContentAction.UpdateFlagStartScrolling(false))
                         } else {
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartScrolling(true))
+                            viewModel.onContentAction(ContentAction.UpdateFlagStartScrolling(true))
                         }
                     }
                 }
@@ -302,9 +280,9 @@ fun ContentScreen(
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     if (contentState.flagStartAdjustScroll) {
                         it.animateScrollToItem(contentState.currentReadingParagraph)
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartAdjustScroll(false))
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagScrollAdjusted(true))
+                        viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                        viewModel.onContentAction(ContentAction.UpdateFlagStartAdjustScroll(false))
+                        viewModel.onContentAction(ContentAction.UpdateFlagScrollAdjusted(true))
                     }
                 }
             }
@@ -313,9 +291,9 @@ fun ContentScreen(
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     if (contentState.flagScrollAdjusted) {
                         it.animateScrollBy(value = contentState.screenHeight.toFloat() * contentState.scrollTime)
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagScrollAdjusted(false))
-                        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFlagStartScrolling(false))
+                        viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                        viewModel.onContentAction(ContentAction.UpdateFlagScrollAdjusted(false))
+                        viewModel.onContentAction(ContentAction.UpdateFlagStartScrolling(false))
                     }
                 }
             }
@@ -465,8 +443,8 @@ fun ContentScreen(
                         .fillMaxWidth()
                         .weight(1f)
                         .onGloballyPositioned { coordinates ->
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
-                            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateScreenHeight(coordinates.size.height))
+                            viewModel.onContentAction(ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
+                            viewModel.onContentAction(ContentAction.UpdateScreenHeight(coordinates.size.height))
                         },
                     state = listState,
                 ) {

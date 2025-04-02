@@ -96,7 +96,7 @@ fun MusicMenu(
     LaunchedEffect(Unit) {
         musicViewModel.updateState(dataStoreManager.playerVolume.first())
         musicViewModel.onEvent(MusicListAction.OnVolumeChange(dataStoreManager.playerVolume.first()))
-        contentViewModel.onContentAction(dataStoreManager,ContentAction.UpdatePlayerVolume(dataStoreManager.playerVolume.first()))
+        contentViewModel.onContentAction(ContentAction.UpdatePlayerVolume(dataStoreManager.playerVolume.first()))
     }
     Surface(
         color = colorPalette.backgroundColor
@@ -148,7 +148,7 @@ fun MusicMenu(
                         scope.launch {
                             dataStoreManager.setEnableBackgroundMusic(it)
                         }
-                        contentViewModel.onContentAction(dataStoreManager, ContentAction.UpdateEnableBackgroundMusic(it))
+                        contentViewModel.onContentAction(ContentAction.UpdateEnableBackgroundMusic(it))
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = colorPalette.textColor,
@@ -189,7 +189,7 @@ fun MusicMenu(
                     volumeSliderValue = (value * 100).roundToInt() / 100f
                 },
                 onValueChangeFinished = {
-                    contentViewModel.onContentAction(dataStoreManager,ContentAction.UpdatePlayerVolume(volumeSliderValue))
+                    contentViewModel.onContentAction(ContentAction.UpdatePlayerVolume(volumeSliderValue))
                     musicViewModel.onEvent(MusicListAction.OnVolumeChange(volumeSliderValue))
                     scope.launch {
                         dataStoreManager.setPlayerVolume(volumeSliderValue)

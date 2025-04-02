@@ -145,7 +145,6 @@ fun ComponentContainer(
                         )
                     )
                 }
-
                 2 -> {
                     state.toggleParagraphStyle(
                         ParagraphStyle(
@@ -154,7 +153,6 @@ fun ComponentContainer(
                         )
                     )
                 }
-
                 3 -> {
                     state.toggleParagraphStyle(
                         ParagraphStyle(

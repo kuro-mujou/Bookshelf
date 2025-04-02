@@ -2,6 +2,7 @@ package com.capstone.bookshelf.presentation.bookcontent
 
 import android.annotation.SuppressLint
 import android.view.View
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -25,7 +26,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import com.capstone.bookshelf.domain.wrapper.Book
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarAction
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarManager
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.BottomBarViewModel
@@ -45,7 +45,6 @@ import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterEdit
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
-import com.capstone.bookshelf.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
@@ -61,10 +60,8 @@ fun BookContentScreenRoot(
     viewModel: ContentViewModel,
     colorPaletteViewModel : ColorPaletteViewModel,
     dataStoreManager : DataStoreManager,
-    selectedBook : Book?,
-    onBackClick: () -> Unit,
+    onBackClick: (Boolean) -> Unit,
 ){
-    var isContentLoading by remember { mutableStateOf(true) }
     val drawerContainerViewModel = koinViewModel<DrawerContainerViewModel>()
     val bookWriterViewModel = koinViewModel<BookWriterViewModel>()
     val contentState by viewModel.state.collectAsStateWithLifecycle()
@@ -78,14 +75,11 @@ fun BookContentScreenRoot(
     var pagerState by remember { mutableStateOf<PagerState?>(null) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val drawerLazyColumnState = rememberLazyListState()
-    if(isContentLoading){
-        LoadingAnimation()
-    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
+                viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
+                viewModel.onContentAction(ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
                 if(contentState.book?.isEditable == false) {
                     viewModel.stopTTSService(context)
                     viewModel.stopTTS()
@@ -97,22 +91,26 @@ fun BookContentScreenRoot(
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+    BackHandler(
+        onBack = {
+            if(contentState.book?.isEditable == true){
+                onBackClick(true)
+            }
+        }
+    )
     LaunchedEffect(Unit) {
-        if(selectedBook == null){
-            viewModel.onContentAction(dataStoreManager,ContentAction.LoadBook)
-        } else {
-            viewModel.onContentAction(dataStoreManager,ContentAction.SelectedBook(selectedBook))
+        if(contentState.book == null) {
+            viewModel.onContentAction(ContentAction.LoadBook)
         }
         colorPaletteViewModel.updateBackgroundColor(Color(dataStoreManager.backgroundColor.first()))
         colorPaletteViewModel.updateTextColor(Color(dataStoreManager.textColor.first()))
         colorPaletteViewModel.updateSelectedColorSet(dataStoreManager.selectedColorSet.first())
-        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateFontSize(dataStoreManager.fontSize.first()))
-        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTextAlign(dataStoreManager.textAlign.first()))
-        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTextIndent(dataStoreManager.textIndent.first()))
-        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateLineSpacing(dataStoreManager.lineSpacing.first()))
-        viewModel.onContentAction(dataStoreManager,ContentAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
+        viewModel.onContentAction(ContentAction.UpdateFontSize(dataStoreManager.fontSize.first()))
+        viewModel.onContentAction(ContentAction.UpdateTextAlign(dataStoreManager.textAlign.first()))
+        viewModel.onContentAction(ContentAction.UpdateTextIndent(dataStoreManager.textIndent.first()))
+        viewModel.onContentAction(ContentAction.UpdateLineSpacing(dataStoreManager.lineSpacing.first()))
+        viewModel.onContentAction(ContentAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
         yield()
-        isContentLoading = false
     }
     DrawerScreen(
         drawerContainerState = drawerContainerState,
@@ -124,8 +122,8 @@ fun BookContentScreenRoot(
         onDrawerItemClick = {
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(it))
-            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(it))
-            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateBookInfoCurrentChapterIndex(it))
+            viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(it))
+            viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(it))
             if(contentState.isSpeaking){
                 viewModel.onTtsUiEvent(TtsUiEvent.JumpToRandomChapter)
             }
@@ -133,27 +131,27 @@ fun BookContentScreenRoot(
         onAddingChapter = { chapterTitle, headerSize->
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
             drawerContainerViewModel.onAction(DrawerContainerAction.AddChapter(chapterTitle,headerSize))
-            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(drawerContainerState.tableOfContents.size))
-            viewModel.onContentAction(dataStoreManager,ContentAction.GetChapterContent(contentState.currentChapterIndex))
+            viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(drawerContainerState.tableOfContents.size))
+            viewModel.onContentAction(ContentAction.GetChapterContent(contentState.currentChapterIndex))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
         }
     ) {
         LaunchedEffect(contentState.book) {
             if (contentState.book != null) {
+                viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(contentState.book?.currentChapter!!))
                 if(contentState.book?.isEditable == false){
                     viewModel.setupTTS(context)
-                    viewModel.initialize(context,textMeasurer,dataStoreManager,dataStoreManager.enableBackgroundMusic.first())
-                    viewModel.onContentAction(dataStoreManager,ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
+                    viewModel.initialize(context,textMeasurer,dataStoreManager.enableBackgroundMusic.first())
+                    viewModel.onContentAction(ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
                 }
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateCurrentChapterIndex(contentState.book?.currentChapter!!))
             }
         }
         LaunchedEffect(contentState.isSpeaking) {
-            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsFocused(!contentState.isSpeaking && contentState.isPaused || contentState.isSpeaking && !contentState.isPaused))
-            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateEnablePagerScroll(!contentState.isSpeaking))
+            viewModel.onContentAction(ContentAction.UpdateIsFocused(!contentState.isSpeaking && contentState.isPaused || contentState.isSpeaking && !contentState.isPaused))
+            viewModel.onContentAction(ContentAction.UpdateEnablePagerScroll(!contentState.isSpeaking))
         }
         LaunchedEffect(contentState.isPaused) {
-            viewModel.onContentAction(dataStoreManager,ContentAction.UpdateIsFocused(!(!contentState.isSpeaking && !contentState.isPaused)))
+            viewModel.onContentAction(ContentAction.UpdateIsFocused(!(!contentState.isSpeaking && !contentState.isPaused)))
         }
         LaunchedEffect(drawerState.currentValue) {
             if(drawerState.currentValue == DrawerValue.Closed) {
@@ -166,10 +164,12 @@ fun BookContentScreenRoot(
         LaunchedEffect(contentState.currentChapterIndex) {
             drawerLazyColumnState.scrollToItem(contentState.currentChapterIndex)
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
+            if(contentState.currentChapterIndex != 0)
+                viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
             if(contentState.book?.isEditable == false) {
                 pagerState?.animateScrollToPage(contentState.currentChapterIndex)
             } else {
-                viewModel.onContentAction(dataStoreManager,ContentAction.GetChapterContent(contentState.currentChapterIndex))
+                viewModel.onContentAction(ContentAction.GetChapterContent(contentState.currentChapterIndex))
             }
         }
         LaunchedEffect(drawerContainerState.drawerState){
@@ -183,22 +183,22 @@ fun BookContentScreenRoot(
         }
         LaunchedEffect(contentState.currentLanguage) {
             if(contentState.currentLanguage != null){
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSLanguage(contentState.currentLanguage!!))
+                viewModel.onContentAction(ContentAction.UpdateTTSLanguage(contentState.currentLanguage!!))
             }
         }
         LaunchedEffect(contentState.currentVoice) {
             if(contentState.currentVoice != null){
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSVoice(contentState.currentVoice!!))
+                viewModel.onContentAction(ContentAction.UpdateTTSVoice(contentState.currentVoice!!))
             }
         }
         LaunchedEffect(contentState.currentSpeed){
             if(contentState.currentSpeed != null){
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSSpeed(contentState.currentSpeed!!))
+                viewModel.onContentAction(ContentAction.UpdateTTSSpeed(contentState.currentSpeed!!))
             }
         }
         LaunchedEffect(contentState.currentPitch){
             if(contentState.currentPitch != null){
-                viewModel.onContentAction(dataStoreManager,ContentAction.UpdateTTSPitch(contentState.currentPitch!!))
+                viewModel.onContentAction(ContentAction.UpdateTTSPitch(contentState.currentPitch!!))
             }
         }
         if(contentState.book?.isEditable == true){
@@ -231,6 +231,12 @@ fun BookContentScreenRoot(
                     pageCount = { it.totalChapter }
                 )
             }
+            LaunchedEffect(contentState.isSpeaking) {
+                if(!contentState.isSpeaking && bottomBarState.visibility && bottomBarState.bottomBarTTSState){
+                    bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
+                    topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
+                }
+            }
             Scaffold(
                 floatingActionButton = {
                     if(contentState.book?.fileType == "cbz") {
@@ -258,15 +264,9 @@ fun BookContentScreenRoot(
                             bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                         },
                         onBackIconClick = {
-                            onBackClick()
-                            viewModel.onContentAction(
-                                dataStoreManager,
-                                ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex)
-                            )
-                            viewModel.onContentAction(
-                                dataStoreManager,
-                                ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex)
-                            )
+                            onBackClick(false)
+                            viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
+                            viewModel.onContentAction(ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
                             viewModel.stopTTSService(context)
                             viewModel.stopTTS()
                         }
@@ -299,15 +299,9 @@ fun BookContentScreenRoot(
                                         true
                                     )
                                 )
-                                viewModel.onContentAction(
-                                    dataStoreManager,
-                                    ContentAction.UpdateCurrentReadingParagraph(contentState.firstVisibleItemIndex)
-                                )
+                                viewModel.onContentAction(ContentAction.UpdateCurrentReadingParagraph(contentState.firstVisibleItemIndex))
                                 delay(1000)
-                                viewModel.onContentAction(
-                                    dataStoreManager,
-                                    ContentAction.UpdateIsSpeaking(true)
-                                )
+                                viewModel.onContentAction(ContentAction.UpdateIsSpeaking(true))
                                 viewModel.play()
                             }
                         },
@@ -343,32 +337,12 @@ fun BookContentScreenRoot(
                             },
                             currentChapter = { index, pos, isInAutoScrollMode ->
                                 if (isInAutoScrollMode) {
-                                    viewModel.onContentAction(
-                                        dataStoreManager,
-                                        ContentAction.UpdatePreviousChapterIndex(
-                                            contentState.currentChapterIndex
-                                        )
-                                    )
+                                    viewModel.onContentAction(ContentAction.UpdatePreviousChapterIndex(contentState.currentChapterIndex))
                                 } else {
-                                    viewModel.onContentAction(
-                                        dataStoreManager,
-                                        ContentAction.UpdatePreviousChapterIndex(
-                                            index
-                                        )
-                                    )
+                                    viewModel.onContentAction(ContentAction.UpdatePreviousChapterIndex(index))
                                 }
-                                viewModel.onContentAction(
-                                    dataStoreManager,
-                                    ContentAction.UpdateCurrentChapterIndex(index)
-                                )
-                                viewModel.onContentAction(
-                                    dataStoreManager,
-                                    ContentAction.UpdateBookInfoCurrentChapterIndex(index)
-                                )
-                                viewModel.onContentAction(
-                                    dataStoreManager,
-                                    ContentAction.UpdateCurrentReadingParagraph(pos)
-                                )
+                                viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(index))
+                                viewModel.onContentAction(ContentAction.UpdateCurrentReadingParagraph(pos))
                             }
                         )
                     }

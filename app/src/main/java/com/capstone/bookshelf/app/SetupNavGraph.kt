@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.app
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
@@ -108,32 +107,24 @@ fun SetupNavGraph(
                 exitTransition = { slideOutHorizontally() },
                 popEnterTransition = { slideInHorizontally() },
             ){ nav ->
-                val selectedBookViewModel =
-                    nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
-                val selectedBook by selectedBookViewModel.selectedBook.collectAsStateWithLifecycle()
                 val colorPaletteViewModel = koinViewModel<ColorPaletteViewModel>()
                 val viewModel = koinViewModel<ContentViewModel>()
                 val dataStoreManager = DataStoreManager(LocalContext.current)
-                BackHandler(
-                    onBack = {
-                        if(selectedBook?.isEditable == true){
+                BookContentScreenRoot(
+                    viewModel = viewModel,
+                    colorPaletteViewModel = colorPaletteViewModel,
+                    dataStoreManager = dataStoreManager,
+                    onBackClick = { back->
+                        if(back){
                             navController.navigate(Route.Home){
                                 popUpTo(Route.Home){
                                     inclusive = true
                                 }
                                 launchSingleTop = true
                             }
+                        } else {
+                            navController.navigateUp()
                         }
-                    }
-                )
-                BookContentScreenRoot(
-                    viewModel = viewModel,
-                    colorPaletteViewModel = colorPaletteViewModel,
-                    dataStoreManager = dataStoreManager,
-                    selectedBook = selectedBook,
-                    onBackClick = {
-                        selectedBookViewModel.onSelectBook(null)
-                        navController.navigateUp()
                     },
                 )
             }

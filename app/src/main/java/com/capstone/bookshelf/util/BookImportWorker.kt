@@ -131,6 +131,8 @@ class BookImportWorker(
             categories = book.metadata.types,
             description = null,
             totalChapter = totalChapters,
+            currentChapter = 0,
+            currentParagraph = 0,
             storagePath = cacheFilePath,
             isEditable = false,
             fileType = "epub"

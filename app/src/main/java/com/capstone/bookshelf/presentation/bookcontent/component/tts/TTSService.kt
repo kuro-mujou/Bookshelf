@@ -48,21 +48,21 @@ class TTSService: MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val stopButton =
-            CommandButton.Builder()
+            CommandButton.Builder(CommandButton.ICON_STOP)
+                .setCustomIconResId(R.drawable.ic_notification_stop)
                 .setDisplayName("Stop")
-                .setIconResId(R.drawable.ic_notification_stop)
                 .setSessionCommand(customCommandStop)
                 .build()
         val nextButton =
-            CommandButton.Builder()
+            CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD)
+                .setCustomIconResId(R.drawable.ic_notification_skip_to_next)
                 .setDisplayName("Next Chapter")
-                .setIconResId(R.drawable.ic_notification_skip_to_next)
                 .setSessionCommand(customCommandNext)
                 .build()
         val previousButton =
-            CommandButton.Builder()
+            CommandButton.Builder(CommandButton.ICON_SKIP_BACK)
+                .setCustomIconResId(R.drawable.ic_notification_skip_to_back)
                 .setDisplayName("Previous Chapter")
-                .setIconResId(R.drawable.ic_notification_skip_to_back)
                 .setSessionCommand(customCommandPrevious)
                 .build()
         val audioAttributes = androidx.media3.common.AudioAttributes.Builder()
@@ -169,21 +169,15 @@ class TTSService: MediaSessionService() {
             return when(customCommand.customAction) {
                 ACTION_STOP -> {
                     serviceHandler.stopReading()
-                    return Futures.immediateFuture(
-                        SessionResult(SessionResult.RESULT_SUCCESS)
-                    )
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
                 ACTION_NEXT -> {
                     serviceHandler.moveToNextChapterOrStop()
-                    return Futures.immediateFuture(
-                        SessionResult(SessionResult.RESULT_SUCCESS)
-                    )
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
                 ACTION_PREVIOUS -> {
                     serviceHandler.moveToPreviousChapterOrStop()
-                    return Futures.immediateFuture(
-                        SessionResult(SessionResult.RESULT_SUCCESS)
-                    )
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
                 else -> {
                     super.onCustomCommand(session, controller, customCommand, args)

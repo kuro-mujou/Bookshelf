@@ -67,6 +67,8 @@ class BookWriterViewModel(
                         categories = emptyList(),
                         description = null,
                         totalChapter = 0,
+                        currentChapter = 0,
+                        currentParagraph = 0,
                         storagePath = null,
                         isEditable = true,
                         fileType = "editable epub"
@@ -79,6 +81,8 @@ class BookWriterViewModel(
                         categories = emptyList(),
                         description = null,
                         totalChapter = 0,
+                        currentChapter = 0,
+                        currentParagraph = 0,
                         storagePath = null,
                         isEditable = true,
                         fileType = "editable epub"
