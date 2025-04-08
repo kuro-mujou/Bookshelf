@@ -104,8 +104,8 @@ class EpubImportWorker(
 
         val isSuccess = processingResult.isSuccess
         val failureReason = if (!isSuccess) processingResult.exceptionOrNull()?.message else null
-        val displayTitle = processingResult.getOrNull() // Book title from result
-            ?: originalFileName.substringBeforeLast('.') // Fallback
+        val displayTitle = processingResult.getOrNull()
+            ?: originalFileName.substringBeforeLast('.')
 
         sendCompletionNotification(isSuccess, displayTitle, failureReason)
         return@withContext if (isSuccess) Result.success() else Result.failure()
@@ -156,17 +156,24 @@ class EpubImportWorker(
             var coverImagePath: String? = null
             try {
                 book.coverImage?.inputStream?.use { coverStream ->
-                    val bitmap = decodeSampledBitmapFromStream(coverStream, MAX_BITMAP_DIMENSION, MAX_BITMAP_DIMENSION)
+                    val bitmap = decodeSampledBitmapFromStream(
+                        coverStream,
+                        MAX_BITMAP_DIMENSION,
+                        MAX_BITMAP_DIMENSION
+                    )
                     if (bitmap != null) {
                         val coverFilename = "cover_${bookId}"
                         coverImagePath = saveBitmapToPrivateStorage(context, bitmap, coverFilename)
                         bitmap.recycle()
-                    } else { coverImagePath = "error_decode_cover" }
+                    } else {
+                        coverImagePath = "error_decode_cover"
+                    }
                 }
             } catch (e: Exception) {
                 coverImagePath = "error_processing_cover"
             }
-            val finalCoverPathForDb = if (coverImagePath?.startsWith("error_") == true) "error" else coverImagePath
+            val finalCoverPathForDb =
+                if (coverImagePath?.startsWith("error_") == true) "error" else coverImagePath
             onProgress(null, "Processing table of contents...")
             val flattenedToc = flattenTocReferences(book.tableOfContents?.tocReferences)
             val totalChapters = flattenedToc.size
@@ -217,7 +224,7 @@ class EpubImportWorker(
         } ?: listOf("Unknown Author")
     }
 
-    /** Processes chapters, handling sub-chapters *only* if anchors are present in TOC entries for a resource */
+    /** Processes chapters, handling sub-chapters and the initial segment correctly */
     private suspend fun processAndSaveChapters(
         bookId: String,
         book: Book,
@@ -225,41 +232,49 @@ class EpubImportWorker(
         context: Context,
         onProgress: suspend (progress: Int?, message: String) -> Unit
     ) {
-        if (flattenedToc.isEmpty()) {
-            return
-        }
+        if (flattenedToc.isEmpty()) return
+
         val tocGroupedByResource = flattenedToc
             .filter { it.resource?.href != null }
             .groupBy { it.resource.href.substringBefore('#') }
             .filterKeys { it.isNotBlank() }
+
         var overallChapterIndex = 0
         val totalTocEntries = flattenedToc.size
         val naturalComparator = NaturalOrderComparator()
+
         for ((resourceHref, tocEntriesForResource) in tocGroupedByResource) {
             val resource = tocEntriesForResource.first().resource ?: continue
+
             var chapterHtml: String? = null
             var document: org.jsoup.nodes.Document? = null
-            var loadError = false
             try {
                 resource.inputStream.use { stream ->
                     chapterHtml = stream.bufferedReader().readText()
                 }
-                chapterHtml?.let{
-                    document = Jsoup.parse(it, resourceHref)
-                }
+                document = Jsoup.parse(chapterHtml!!, resourceHref)
             } catch (e: Exception) {
-                loadError = true
+
             }
-            val needsSplitting = tocEntriesForResource.any { it.fragmentId != null }
-            if (loadError) {
-                tocEntriesForResource.forEach { tocRef ->
-                    val chapterTitle = tocRef.title?.takeIf { it.isNotBlank() } ?: "Chapter ${overallChapterIndex + 1}"
+
+            val needsSplitting =
+                tocEntriesForResource.any { it.fragmentId != null }
+
+            if (document == null) {
+                tocEntriesForResource.forEach {
+                    val chapterTitle = it.title?.takeIf { t -> t.isNotBlank() }
+                        ?: "Chapter ${overallChapterIndex + 1}"
                     onProgress(
                         ((overallChapterIndex + 1).toFloat() / totalTocEntries * 100).toInt(),
                         "Error loading ${chapterTitle.take(30)}..."
                     )
                     saveTableOfContentEntry(bookId, chapterTitle, overallChapterIndex)
-                    saveErrorChapterContent(bookId, chapterTitle, overallChapterIndex, "[Error: Could not load/parse chapter resource]")
+                    saveErrorChapterContent(
+                        bookId,
+                        chapterTitle,
+                        overallChapterIndex,
+                        "[ERR: Load/Parse]"
+                    )
                     overallChapterIndex++
                 }
                 continue
@@ -267,8 +282,10 @@ class EpubImportWorker(
 
             if (!needsSplitting) {
                 val representativeTocRef = tocEntriesForResource.first()
-                val chapterTitle = representativeTocRef.title?.takeIf { it.isNotBlank() } ?: "Chapter ${overallChapterIndex + 1}"
-                val progressPercent = ((overallChapterIndex + 1).toFloat() / totalTocEntries * 100).toInt()
+                val chapterTitle = representativeTocRef.title?.takeIf { it.isNotBlank() }
+                    ?: "Chapter ${overallChapterIndex + 1}"
+                val progressPercent =
+                    ((overallChapterIndex + 1).toFloat() / totalTocEntries * 100).toInt()
                 onProgress(
                     progressPercent,
                     "Processing ${chapterTitle.take(30)}... (Full Resource)"
@@ -278,7 +295,7 @@ class EpubImportWorker(
                 var segmentError: String? = null
                 try {
                     parsedContent = parseChapterHtmlSegment(
-                        document = document!!,
+                        document = document,
                         startAnchorId = null,
                         endAnchorId = null,
                         book = book,
@@ -287,52 +304,78 @@ class EpubImportWorker(
                         chapterIndex = overallChapterIndex
                     )
                 } catch (e: Exception) {
-                    segmentError = "[Error processing chapter content]"
+                    segmentError = "[ERR: Parse Full]"
                 }
-                val contentToSave = parsedContent?.first ?: (if(segmentError != null) listOf(segmentError) else emptyList())
+                val contentToSave = parsedContent?.first ?: (if (segmentError != null) listOf(
+                    segmentError
+                ) else emptyList())
                 val imagePathsFound = parsedContent?.second ?: emptyList()
-                if (contentToSave.isNotEmpty()) { saveChapterContent(bookId, chapterTitle, overallChapterIndex, contentToSave) }
-                else { saveEmptyChapterContent(bookId, chapterTitle, overallChapterIndex) }
+                if (contentToSave.isNotEmpty()) {
+                    saveChapterContent(bookId, chapterTitle, overallChapterIndex, contentToSave)
+                } else {
+                    saveEmptyChapterContent(bookId, chapterTitle, overallChapterIndex)
+                }
                 val validImagePaths = imagePathsFound.filter { !it.startsWith("error_") }
-                if (validImagePaths.isNotEmpty()) { imagePathRepository.saveImagePath(bookId, validImagePaths) }
+                if (validImagePaths.isNotEmpty()) {
+                    imagePathRepository.saveImagePath(bookId, validImagePaths)
+                }
                 overallChapterIndex++
                 for (extraIndex in 1 until tocEntriesForResource.size) {
                     val extraTocRef = tocEntriesForResource[extraIndex]
-                    val extraTitle = extraTocRef.title?.takeIf { it.isNotBlank() } ?: "Chapter ${overallChapterIndex + 1}"
-                    saveTableOfContentEntry(bookId, extraTitle, overallChapterIndex)
-                    saveEmptyChapterContent(bookId, extraTitle, overallChapterIndex)
+                    val extraTitle = extraTocRef.title?.takeIf { it.isNotBlank() }
+                        ?: "Chapter ${overallChapterIndex + 1}"
+                    saveTableOfContentEntry(
+                        bookId,
+                        extraTitle,
+                        overallChapterIndex
+                    ); saveEmptyChapterContent(bookId, extraTitle, overallChapterIndex)
                     overallChapterIndex++
                 }
+
             } else {
                 val sortedTocEntries = tocEntriesForResource.sortedWith(
-                    compareBy(nullsFirst<String>()) { it: TOCReference -> it.fragmentId }
-                        .thenComparator { ref1: TOCReference, ref2: TOCReference ->
-                            val frag1 = ref1.fragmentId
-                            val frag2 = ref2.fragmentId
-                            when {
-                                frag1 == null && frag2 == null -> 0
-                                frag1 == null -> -1
-                                frag2 == null -> 1
-                                else -> naturalComparator.compare(frag1, frag2)
-                            }
+                    compareBy(nullsFirst<String>()) { ref: TOCReference ->
+                        ref.fragmentId?.takeIf { it.isNotBlank() }
+                    }.thenComparator { ref1: TOCReference, ref2: TOCReference ->
+                        val frag1 = ref1.fragmentId?.takeIf { it.isNotBlank() }
+                        val frag2 = ref2.fragmentId?.takeIf { it.isNotBlank() }
+                        when {
+                            frag1 == null && frag2 == null -> 0
+                            frag1 == null -> -1
+                            frag2 == null -> 1
+                            else -> naturalComparator.compare(
+                                frag1,
+                                frag2
+                            )
                         }
+                    }
                 )
                 for (i in sortedTocEntries.indices) {
                     val currentTocRef = sortedTocEntries[i]
-                    val chapterTitle = currentTocRef.title?.takeIf { it.isNotBlank() } ?: "Chapter ${overallChapterIndex + 1}"
-                    val progressPercent = ((overallChapterIndex + 1).toFloat() / totalTocEntries * 100).toInt()
+                    val chapterTitle = currentTocRef.title?.takeIf { it.isNotBlank() }
+                        ?: "Chapter ${overallChapterIndex + 1}"
+                    val progressPercent =
+                        ((overallChapterIndex + 1).toFloat() / totalTocEntries * 100).toInt()
                     onProgress(
                         progressPercent,
-                        "Processing ${chapterTitle.take(30)}... (Segment ${i+1})"
+                        "Processing ${chapterTitle.take(30)}... (Segment ${i + 1})"
                     )
                     saveTableOfContentEntry(bookId, chapterTitle, overallChapterIndex)
-                    val startAnchorId = currentTocRef.fragmentId
-                    val endAnchorId = sortedTocEntries.getOrNull(i + 1)?.fragmentId
+                    var startAnchorId: String?
+                    var endAnchorId: String?
+                    if (i == 0) {
+                        startAnchorId = null
+                        endAnchorId = sortedTocEntries.getOrNull(1)?.fragmentId
+                            ?.takeIf { it.isNotBlank() }
+                    } else {
+                        startAnchorId = currentTocRef.fragmentId?.takeIf { it.isNotBlank() }
+                        endAnchorId = sortedTocEntries.getOrNull(i + 1)?.fragmentId
+                            ?.takeIf { it.isNotBlank() }
+                    }
                     var parsedContent: Pair<List<String>, List<String>>? = null
-                    var segmentError: String? = null
                     try {
                         parsedContent = parseChapterHtmlSegment(
-                            document = document!!,
+                            document = document,
                             startAnchorId = startAnchorId,
                             endAnchorId = endAnchorId,
                             book = book,
@@ -341,21 +384,26 @@ class EpubImportWorker(
                             chapterIndex = overallChapterIndex
                         )
                     } catch (e: Exception) {
-                        segmentError = "[Error processing chapter segment]"
+
                     }
-                    val contentToSave = parsedContent?.first ?: (if(segmentError != null) listOf(segmentError) else emptyList())
+                    val contentToSave = parsedContent?.first ?: emptyList()
                     val imagePathsFound = parsedContent?.second ?: emptyList()
-                    if (contentToSave.isNotEmpty()) { saveChapterContent(bookId, chapterTitle, overallChapterIndex, contentToSave) }
-                    else { saveEmptyChapterContent(bookId, chapterTitle, overallChapterIndex) }
+                    if (contentToSave.isNotEmpty()) {
+                        saveChapterContent(bookId, chapterTitle, overallChapterIndex, contentToSave)
+                    } else {
+                        saveEmptyChapterContent(bookId, chapterTitle, overallChapterIndex)
+                    }
                     val validImagePaths = imagePathsFound.filter { !it.startsWith("error_") }
-                    if (validImagePaths.isNotEmpty()) { imagePathRepository.saveImagePath(bookId, validImagePaths) }
+                    if (validImagePaths.isNotEmpty()) {
+                        imagePathRepository.saveImagePath(bookId, validImagePaths)
+                    }
                     overallChapterIndex++
                 }
             }
         }
     }
 
-    /** Parses HTML segment between anchors, handles null/empty anchors safely */
+    /** Parses HTML segment, attempts to keep inline tags within the same paragraph */
     private fun parseChapterHtmlSegment(
         document: org.jsoup.nodes.Document,
         startAnchorId: String?,
@@ -365,104 +413,139 @@ class EpubImportWorker(
         bookId: String,
         chapterIndex: Int
     ): Pair<List<String>, List<String>> {
-
         val contentList = mutableListOf<String>()
         val imagePaths = mutableListOf<String>()
-        val currentParagraph = StringBuilder()
+        var currentParagraph = StringBuilder()
         var imageCounter = 0
         val startElement = if (!startAnchorId.isNullOrBlank()) {
             try {
                 document.selectFirst("[id=$startAnchorId], [name=$startAnchorId]")
-            } catch (e: org.jsoup.select.Selector.SelectorParseException) {
+            } catch (e: Exception) {
                 null
             }
-        } else {
-            null
-        }
+        } else null
         val endElement = if (!endAnchorId.isNullOrBlank()) {
             try {
                 document.selectFirst("[id=$endAnchorId], [name=$endAnchorId]")
-            } catch (e: org.jsoup.select.Selector.SelectorParseException) {
+            } catch (e: Exception) {
                 null
             }
-        } else {
-            null
-        }
-        var processingActive = startAnchorId.isNullOrBlank()
-        var passedStartAnchor = startAnchorId.isNullOrBlank()
+        } else null
+        var processingActive = startAnchorId.isNullOrBlank() || startElement == null
+        var passedStartAnchor = processingActive
         var hitEndAnchor = false
         document.body().traverse(object : NodeVisitor {
             override fun head(node: Node, depth: Int) {
                 if (hitEndAnchor) return
                 if (endElement != null && node == endElement) {
                     hitEndAnchor = true
-                    flushParagraph(currentParagraph, contentList)
+                    flushParagraphWithFormatting(
+                        currentParagraph,
+                        contentList
+                    )
                     return
                 }
+                var isStartAnchorNode = false
                 if (!passedStartAnchor && startElement != null && node == startElement) {
-                    passedStartAnchor = true
-                    processingActive = true
-                    return
+                    passedStartAnchor = true; processingActive = true; isStartAnchorNode =
+                    true
                 }
-                if (!processingActive) return
                 when (node) {
                     is TextNode -> {
                         val text = node.text()
-                        if (text.isNotBlank()) {
-                            if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) currentParagraph.append(" ")
-                            currentParagraph.append(text.replace(Regex("\\s+"), " "))
-                        } else if (text.contains('\n') && currentParagraph.isNotEmpty()) {
-                            if (!currentParagraph.endsWith(' ')) currentParagraph.append(" ")
+                        val normalizedText = text.replace(Regex("[ \t\n\r]{2,}"), " ")
+                        if (normalizedText.isNotEmpty()) {
+                            if (currentParagraph.isNotEmpty() &&
+                                !currentParagraph.endsWith(' ') &&
+                                !normalizedText.first().isWhitespace()
+                            ) {
+                                currentParagraph.append(" ")
+                            }
+                            currentParagraph.append(normalizedText)
                         }
                     }
+
                     is Element -> {
                         val tagName = node.tagName().lowercase()
-                        if (tagName in listOf("p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "br", "hr", "li", "ul", "ol", "table", "blockquote")) {
-                            flushParagraph(currentParagraph, contentList)
-                        }
-
-                        if (tagName == "img" || tagName == "image") {
-                            flushParagraph(currentParagraph, contentList)
-                            val srcAttr = when(tagName) { /* ... get src ... */
-                                "img" -> node.attr("src")
-                                "image" -> node.attr("xlink:href").ifEmpty { node.attr("href") }
-                                else -> ""
+                        when (tagName) {
+                            "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "h1", "h2", "h3", "h4", "h5", "h6", "tr" -> {
+                                flushParagraphWithFormatting(currentParagraph, contentList)
+                                if (tagName.startsWith("h")) currentParagraph.append("<$tagName>")
                             }
-                            if (srcAttr.isNotBlank()) {
-                                val imageResource = getImageResourceFromBook(srcAttr, book)
-                                if (imageResource != null) {
-                                    var savedImagePath: String? = null
-                                    try {
-                                        imageResource.inputStream.use { imageStream ->
-                                            val bitmap = decodeSampledBitmapFromStream(imageStream, MAX_BITMAP_DIMENSION, MAX_BITMAP_DIMENSION)
-                                            if (bitmap != null) {
-                                                val imageNameBase = "image_${bookId}_${chapterIndex}_seg${imageCounter++}"
-                                                savedImagePath = saveBitmapToPrivateStorage(context, bitmap, imageNameBase)
-                                                bitmap.recycle()
-                                            } else { savedImagePath = "error_decode_image" }
-                                        }
-                                    } catch (oom: OutOfMemoryError) {
-                                        savedImagePath = "error_oom_image"
-                                    }
-                                    catch (e: Exception) {
-                                        savedImagePath = "error_saving_image"
-                                    }
-                                    if (savedImagePath != null && !savedImagePath!!.startsWith("error_")) {
-                                        contentList.add(savedImagePath!!)
-                                        imagePaths.add(savedImagePath!!)
-                                    }
+                            "br" -> {
+                                val parent = node.parentNode()
+                                if (parent is Element && parent.tagName().lowercase().startsWith("h")) {
+                                    if (!currentParagraph.endsWith(' '))
+                                        currentParagraph.append(" ")
+                                } else {
+                                    flushParagraphWithFormatting(currentParagraph, contentList)
                                 }
                             }
+
+                            "b", "strong", "i", "em", "u" -> {
+                                if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
+                                    currentParagraph.append(" ")
+                                }
+                                currentParagraph.append("<$tagName>")
+                            }
+
+                            "td", "th" -> {
+                                if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
+                                    currentParagraph.append(" ")
+                                }
+                            }
+
+                            "img", "image" -> {
+                                flushParagraphWithFormatting(currentParagraph, contentList)
+                                val srcAttr = when (tagName) {
+                                    "img" -> node.attr("src"); "image" -> node.attr("xlink:href")
+                                        .ifEmpty { node.attr("href") }; else -> ""
+                                }
+                                if (srcAttr.isNotBlank()) {
+                                    val imageResource = getImageResourceFromBook(srcAttr, book)
+                                    if (imageResource != null) {
+                                        var savedImagePath: String? = null; try {
+                                            imageResource.inputStream.use { stream ->
+                                                val bitmap = decodeSampledBitmapFromStream(
+                                                    stream,
+                                                    MAX_BITMAP_DIMENSION,
+                                                    MAX_BITMAP_DIMENSION
+                                                ); if (bitmap != null) {
+                                                val name =
+                                                    "image_${bookId}_${chapterIndex}_seg${imageCounter++}"; savedImagePath =
+                                                    saveBitmapToPrivateStorage(
+                                                        context = context,
+                                                        bitmap = bitmap,
+                                                        filenameWithoutExtension = name
+                                                    ); bitmap.recycle()
+                                            } else {
+                                                savedImagePath = "error_decode"
+                                            }
+                                            }
+                                        } catch (e: Exception) {
+
+                                        }
+                                        if (savedImagePath != null && !savedImagePath!!.startsWith("error_")) {
+                                            contentList.add(savedImagePath!!); imagePaths.add(
+                                                savedImagePath!!
+                                            )
+                                        }
+                                    }
+                                }
+                                currentParagraph.setLength(0)
+                            }
+                            "tbody", "thead", "tfoot" -> {}
                         }
                     }
                 }
             }
+
             override fun tail(node: Node, depth: Int) {
                 if (hitEndAnchor) return
+
                 if (endElement != null && node == endElement) {
-                    hitEndAnchor = true
-                    processingActive = false // Should already be false from head
-                    flushParagraph(currentParagraph, contentList)
+                    hitEndAnchor =true
+                    flushParagraphWithFormatting(currentParagraph, contentList)
                     return
                 }
                 if (startElement != null && node == startElement) {
@@ -472,21 +555,50 @@ class EpubImportWorker(
                     }
                 }
                 if (!processingActive) return
+
                 if (node is Element) {
                     val tagName = node.tagName().lowercase()
-                    if (tagName in listOf("p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "ul", "ol", "table", "blockquote")) {
-                        flushParagraph(currentParagraph, contentList)
+                    when (tagName) {
+                        "b", "strong", "i", "em", "u" -> {
+                            if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
+                                currentParagraph.append(" ")
+                            }
+                            if (currentParagraph.isNotEmpty()) {
+                                currentParagraph.append("</$tagName>")
+                            }
+                        }
+                        "h1", "h2", "h3", "h4", "h5", "h6" -> {
+                            if (currentParagraph.isNotEmpty()) {
+                                if (currentParagraph.toString().endsWith("<$tagName>")) {
+                                    currentParagraph.setLength(currentParagraph.length - "<$tagName>".length)
+                                }
+                                else {
+                                    currentParagraph.append("</$tagName>"); flushParagraphWithFormatting(
+                                        currentParagraph,
+                                        contentList
+                                    )
+                                }
+                            }
+                        }
+                        "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "tr" -> {
+                            flushParagraphWithFormatting(currentParagraph, contentList)
+                        }
+                        "td", "th" -> {
+                            if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
+                                currentParagraph.append(" ")
+                            }
+                        }
+                        "tbody", "thead", "tfoot" -> {}
                     }
                 }
             }
         })
-        flushParagraph(currentParagraph, contentList)
+        flushParagraphWithFormatting(currentParagraph, contentList)
         return Pair(contentList, imagePaths)
     }
 
-    /** Helper to add buffered paragraph text to the list */
-    private fun flushParagraph(buffer: StringBuilder, list: MutableList<String>) {
-        // ... (Implementation from previous version is fine) ...
+    /** Helper to add buffered paragraph text (with formatting) to the list */
+    private fun flushParagraphWithFormatting(buffer: StringBuilder, list: MutableList<String>) {
         val paragraphText = buffer.toString().trim()
         if (paragraphText.isNotBlank()) {
             list.add(paragraphText)
@@ -502,7 +614,18 @@ class EpubImportWorker(
         val normalizedHref = href.replace("../", "")
         resource = book.resources.getByHref(normalizedHref)
         if (resource != null) return resource
-        val commonPrefixes = listOf("images/", "Images/", "img/", "IMG/", "OEBPS/images/", "OEBPS/Images/", "OPS/images/", "OPS/Images/", "OEBPS/", "OPS/")
+        val commonPrefixes = listOf(
+            "images/",
+            "Images/",
+            "img/",
+            "IMG/",
+            "OEBPS/images/",
+            "OEBPS/Images/",
+            "OPS/images/",
+            "OPS/Images/",
+            "OEBPS/",
+            "OPS/"
+        )
         for (prefix in commonPrefixes) {
             resource = book.resources.getByHref(prefix + normalizedHref)
             if (resource != null) return resource
@@ -521,13 +644,22 @@ class EpubImportWorker(
         bookID: String, title: String, coverImagePath: String?, authors: List<Author>?,
         categories: List<String>?, description: String?, totalChapters: Int, storagePath: String
     ): Long {
-        val cleanedCategories = categories?.mapNotNull { it.trim().takeIf(String::isNotBlank) } ?: emptyList()
+        val cleanedCategories =
+            categories?.mapNotNull { it.trim().takeIf(String::isNotBlank) } ?: emptyList()
         val normalizedAuthors = normalizeAuthorNames(authors)
         val bookEntity = BookEntity(
-            bookId = bookID, title = title, coverImagePath = coverImagePath!!, authors = normalizedAuthors,
-            categories = cleanedCategories, description = description?.trim()?.takeIf(String::isNotBlank),
-            totalChapter = totalChapters, currentChapter = 0, currentParagraph = 0,
-            storagePath = storagePath, isEditable = false, fileType = "epub"
+            bookId = bookID,
+            title = title,
+            coverImagePath = coverImagePath!!,
+            authors = normalizedAuthors,
+            categories = cleanedCategories,
+            description = description?.trim()?.takeIf(String::isNotBlank),
+            totalChapter = totalChapters,
+            currentChapter = 0,
+            currentParagraph = 0,
+            storagePath = storagePath,
+            isEditable = false,
+            fileType = "epub"
         )
         return bookRepository.insertBook(bookEntity)
     }
@@ -537,8 +669,18 @@ class EpubImportWorker(
         return tableOfContentsRepository.saveTableOfContent(tocEntity)
     }
 
-    private suspend fun saveChapterContent(bookId: String, title: String, index: Int, content: List<String>) {
-        val chapterEntity = ChapterContentEntity(tocId = index, bookId = bookId, chapterTitle = title, content = content)
+    private suspend fun saveChapterContent(
+        bookId: String,
+        title: String,
+        index: Int,
+        content: List<String>
+    ) {
+        val chapterEntity = ChapterContentEntity(
+            tocId = index,
+            bookId = bookId,
+            chapterTitle = title,
+            content = content
+        )
         chapterRepository.saveChapterContent(chapterEntity)
     }
 
@@ -546,13 +688,19 @@ class EpubImportWorker(
         saveChapterContent(bookId, title, index, emptyList())
     }
 
-    private suspend fun saveErrorChapterContent(bookId: String, title: String, index: Int, errorMessage: String) {
+    private suspend fun saveErrorChapterContent(
+        bookId: String,
+        title: String,
+        index: Int,
+        errorMessage: String
+    ) {
         saveChapterContent(bookId, title, index, listOf(errorMessage))
     }
 
     private fun createNotificationChannelIfNeeded(channelId: String, channelName: String) {
         if (notificationManager.getNotificationChannel(channelId) == null) {
-            val importance = if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
+            val importance =
+                if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(channelId, channelName, importance).apply {
                 description = "Notifications for book import process"
                 if (channelId == PROGRESS_CHANNEL_ID) setSound(null, null)
@@ -561,7 +709,10 @@ class EpubImportWorker(
         }
     }
 
-    private fun createProgressNotificationBuilder(fileName: String, message: String): NotificationCompat.Builder {
+    private fun createProgressNotificationBuilder(
+        fileName: String,
+        message: String
+    ): NotificationCompat.Builder {
         val displayFileName = fileName.substringBeforeLast(".")
         return NotificationCompat.Builder(appContext, PROGRESS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -572,7 +723,11 @@ class EpubImportWorker(
             .setOnlyAlertOnce(true)
     }
 
-    private suspend fun updateProgressNotification(fileName: String, message: String, progress: Int?) {
+    private suspend fun updateProgressNotification(
+        fileName: String,
+        message: String,
+        progress: Int?
+    ) {
         val builder = createProgressNotificationBuilder(fileName, message)
         if (progress != null) builder.setProgress(100, progress.coerceIn(0, 100), false)
         else builder.setProgress(0, 0, true)
@@ -583,7 +738,11 @@ class EpubImportWorker(
         }
     }
 
-    private fun sendCompletionNotification(isSuccess: Boolean, bookTitle: String?, failureReason: String? = null) { /* ... (copy implementation, adjust reasons) ... */
+    private fun sendCompletionNotification(
+        isSuccess: Boolean,
+        bookTitle: String?,
+        failureReason: String? = null
+    ) { /* ... (copy implementation, adjust reasons) ... */
         val title = if (isSuccess) "Import Successful" else "Import Failed"
         val defaultTitle = bookTitle ?: "EPUB File"
         val userFriendlyReason = when {
@@ -593,15 +752,20 @@ class EpubImportWorker(
             failureReason.contains("Table of Contents is empty") -> "Could not find chapters in the EPUB."
             failureReason.contains("Failed to open InputStream") -> "Could not read the selected file."
             failureReason.contains("OutOfMemoryError") -> "Ran out of memory processing the EPUB."
-            else -> "An unexpected error occurred." }
+            else -> "An unexpected error occurred."
+        }
         val text = when {
             isSuccess -> "'$defaultTitle' added to your library."
             userFriendlyReason != null -> "Failed to import '$defaultTitle': $userFriendlyReason"
-            else -> "Import failed for '$defaultTitle'." }
+            else -> "Import failed for '$defaultTitle'."
+        }
         val builder = NotificationCompat.Builder(appContext, COMPLETION_CHANNEL_ID).apply {
             setSmallIcon(R.drawable.ic_launcher_foreground)
-            setContentTitle(title); setContentText(text); setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            setPriority(NotificationCompat.PRIORITY_DEFAULT); setAutoCancel(true) }
+            setContentTitle(title); setContentText(text); setStyle(
+            NotificationCompat.BigTextStyle().bigText(text)
+        )
+            setPriority(NotificationCompat.PRIORITY_DEFAULT); setAutoCancel(true)
+        }
         notificationManager.notify(completionNotificationId, builder.build())
         notificationManager.cancel(notificationId)
     }
@@ -610,13 +774,20 @@ class EpubImportWorker(
         if (uri == null) return null
         var displayName: String? = null
         try {
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            context.contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     if (nameIndex != -1) displayName = cursor.getString(nameIndex)
                 }
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+        }
         return displayName
     }
 

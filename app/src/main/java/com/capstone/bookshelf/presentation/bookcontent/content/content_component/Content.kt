@@ -59,6 +59,18 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
                     }
                     currentIndex += 4
                 }
+                paragraph.startsWith("<strong>", currentIndex) -> {
+                    pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    stack.add("strong")
+                    currentIndex += 8
+                }
+                paragraph.startsWith("</strong>", currentIndex) -> {
+                    if (stack.lastOrNull() == "strong") {
+                        pop()
+                        stack.removeAt(stack.lastIndex)
+                    }
+                    currentIndex += 9
+                }
                 paragraph.startsWith("<i>", currentIndex) -> {
                     pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
                     stack.add("i")
@@ -70,6 +82,18 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
                         stack.removeAt(stack.lastIndex)
                     }
                     currentIndex += 4
+                }
+                paragraph.startsWith("<em>", currentIndex) -> {
+                    pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                    stack.add("em")
+                    currentIndex += 4
+                }
+                paragraph.startsWith("</em>", currentIndex) -> {
+                    if (stack.lastOrNull() == "em") {
+                        pop()
+                        stack.removeAt(stack.lastIndex)
+                    }
+                    currentIndex += 5
                 }
                 paragraph.startsWith("<u>", currentIndex) -> {
                     pushStyle(SpanStyle(textDecoration = TextDecoration.Underline))
