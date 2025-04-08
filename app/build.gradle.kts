@@ -17,8 +17,8 @@ android {
         applicationId = "com.capstone.bookshelf"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "2.00"
+        versionCode = 7
+        versionName = "2.01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

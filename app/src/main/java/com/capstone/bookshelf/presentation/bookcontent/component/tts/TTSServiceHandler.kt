@@ -70,6 +70,7 @@ class TTSServiceHandler (
     var textIndentTTS by mutableStateOf(false)
     var textAlignTTS by mutableStateOf(false)
     var enableBackgroundMusic by mutableStateOf(false)
+    var isTracksNull by mutableStateOf(false)
     fun onTtsPlayerEvent(event: TtsPlayerEvent){
         when(event){
             is TtsPlayerEvent.Backward -> {
@@ -194,7 +195,7 @@ class TTSServiceHandler (
         startSpeakCurrentParagraph()
     }
     fun stopReading() {
-        if(!enableBackgroundMusic){
+        if(!enableBackgroundMusic || isTracksNull){
             player?.stop()
         } else {
             player?.volume = 1f

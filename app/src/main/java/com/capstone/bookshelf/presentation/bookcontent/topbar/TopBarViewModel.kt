@@ -23,9 +23,6 @@ class TopBarViewModel : ViewModel() {
                 _state.update { it.copy(
                     visibility = action.visibility
                 ) }
-//                _state.value = _state.value.copy(
-//                    visibility = action.visibility
-//                )
             }
         }
     }

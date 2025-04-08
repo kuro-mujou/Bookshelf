@@ -40,10 +40,6 @@ class DrawerContainerViewModel(
                 _state.update { it.copy(
                     drawerState = action.drawerState
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    drawerState = action.drawerState
-//                )
             }
 
             is DrawerContainerAction.UpdateCurrentTOC -> {
@@ -52,20 +48,12 @@ class DrawerContainerViewModel(
                     _state.update { it.copy(
                         currentTOC = tocList[action.toc]
                     ) }
-//
-//                    _state.value = _state.value.copy(
-//                        currentTOC = tocList[action.toc]
-//                    )
                 } else {
                     viewModelScope.launch {
                         val currentTOC = tableOfContentRepository.getTableOfContent(bookId, action.toc)
                         _state.update { it.copy(
                             currentTOC = currentTOC
                         ) }
-//
-//                        _state.value = _state.value.copy(
-//                            currentTOC = currentTOC
-//                        )
                     }
                 }
             }

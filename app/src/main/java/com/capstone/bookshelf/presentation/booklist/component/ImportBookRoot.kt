@@ -33,7 +33,7 @@ fun ImportBookRoot(
                 scope.launch {
                     when {
                         fileName.endsWith(".epub", ignoreCase = true) -> {
-                            importBookViewModel.processAndSaveBook(context, it.toString())
+                            importBookViewModel.processAndSaveBook(context, it.toString(),fileName)
                         }
                         fileName.endsWith(".pdf", ignoreCase = true) -> {
                             importBookViewModel.processAndSavePdf(context, it.toString(),fileName)

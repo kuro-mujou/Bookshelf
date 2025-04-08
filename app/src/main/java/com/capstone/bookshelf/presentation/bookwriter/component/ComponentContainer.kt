@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -173,7 +174,7 @@ fun ComponentContainer(
             modifier = Modifier
                 .padding(top = 4.dp, bottom = 4.dp,start = 8.dp, end = 8.dp)
                 .fillMaxWidth()
-                .background(color = Color(91, 72, 0, 255), RoundedCornerShape(15.dp)),
+                .background(color = MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(15.dp)),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

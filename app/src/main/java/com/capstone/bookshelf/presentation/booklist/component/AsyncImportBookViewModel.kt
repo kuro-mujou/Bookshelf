@@ -8,8 +8,8 @@ import androidx.work.Data
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import com.capstone.bookshelf.domain.repository.BookRepository
-import com.capstone.bookshelf.util.BookImportWorker
 import com.capstone.bookshelf.util.CBZImportWorker
+import com.capstone.bookshelf.util.EpubImportWorker
 import com.capstone.bookshelf.util.PDFImportWorker
 import kotlinx.coroutines.launch
 
@@ -19,14 +19,16 @@ class AsyncImportBookViewModel(
 
     fun processAndSaveBook(
         context: Context,
-        filePath: String
+        filePath: String,
+        fileName: String
     ) = viewModelScope.launch {
         try {
             Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
             val inputData = Data.Builder()
-                .putString(BookImportWorker.BOOK_CACHE_PATH_KEY, filePath)
+                .putString(EpubImportWorker.INPUT_URI_KEY, filePath)
+                .putString(EpubImportWorker.ORIGINAL_FILENAME_KEY, fileName)
                 .build()
-            val workRequest = OneTimeWorkRequest.Builder(BookImportWorker::class.java)
+            val workRequest = OneTimeWorkRequest.Builder(EpubImportWorker::class.java)
                 .setInputData(inputData)
                 .build()
             WorkManager.getInstance(context).enqueue(workRequest)
@@ -43,8 +45,8 @@ class AsyncImportBookViewModel(
         try {
             Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
             val inputData = Data.Builder()
-                .putString(PDFImportWorker.BOOK_PATH_KEY, filePath)
-                .putString(PDFImportWorker.FILE_NAME_KEY, fileName)
+                .putString(PDFImportWorker.INPUT_URI_KEY, filePath)
+                .putString(PDFImportWorker.ORIGINAL_FILENAME_KEY, fileName)
                 .build()
             val workRequest = OneTimeWorkRequest.Builder(PDFImportWorker::class.java)
                 .setInputData(inputData)
@@ -64,8 +66,8 @@ class AsyncImportBookViewModel(
         try {
             Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
             val inputData = Data.Builder()
-                .putString(CBZImportWorker.BOOK_CACHE_PATH_KEY, filePath)
-                .putString(CBZImportWorker.FILE_NAME_KEY, fileName)
+                .putString(CBZImportWorker.INPUT_URI_KEY, filePath)
+                .putString(CBZImportWorker.ORIGINAL_FILENAME_KEY, fileName)
                 .build()
             val workRequest = OneTimeWorkRequest.Builder(CBZImportWorker::class.java)
                 .setInputData(inputData)

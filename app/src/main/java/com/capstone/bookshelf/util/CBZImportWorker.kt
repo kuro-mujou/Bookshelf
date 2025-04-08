@@ -1,12 +1,15 @@
 package com.capstone.bookshelf.util
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Build
+import android.provider.OpenableColumns
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
@@ -24,179 +27,246 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.io.FileInputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.math.BigInteger
 import java.security.MessageDigest
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
+import java.util.zip.ZipFile
 
 class CBZImportWorker(
-    private val context: Context,
+    private val appContext: Context,
     workerParams: WorkerParameters
-) : CoroutineWorker(context, workerParams) , KoinComponent {
-
-    companion object {
-        const val BOOK_CACHE_PATH_KEY = "book_cache_path"
-        const val FILE_NAME_KEY = "file_name"
-    }
+) : CoroutineWorker(appContext, workerParams), KoinComponent {
 
     private val bookRepository: BookRepository by inject()
     private val tableOfContentsRepository: TableOfContentRepository by inject()
     private val chapterRepository: ChapterRepository by inject()
     private val imagePathRepository: ImagePathRepository by inject()
-    private val md = MessageDigest.getInstance("MD5")
 
-    override suspend fun doWork(): Result {
-        return withContext(Dispatchers.IO) {
-            val notificationId = 1234
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            try {
-                val cbzPath = inputData.getString(BOOK_CACHE_PATH_KEY) ?: return@withContext Result.failure()
-                var fileName = inputData.getString(FILE_NAME_KEY)  ?: return@withContext Result.failure()
-                fileName  = fileName.substringBeforeLast(".")
-                val isAlreadyImported = bookRepository.isBookExist(fileName)
-                if (isAlreadyImported) {
-                    sendCompletionNotification(context, notificationManager, isSuccess = false, specialMessage = "Book already imported")
-                    return@withContext Result.failure()
-                }
-                val initialNotification = createNotificationBuilder(context,fileName).build()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    ForegroundInfo(notificationId, initialNotification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-                } else {
-                    ForegroundInfo(notificationId, initialNotification)
-                }
-                processCBZtoBook(
-                    context = context,
-                    cbzPath = cbzPath,
-                    fileName = fileName,
-                    notificationManager = notificationManager,
-                    notificationId = notificationId
-                )
-                sendCompletionNotification(context, notificationManager)
-                Result.success()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                sendCompletionNotification(context, notificationManager, isSuccess = false)
-                Result.failure()
-            } finally {
-                context.cacheDir.deleteRecursively()
-                notificationManager.cancel(notificationId)
-            }
-        }
+    private val md = MessageDigest.getInstance("MD5")
+    private val notificationManager =
+        appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private val notificationId = System.currentTimeMillis().toInt()
+    private val completionNotificationId = notificationId + 1
+
+    companion object {
+        const val INPUT_URI_KEY = "input_uri"
+        const val ORIGINAL_FILENAME_KEY = "original_filename"
+        private const val TAG = "CBZImportWorker"
+
+        private const val PROGRESS_CHANNEL_ID = "book_import_progress_channel"
+        private const val COMPLETION_CHANNEL_ID = "book_import_completion_channel"
+
+        private const val MAX_BITMAP_DIMENSION = 2048
+        private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif", "avif", "bmp")
     }
-    private suspend fun processCBZtoBook(
+
+    init {
+        createNotificationChannelIfNeeded(
+            PROGRESS_CHANNEL_ID,
+            "Book Import Progress"
+        )
+        createNotificationChannelIfNeeded(
+            COMPLETION_CHANNEL_ID,
+            "Book Import Completion"
+        )
+    }
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        val cbzUriString = inputData.getString(INPUT_URI_KEY)
+        val originalFileName = inputData.getString(ORIGINAL_FILENAME_KEY) ?: getDisplayNameFromUri(appContext, cbzUriString?.toUri()) ?: "Unknown CBZ"
+
+        if (cbzUriString == null) {
+            return@withContext Result.failure()
+        }
+        val cbzUri = cbzUriString.toUri()
+        val initialNotification = createProgressNotificationBuilder(
+            originalFileName, "Starting import..."
+        ).build()
+        try {
+            setForeground(getForegroundInfoCompat(initialNotification))
+        } catch (e: Exception) {
+            // Non-fatal error if setForeground fails (e.g., app in background on older APIs)
+        }
+        val processingResult = processCbzAndSaveData(
+            appContext,
+            cbzUri,
+            originalFileName,
+            onProgress = { currentChapter, totalChapters, chapterName ->
+                val progressPercent = ((currentChapter.toFloat() / totalChapters.toFloat()) * 100).toInt()
+                updateProgressNotification(
+                    originalFileName,
+                    "Processing: $chapterName ($currentChapter/$totalChapters)",
+                    progressPercent
+                )
+            }
+        )
+        val isSuccess = processingResult.isSuccess
+        val failureReason = if (!isSuccess) processingResult.exceptionOrNull()?.message else null
+        val displayTitle = processingResult.getOrNull()
+            ?: originalFileName.substringBeforeLast('.')
+        sendCompletionNotification(isSuccess, displayTitle, failureReason)
+        return@withContext if (isSuccess) Result.success() else Result.failure()
+    }
+
+    /**
+     * The core processing logic. Copies to cache, extracts info, saves images, updates DB.
+     * Returns Result.success(bookTitle) or Result.failure(exception).
+     */
+    private suspend fun processCbzAndSaveData(
         context: Context,
-        cbzPath: String,
-        fileName: String,
-        notificationManager: NotificationManager,
-        notificationId: Int
-    ) {
-        return withContext(Dispatchers.IO) {
-            updateNotification(
-                context = context,
-                notificationManager = notificationManager,
-                notificationId = notificationId,
-                fileName = fileName,
-                message = "Loading $fileName",
-            )
-            val uri = cbzPath.toUri()
-            val pfd = context.contentResolver.openFileDescriptor(uri, "r")
-            val bookID = BigInteger(1, md.digest(fileName.toByteArray())).toString(16)
-                .padStart(32, '0')
-            val chapterImagesMap = mutableMapOf<String, List<String>>()
-            val allImagePaths = mutableListOf<String>()
-            pfd?.use { fd ->
-                val inputStream = FileInputStream(fd.fileDescriptor)
-                ZipInputStream(inputStream).use { zipInputStream ->
-                    var entry: ZipEntry? = zipInputStream.nextEntry
-                    while (entry != null) {
-                        val entryName = entry.name
-                        if (isImageFile(entryName)) {
-                            val folderName = entryName.substringBeforeLast('/').trim('/')
-                            val bitmap = BitmapFactory.decodeStream(zipInputStream)
-                            if (bitmap != null) {
-                                val savedPath = saveImageToPrivateStorage(
-                                    context = context,
-                                    bitmap = bitmap,
-                                    filename = "${bookID}_${folderName.substringAfterLast('/')}_${entryName.substringAfterLast('/').substringBefore(".")}"
-                                )
-                                allImagePaths.add(savedPath)
-                                updateNotification(
-                                    context = context,
-                                    notificationManager = notificationManager,
-                                    notificationId = notificationId,
-                                    fileName = fileName,
-                                    message = "Importing ${folderName.substringAfterLast('/')}",
-                                )
-                                if (folderName.isNotEmpty()) {
-                                    val existingImages = chapterImagesMap[folderName]?.toMutableList() ?: mutableListOf()
-                                    existingImages.add(savedPath)
-                                    chapterImagesMap[folderName] = existingImages
-                                }
-                            }
+        zipFileUri: Uri,
+        originalDisplayName: String,
+        onProgress: suspend (currentChapter: Int, totalChapters: Int, chapterName: String) -> Unit
+    ): kotlin.Result<String> {
+        var tempZipFile: File? = null
+        val actualFileName = originalDisplayName
+        val bookTitle = actualFileName.substringBeforeLast('.')
+        var bookId: String? = null
+
+        try {
+            bookId = BigInteger(1, md.digest(actualFileName.toByteArray())).toString(16).padStart(32, '0')
+            if (bookRepository.isBookExist(bookTitle)) {
+                return kotlin.Result.failure(IOException("Book already imported"))
+            }
+            updateProgressNotification(originalDisplayName, "Copying file...", null)
+            tempZipFile = File.createTempFile("cbz_import_", ".zip", context.cacheDir)
+            context.contentResolver.openInputStream(zipFileUri)?.use { inputStream ->
+                FileOutputStream(tempZipFile).use { outputStream ->
+                    inputStream.copyTo(outputStream, 8192) // 8KB buffer
+                }
+            } ?: run {
+                tempZipFile?.delete() // Clean up temp file
+                return kotlin.Result.failure(IOException("Failed to open InputStream"))
+            }
+            updateProgressNotification(originalDisplayName, "Analyzing archive...", null)
+            val groupedImageEntries = mutableMapOf<String, MutableList<String>>()
+            val allSecondLevelDirs = mutableSetOf<String>()
+            val naturalComparator = NaturalOrderComparator()
+            ZipFile(tempZipFile).use { zipFile ->
+                val entries = zipFile.entries()
+                while (entries.hasMoreElements()) {
+                    val entry = entries.nextElement()
+                    val entryName = entry.name
+                    if (entry.isDirectory || entryName.startsWith("__MACOSX/") || entryName.contains("/.DS_Store")) continue
+                    val pathSegments = entryName.split('/').filter { it.isNotEmpty() }
+                    if (pathSegments.size >= 2) {
+                        val secondLevelName = pathSegments[1]
+                        allSecondLevelDirs.add(secondLevelName)
+
+                        val fileName = pathSegments.last()
+                        val extension = fileName.substringAfterLast('.', "").lowercase()
+                        if (extension in IMAGE_EXTENSIONS) {
+                            val imageList = groupedImageEntries.getOrPut(secondLevelName) { mutableListOf() }
+                            imageList.add(entryName)
                         }
-                        entry = zipInputStream.nextEntry
                     }
                 }
             }
-            val sortedChapters = chapterImagesMap.keys.sortedBy { extractChapterNumber(it) }
-            val sortedChapterImagesMap = chapterImagesMap.toSortedMap(compareBy { extractChapterNumber(it) })
-            val coverImagePath: String? = sortedChapters.firstOrNull()?.let { sortedChapterImagesMap[it]?.firstOrNull() }
-            if (coverImagePath != null) {
-                updateNotification(
-                    context = context,
-                    notificationManager = notificationManager,
-                    notificationId = notificationId,
-                    fileName = fileName,
-                    message = "Saving book info",
-                )
-                saveBookInfo(
-                    bookID = bookID,
-                    fileName = fileName.substringBeforeLast("."),
-                    coverImagePath = coverImagePath,
-                    totalChapters = sortedChapterImagesMap.size,
-                    cacheFilePath = cbzPath
-                )
-                updateNotification(
-                    context = context,
-                    notificationManager = notificationManager,
-                    notificationId = notificationId,
-                    fileName = fileName,
-                    message = "Saving chapter info",
-                )
-                saveBookContent(
-                    bookID = bookID,
-                    chapterImagesMap = sortedChapterImagesMap,
-                    allImagePaths = allImagePaths
-                )
+
+            val finalDirNames = allSecondLevelDirs.filter { groupedImageEntries.containsKey(it) }
+            val sortedDirNames = finalDirNames.toList().sortedWith(naturalComparator)
+            val totalChapters = sortedDirNames.size
+
+            if (totalChapters == 0) {
+                return kotlin.Result.failure(IOException("No valid image entries found in file"))
+            }
+            updateProgressNotification(originalDisplayName, "Extracting cover image...", null)
+            var coverImagePath = "no_cover_extracted"
+            val firstChapterName = sortedDirNames.first()
+            val imagePathsInFirstChapter = groupedImageEntries[firstChapterName]
+                ?.sortedWith(naturalComparator)
+            if (!imagePathsInFirstChapter.isNullOrEmpty()) {
+                val firstImageEntryPath = imagePathsInFirstChapter.first()
+                try {
+                    ZipFile(tempZipFile).use { coverZipFile ->
+                        val coverEntry = coverZipFile.getEntry(firstImageEntryPath)
+                        if (coverEntry != null) {
+                            coverZipFile.getInputStream(coverEntry).use { imageStream ->
+                                val bitmap = decodeSampledBitmapFromStream(imageStream)
+                                if (bitmap != null) {
+                                    val coverFilename ="${bookId}_cover"
+                                    coverImagePath = saveBitmapToPrivateStorage(context, bitmap, coverFilename)
+                                    bitmap.recycle()
+                                } else {
+                                    coverImagePath = "decode_error"
+                                }
+                            }
+                        } else {
+                            coverImagePath = "entry_not_found"
+                        }
+                    }
+                } catch (e: Exception) {
+                    coverImagePath = "extraction_error"
+                }
+            } else {
+                coverImagePath = "no_images_in_first_chapter"
+            }
+            val finalCoverPathForDb = if (coverImagePath.startsWith("error_") || coverImagePath.startsWith("no_")) {
+                null
+            } else {
+                coverImagePath
+            }
+            saveBookInfo(bookId, bookTitle, finalCoverPathForDb!!, totalChapters, tempZipFile.absolutePath)
+            var chapterIndex = 0
+            ZipFile(tempZipFile).use { chapterZipFile ->
+                for (chapterName in sortedDirNames) {
+                    chapterIndex++
+                    onProgress(chapterIndex, totalChapters, chapterName)
+
+                    val imageEntryPaths = groupedImageEntries[chapterName] ?: continue
+                    val sortedImageEntryPaths = imageEntryPaths.sortedWith(naturalComparator)
+                    val savedImagePathsInChapter = mutableListOf<String>()
+
+                    for (imageEntryPath in sortedImageEntryPaths) {
+                        val entry = chapterZipFile.getEntry(imageEntryPath) ?: continue
+                        val originalImageName = entry.name.substringAfterLast('/')
+
+                        try {
+                            chapterZipFile.getInputStream(entry).use { imageStream ->
+                                val bitmap = decodeSampledBitmapFromStream(imageStream)
+                                if (bitmap != null) {
+                                    val safeChapterName = chapterName.replace(Regex("[^A-Za-z0-9_-]"), "_")
+                                    val safeImageName = originalImageName.substringBeforeLast('.').replace(Regex("[^A-Za-z0-9_-]"), "_")
+                                    val chapterImageFilename = "${bookId}_${safeChapterName}_${safeImageName}"
+                                    val savedPath = saveBitmapToPrivateStorage(context, bitmap, chapterImageFilename)
+                                    if (!savedPath.startsWith("error")) {
+                                        savedImagePathsInChapter.add(savedPath)
+                                    }
+                                    bitmap.recycle()
+                                }
+                            }
+                        } catch (oom: OutOfMemoryError) {
+                        } catch (e: Exception) {
+                        }
+                    }
+                    if (savedImagePathsInChapter.isNotEmpty()) {
+                        saveChapterInfo(bookId, chapterName, chapterIndex - 1, savedImagePathsInChapter)
+                    }
+                }
+            }
+            return kotlin.Result.success(bookTitle)
+
+        } catch (e: Exception) {
+            return kotlin.Result.failure(e)
+        } finally {
+            if (tempZipFile != null && tempZipFile.exists()) {
+                tempZipFile.delete()
             }
         }
     }
-    private fun updateNotification(
-        context: Context,
-        notificationManager: NotificationManager,
-        notificationId: Int,
-        fileName: String,
-        message: String,
-    ) {
-        val updatedNotification = createNotificationBuilder(context, fileName)
-            .setContentText(message)
-            .setProgress(0, 0, true)
-            .build()
-        notificationManager.notify(notificationId, updatedNotification)
-    }
     private suspend fun saveBookInfo(
         bookID: String,
-        fileName: String,
+        title: String,
         coverImagePath: String,
         totalChapters: Int,
         cacheFilePath: String
     ): Long {
         val bookEntity = BookEntity(
             bookId = bookID,
-            title = fileName,
+            title = title,
             coverImagePath = coverImagePath,
-            authors = listOf("Unnamed Author"),
+            authors = listOf("Unknown"),
             categories = emptyList(),
             description = null,
             totalChapter = totalChapters,
@@ -209,107 +279,151 @@ class CBZImportWorker(
         return bookRepository.insertBook(bookEntity)
     }
 
-    private suspend fun saveBookContent(
-        bookID: String,
-        chapterImagesMap: Map<String, List<String>>,
-        allImagePaths: List<String>,
+    private suspend fun saveChapterInfo(
+        bookId: String,
+        chapterName: String,
+        chapterIndex: Int,
+        savedImagePaths: List<String>
     ) {
-        var counter = 0
-        chapterImagesMap.forEach{ (chapterTitle, imagePaths) ->
-            val tocEntity = TableOfContentEntity(
-                bookId = bookID,
-                title = chapterTitle.substringAfterLast('/'),
-                index = counter
-            )
-            tableOfContentsRepository.saveTableOfContent(tocEntity)
-            val chapterEntity = ChapterContentEntity(
-                tocId = counter,
-                bookId = bookID,
-                chapterTitle = chapterTitle.substringAfterLast('/'),
-                content = imagePaths,
-            )
-            counter++
-            chapterRepository.saveChapterContent(chapterEntity)
-        }
-        imagePathRepository.saveImagePath(bookID, allImagePaths)
+        val tocEntity = TableOfContentEntity(
+            bookId = bookId,
+            title = chapterName,
+            index = chapterIndex
+        )
+        tableOfContentsRepository.saveTableOfContent(tocEntity)
+        val chapterEntity = ChapterContentEntity(
+            tocId = chapterIndex,
+            bookId = bookId,
+            chapterTitle = chapterName,
+            content = savedImagePaths,
+        )
+        chapterRepository.saveChapterContent(chapterEntity)
     }
-    private fun extractChapterNumber(name: String): Int? {
-        val match = Regex("\\d+").find(name)
-        return match?.value?.toIntOrNull()
-    }
-    private fun isImageFile(fileName: String): Boolean {
-        val lowerName = fileName.lowercase()
-        return lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
-                lowerName.endsWith(".png") || lowerName.endsWith(".gif") || lowerName.endsWith(".webp")
-    }
-    private fun extractImageFromZip(context: Context, cbzPath: String, entry: ZipEntry): Bitmap? {
-        val uri = cbzPath.toUri()
-        val pfd = context.contentResolver.openFileDescriptor(uri, "r") ?: return null
-        val inputStream = FileInputStream(pfd.fileDescriptor)
-        val zipInputStream = ZipInputStream(inputStream)
 
-        zipInputStream.use { zis ->
-            var currentEntry: ZipEntry? = zis.nextEntry
-            while (currentEntry != null) {
-                if (currentEntry.name == entry.name) {
-                    return BitmapFactory.decodeStream(zis)
+    private fun createNotificationChannelIfNeeded(channelId: String, channelName: String) {
+        if (notificationManager.getNotificationChannel(channelId) == null) {
+            val importance = if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                if (channelId == PROGRESS_CHANNEL_ID) {
+                    setSound(null, null)
                 }
-                currentEntry = zis.nextEntry
             }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    /** Creates the base builder for progress notifications. */
+    private fun createProgressNotificationBuilder(fileName: String, message: String): NotificationCompat.Builder {
+        val displayFileName = fileName.substringBeforeLast(".")
+        return NotificationCompat.Builder(appContext, PROGRESS_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Importing: ${displayFileName.take(40)}${if (displayFileName.length > 40) "..." else ""}")
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+    }
+
+    /** Updates the ongoing progress notification. */
+    private suspend fun updateProgressNotification(fileName: String, message: String, progress: Int?) {
+        val builder = createProgressNotificationBuilder(fileName, message)
+        if (progress != null) {
+            builder.setProgress(100, progress.coerceIn(0, 100), false) // Determinate
+        } else {
+            builder.setProgress(0, 0, true) // Indeterminate
+        }
+        try {
+            setForeground(getForegroundInfoCompat(builder.build()))
+        } catch (e: Exception){
+            notificationManager.notify(notificationId, builder.build())
+        }
+    }
+
+
+    /** Sends the final completion notification. */
+    private fun sendCompletionNotification(
+        isSuccess: Boolean,
+        bookTitle: String?,
+        failureReason: String? = null
+    ) {
+        val title = if (isSuccess) "Import Successful" else "Import Failed"
+        val defaultTitle = bookTitle ?: "File"
+        val userFriendlyReason = when {
+            failureReason == null -> null
+            failureReason.contains("Book already imported") -> "This book is already in your library."
+            failureReason.contains("No valid image entries found") -> "No images could be found in this file."
+            failureReason.contains("Failed to open InputStream") -> "Could not read the selected file."
+            failureReason.contains("OutOfMemoryError") -> "Ran out of memory processing images. Try importing smaller files."
+            else -> "An unexpected error occurred."
         }
 
-        return null
-    }
-    private fun sendCompletionNotification(
-        context: Context,
-        notificationManager: NotificationManager,
-        isSuccess: Boolean = true,
-        specialMessage: String? = ""
-    ) {
-        val completionNotification = createCompletionNotificationBuilder(context, isSuccess,specialMessage).build()
-        val completionNotificationId = 1235
-        notificationManager.notify(completionNotificationId, completionNotification)
-    }
-    private fun createNotificationBuilder(context : Context,fileName: String): NotificationCompat.Builder {
-        val channelId = "book_import_channel"
-        val channelName = "Book Import"
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(
-            channelId,
-            channelName,
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        notificationManager.createNotificationChannel(channel)
-        return NotificationCompat.Builder(context,channelId)
+        val text = when {
+            isSuccess -> "'$defaultTitle' added to your library."
+            userFriendlyReason != null -> "Failed to import '$defaultTitle': $userFriendlyReason"
+            else -> "Import failed for '$defaultTitle'."
+        }
+        val builder = NotificationCompat.Builder(appContext, COMPLETION_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Importing $fileName")
-            .setContentText("Loading CBZ file")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setOngoing(true)
-            .setSilent(true)
-    }
-    private fun createCompletionNotificationBuilder(
-        context: Context,
-        isSuccess: Boolean,
-        specialMessage: String? = ""
-    ): NotificationCompat.Builder {
-        val channelId = "book_import_completion_channel"
-        val channelName = "Book Import Completion"
-        val channel = NotificationChannel(
-            channelId,
-            channelName,
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
-
-        return NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Book Import")
-            .setContentText(if (isSuccess) "Book import completed successfully!" else "Book import failed. $specialMessage")
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
+        notificationManager.notify(completionNotificationId, builder.build())
+        notificationManager.cancel(notificationId)
+    }
+    /** Decodes bitmap with sampling to prevent OOM errors. */
+    private fun decodeSampledBitmapFromStream(
+        stream: java.io.InputStream,
+        reqWidth: Int = MAX_BITMAP_DIMENSION,
+        reqHeight: Int = MAX_BITMAP_DIMENSION
+    ): Bitmap? {
+        try {
+            if (!stream.markSupported()) {
+                return BitmapFactory.decodeStream(stream)
+            }
+            stream.mark(1024 * 1024)
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeStream(stream, null, options)
+            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
+            options.inJustDecodeBounds = false
+            stream.reset()
+            return BitmapFactory.decodeStream(stream, null, options)
+        } catch (e: IOException) {
+            return null
+        } catch(oom: OutOfMemoryError){
+            return null
+        } catch (e: Exception){
+            return null
+        }
+    }
+
+    /** Gets display name from content URI. */
+    private fun getDisplayNameFromUri(context: Context, uri: Uri?): String? {
+        if (uri == null) return null
+        var displayName: String? = null
+        try {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex != -1) {
+                        displayName = cursor.getString(nameIndex)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+        }
+        return displayName
+    }
+
+    /** Provides ForegroundInfo, handling platform differences. */
+    private fun getForegroundInfoCompat(notification: Notification): ForegroundInfo {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ForegroundInfo(notificationId, notification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            ForegroundInfo(notificationId, notification)
+        }
     }
 }

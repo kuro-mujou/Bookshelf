@@ -137,85 +137,53 @@ class BookWriterViewModel(
                 _bookWriterState.update { it.copy(
                     toggleBold = !it.toggleBold
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleBold = !_bookWriterState.value.toggleBold
-//                )
             }
             is BookWriterAction.ToggleItalic -> {
                 _bookWriterState.update { it.copy(
                     toggleItalic = !it.toggleItalic
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleItalic = !_bookWriterState.value.toggleItalic
-//                )
             }
             is BookWriterAction.ToggleUnderline -> {
                 _bookWriterState.update { it.copy(
                     toggleUnderline = !it.toggleUnderline,
                     toggleStrikethrough = false,
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleUnderline = !_bookWriterState.value.toggleUnderline,
-//                    toggleStrikethrough = false,
-//                )
             }
             is BookWriterAction.ToggleStrikethrough -> {
                 _bookWriterState.update { it.copy(
                     toggleStrikethrough = !it.toggleStrikethrough,
                     toggleUnderline = false,
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleStrikethrough = !_bookWriterState.value.toggleStrikethrough,
-//                    toggleUnderline = false,
-//                )
             }
             is BookWriterAction.ToggleAlign -> {
                 _bookWriterState.update { it.copy(
                     toggleAlign = if(it.toggleAlign < 3) it.toggleAlign + 1 else 1
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleAlign = if(_bookWriterState.value.toggleAlign < 3) _bookWriterState.value.toggleAlign + 1 else 1
-//                )
             }
             is BookWriterAction.UpdateAlignState -> {
                 _bookWriterState.update { it.copy(
                     toggleAlign = action.alignState
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleAlign = action.alignState
-//                )
             }
             is BookWriterAction.UpdateBoldState -> {
                 _bookWriterState.update { it.copy(
                     toggleBold = action.boldState
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleBold = action.boldState
-//                )
             }
             is BookWriterAction.UpdateItalicState -> {
                 _bookWriterState.update { it.copy(
                     toggleItalic = action.italicState
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleItalic = action.italicState
-//                )
             }
             is BookWriterAction.UpdateStrikethroughState -> {
                 _bookWriterState.update { it.copy(
                     toggleStrikethrough = action.strikethroughState
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleStrikethrough = action.strikethroughState
-//                )
             }
             is BookWriterAction.UpdateUnderlineState -> {
                 _bookWriterState.update { it.copy(
                     toggleUnderline = action.underlineState
                 ) }
-//                _bookWriterState.value = _bookWriterState.value.copy(
-//                    toggleUnderline = action.underlineState
-//                )
             }
         }
     }

@@ -414,8 +414,9 @@ fun ContentScreen(
                 ) {
                     Text(
                         modifier = Modifier
-                            .weight(1f)
-                            .statusBarsPadding(),
+                            .statusBarsPadding()
+                            .padding(start = 4.dp, end = 4.dp)
+                            .weight(1f),
                         text = header,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
@@ -427,7 +428,7 @@ fun ContentScreen(
                     Text(
                         modifier = Modifier
                             .statusBarsPadding()
-                            .padding(start = 12.dp)
+                            .padding(start = 4.dp, end = 4.dp)
                             .wrapContentWidth(),
                         text = "${pagerState.currentPage + 1} / ${contentState.book?.totalChapter}",
                         style = TextStyle(

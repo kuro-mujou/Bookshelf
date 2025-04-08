@@ -80,12 +80,17 @@ class ContentViewModel(
                             )
                             .build()
                     })
-                    mediaController?.apply {
-                        setMediaItems(mediaItemList)
-                        if(_state.value.enableBackgroundMusic) {
-                            prepare()
-                            play()
+                    if(mediaItemList.isNotEmpty()) {
+                        ttsServiceHandler.isTracksNull = false
+                        mediaController?.apply {
+                            setMediaItems(mediaItemList)
+                            if (_state.value.enableBackgroundMusic) {
+                                prepare()
+                                play()
+                            }
                         }
+                    } else {
+                        ttsServiceHandler.isTracksNull = true
                     }
                 }
         }
@@ -97,73 +102,43 @@ class ContentViewModel(
                     _state.update { it.copy(
                         book = bookRepository.getBook(bookId)
                     ) }
-//                    _state.value = _state.value.copy(
-//                        book = bookRepository.getBook(bookId)
-//                    )
                 }
             }
             is ContentAction.UpdateFlagTriggerAdjustScroll -> {
                 _state.update { it.copy(
                     flagTriggerAdjustScroll = action.value
                 ) }
-//                _state.value = _state.value.copy(
-//                    flagTriggerAdjustScroll = action.value
-//                )
             }
             is ContentAction.UpdateFlagStartScrolling -> {
                 _state.update { it.copy(
                     flagStartScrolling = action.value
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    flagStartScrolling = action.value
-//                )
             }
             is ContentAction.UpdateFlagScrollAdjusted -> {
                 _state.update { it.copy(
                     flagScrollAdjusted = action.value
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    flagScrollAdjusted = action.value
-//                )
             }
             is ContentAction.UpdateFlagStartAdjustScroll -> {
                 _state.update { it.copy(
                     flagStartAdjustScroll = action.value
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    flagStartAdjustScroll = action.value
-//                )
             }
             is ContentAction.UpdateFirstVisibleItemIndex -> {
                 _state.update { it.copy(
                     firstVisibleItemIndex = action.index
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    firstVisibleItemIndex = action.index
-//                )
             }
             is ContentAction.UpdateLastVisibleItemIndex -> {
                 _state.update { it.copy(
                     lastVisibleItemIndex = action.index
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    lastVisibleItemIndex = action.index
-//                )
             }
             is ContentAction.UpdateCurrentChapterIndex -> {
                 viewModelScope.launch {
                     _state.update { it.copy(
                         currentChapterIndex = action.index
                     ) }
-//
-//                    _state.value = _state.value.copy(
-//                        currentChapterIndex = action.index
-//                    )
                     if(mediaController?.isPlaying == true){
                         mediaController?.apply {
                             val chapter = chapterRepository.getChapterContent(bookId,action.index)
@@ -184,28 +159,16 @@ class ContentViewModel(
                 _state.update { it.copy(
                     screenHeight = action.value
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    screenHeight = action.value
-//                )
             }
             is ContentAction.UpdateScreenWidth -> {
                 _state.update { it.copy(
                     screenWidth = action.value
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    screenWidth = action.value
-//                )
             }
             is ContentAction.UpdatePreviousChapterIndex -> {
                 _state.update { it.copy(
                     previousChapterIndex = action.index
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    previousChapterIndex = action.index
-//                )
             }
             is ContentAction.UpdateBookInfoCurrentChapterIndex -> {
                 viewModelScope.launch {
@@ -221,47 +184,27 @@ class ContentViewModel(
                 _state.update { it.copy(
                     chapterHeader = action.header
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    chapterHeader = action.header
-//                )
             }
             is ContentAction.UpdateIsSpeaking -> {
                 _state.update { it.copy(
                     isSpeaking = action.isSpeaking
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    isSpeaking = action.isSpeaking
-//                )
             }
             is ContentAction.UpdateIsFocused -> {
                 _state.update { it.copy(
                     isFocused = action.isFocused
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    isFocused = action.isFocused
-//                )
             }
             is ContentAction.UpdateIsPaused -> {
                 _state.update { it.copy(
                     isPaused = action.isPaused
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    isPaused = action.isPaused
-//                )
                 onTtsUiEvent(TtsUiEvent.PlayPause(action.isPaused))
             }
             is ContentAction.UpdateTTSLanguage -> {
                 _state.update { it.copy(
                     currentLanguage = action.currentLanguage
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    currentLanguage = action.currentLanguage
-//                )
                 viewModelScope.launch {
                     dataStoreManager.setTTSLocale(action.currentLanguage.displayName)
                 }
@@ -271,10 +214,6 @@ class ContentViewModel(
                 _state.update { it.copy(
                     currentPitch = action.currentPitch
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    currentPitch = action.currentPitch
-//                )
                 viewModelScope.launch {
                     dataStoreManager.setTTSPitch(action.currentPitch)
                 }
@@ -284,10 +223,6 @@ class ContentViewModel(
                 _state.update { it.copy(
                     currentSpeed = action.currentSpeed
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    currentSpeed = action.currentSpeed
-//                )
                 viewModelScope.launch {
                     dataStoreManager.setTTSSpeed(action.currentSpeed)
                 }
@@ -297,10 +232,6 @@ class ContentViewModel(
                 _state.update { it.copy(
                     currentVoice = action.currentVoice
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    currentVoice = action.currentVoice
-//                )
                 if(action.currentVoice != null) {
                     viewModelScope.launch {
                         dataStoreManager.setTTSVoice(action.currentVoice.name)
@@ -312,59 +243,35 @@ class ContentViewModel(
                 _state.update { it.copy(
                     currentReadingParagraph = action.pos
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    currentReadingParagraph = action.pos
-//                )
             }
             is ContentAction.UpdateFontSize -> {
                 _state.update { it.copy(
                     fontSize = action.fontSize
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    fontSize = action.fontSize
-//                )
                 ttsServiceHandler.fontSizeTTS = action.fontSize
             }
             is ContentAction.UpdateLineSpacing -> {
                 _state.update { it.copy(
                     lineSpacing = action.lineSpacing
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    lineSpacing = action.lineSpacing
-//                )
                 ttsServiceHandler.lineSpacingTTS = action.lineSpacing
             }
             is ContentAction.UpdateSelectedFontFamilyIndex -> {
                 _state.update { it.copy(
                     selectedFontFamilyIndex = action.index
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    selectedFontFamilyIndex = action.index
-//                )
                 ttsServiceHandler.fontFamilyTTS = _state.value.fontFamilies[action.index]
             }
             is ContentAction.UpdateTextAlign -> {
                 _state.update { it.copy(
                     textAlign = action.textAlign
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    textAlign = action.textAlign
-//                )
                 ttsServiceHandler.textAlignTTS = action.textAlign
             }
             is ContentAction.UpdateTextIndent -> {
                 _state.update { it.copy(
                     textIndent = action.textIndent
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    textIndent = action.textIndent
-//                )
                 ttsServiceHandler.textIndentTTS = action.textIndent
             }
             is ContentAction.SelectedBook -> {
@@ -376,19 +283,11 @@ class ContentViewModel(
                 _state.update { it.copy(
                     keepScreenOn = action.keepScreenOn
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    keepScreenOn = action.keepScreenOn
-//                )
             }
             is ContentAction.UpdateEnablePagerScroll -> {
                 _state.update { it.copy(
                     enablePagerScroll = action.enable
                 ) }
-//
-//                _state.value = _state.value.copy(
-//                    enablePagerScroll = action.enable
-//                )
             }
             is ContentAction.UpdateEnableBackgroundMusic -> {
                 viewModelScope.launch {
@@ -406,14 +305,11 @@ class ContentViewModel(
                     _state.update { it.copy(
                         enableBackgroundMusic = action.enable
                     ) }
-//
-//                    _state.value = _state.value.copy(
-//                        enableBackgroundMusic = action.enable
-//                    )
                     ttsServiceHandler.enableBackgroundMusic = action.enable
                     mediaItemList.clear()
                     if(action.enable) {
                         if (selectedTrack.isNotEmpty()) {
+                            ttsServiceHandler.isTracksNull = false
                             selectedTrack.forEach { track ->
                                 val mediaItem = MediaItem.Builder()
                                     .setUri(track.uri)
@@ -435,12 +331,13 @@ class ContentViewModel(
                                 prepare()
                                 play()
                             }
+                        } else {
+                            ttsServiceHandler.isTracksNull = true
                         }
                     } else {
                         if(_state.value.isSpeaking) {
-                            mediaItemList.add(silentMediaItem)
                             mediaController?.apply {
-                                setMediaItems(mediaItemList)
+                                setMediaItems(listOf(silentMediaItem))
                                 prepare()
                                 play()
                             }
@@ -501,7 +398,6 @@ class ContentViewModel(
             val selectedLocale = tts.availableLanguages?.find {
                 it.displayName == dataStoreManager.ttsLocale.first()
             }
-
             val selectedVoice = tts.voices?.find {
                 it.name == dataStoreManager.ttsVoice.first() && it.locale == selectedLocale
             } ?: tts.voices?.firstOrNull {

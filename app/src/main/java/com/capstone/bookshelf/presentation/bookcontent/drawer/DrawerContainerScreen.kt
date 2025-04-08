@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -86,7 +85,7 @@ fun DrawerScreen(
                     .width(300.dp)
                     .then(
                         if(contentState.book?.isEditable == true){
-                            Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                            Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
                         } else {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                 Modifier.hazeEffect(
@@ -113,10 +112,9 @@ fun DrawerScreen(
                         else
                             contentState.book?.coverImagePath,
                         contentDescription = null,
-                        contentScale = ContentScale.FillBounds,
+                        contentScale = ContentScale.FillWidth,
                         modifier = Modifier
                             .width(70.dp)
-                            .height(100.dp)
                             .clip(RoundedCornerShape(8.dp))
                     )
                     Column(
