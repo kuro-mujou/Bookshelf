@@ -57,7 +57,7 @@ fun HeaderText(
     if(isOpenDialog){
         NoteDialog(
             contentState = contentState,
-            note = content.content,
+            note = content.content.trim(),
             colorPaletteState = colorPaletteState,
             onDismiss = {
                 isOpenDialog = false
@@ -88,8 +88,8 @@ fun HeaderText(
         Text(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp),
-            text = content.content,
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            text = content.content.trim(),
             style = TextStyle(
                 fontSize = content.fontSize.floatValue.sp,
                 fontWeight = FontWeight.Bold,
@@ -152,7 +152,7 @@ fun ParagraphText(
         Text(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
             text = content.text.value,
             style = TextStyle(
                 textIndent = if(content.contentState.textIndent)

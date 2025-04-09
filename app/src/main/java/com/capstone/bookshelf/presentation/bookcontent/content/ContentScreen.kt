@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.presentation.bookcontent.content
 
-import android.annotation.SuppressLint
 import android.os.Build
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -9,6 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,11 +44,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.domain.wrapper.Chapter
@@ -52,12 +61,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollState
 import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.AutoScrollViewModel
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
-import com.capstone.bookshelf.presentation.bookcontent.content.content_component.HeaderContent
-import com.capstone.bookshelf.presentation.bookcontent.content.content_component.HeaderText
-import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ImageComponent
-import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ImageContent
-import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ParagraphContent
-import com.capstone.bookshelf.presentation.bookcontent.content.content_component.ParagraphText
+import com.capstone.bookshelf.presentation.bookcontent.content.content_component.Content
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import com.capstone.bookshelf.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.util.DataStoreManager
@@ -158,15 +162,19 @@ fun ContentScreen(
             }.also {
                 isInitial = false
             }
-            val contentList = remember { mutableStateOf(listOf<@Composable (Boolean, Boolean,ColorPalette,ContentState) -> Unit>())}
             var header by remember{ mutableStateOf("") }
             var hasPrintedAtEnd by remember { mutableStateOf(false) }
             var isAnimationRunning by remember { mutableStateOf(false) }
             var animationJob by remember { mutableStateOf<Job?>(null) }
+            var originalOffset by remember { mutableStateOf(Offset.Zero) }
+            var size by remember { mutableStateOf(IntSize.Zero) }
+            var originalZoom by remember { mutableFloatStateOf(1f) }
             val density = LocalDensity.current
+
             if(data == null && contentState.currentChapterIndex == page){
                 LoadingAnimation()
             }
+
             LaunchedEffect(Unit) {
                 snapshotFlow {
                     Pair(
@@ -190,23 +198,23 @@ fun ContentScreen(
                     data = chapterContent
                     data?.let { chapterData ->
                         header = chapterData.chapterTitle
-                        parseListToUsableLists(chapterData.content).also{
-                            contentList.value = it.first
-                            chapterContents[page] = it.second
-                        }
+                        chapterContents[page] = chapterData.content
                     }
                     callbackLoadChapter = true
                 }
             }
+
             LaunchedEffect(pagerState.targetPage) {
                 viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
                 currentChapter(pagerState.targetPage,0,autoScrollState.isStart)
             }
+
             LaunchedEffect(contentState.isSpeaking) {
                 if(contentState.isSpeaking){
                     lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(contentState.currentReadingParagraph)
                 }
             }
+
             LaunchedEffect(lazyListStates[contentState.currentChapterIndex]) {
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -227,8 +235,8 @@ fun ContentScreen(
                             }
                         }
                 }
-
             }
+
             LaunchedEffect(lazyListStates[contentState.currentChapterIndex]){
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     snapshotFlow { it.isScrollInProgress && !pagerState.isScrollInProgress }.collect { scrolling ->
@@ -297,6 +305,7 @@ fun ContentScreen(
                     }
                 }
             }
+
             LaunchedEffect(autoScrollState.currentSpeed, autoScrollState.isStart, autoScrollState.isPaused, autoScrollState.stopAutoScroll) {
                 if (autoScrollState.stopAutoScroll || autoScrollState.isPaused) {
                     animationJob?.cancel()
@@ -311,24 +320,24 @@ fun ContentScreen(
                                 delay(autoScrollState.currentSpeed.toLong())
                             }
                         }.collect {
-                                isAnimationRunning = true
-                                animationJob?.cancel()
-                                animationJob = coroutineScope.launch {
-                                    lazyListState.animateScrollBy(
-                                        value = contentState.screenHeight.toFloat(),
-                                        animationSpec = tween(
-                                            durationMillis = autoScrollState.currentSpeed,
-                                            delayMillis = 0,
-                                            easing = LinearEasing
-                                        )
+                            isAnimationRunning = true
+                            animationJob?.cancel()
+                            animationJob = coroutineScope.launch {
+                                lazyListState.animateScrollBy(
+                                    value = contentState.screenHeight.toFloat(),
+                                    animationSpec = tween(
+                                        durationMillis = autoScrollState.currentSpeed,
+                                        delayMillis = 0,
+                                        easing = LinearEasing
                                     )
-                                }
-                                animationJob?.invokeOnCompletion {
-                                    isAnimationRunning = false
-                                    hasPrintedAtEnd = false
-                                    animationJob = null
-                                }
+                                )
                             }
+                            animationJob?.invokeOnCompletion {
+                                isAnimationRunning = false
+                                hasPrintedAtEnd = false
+                                animationJob = null
+                            }
+                        }
                     } else {
                         animationJob?.cancel()
                         animationJob = null
@@ -338,6 +347,7 @@ fun ContentScreen(
                     animationJob = null
                 }
             }
+
             LaunchedEffect(lazyListStates[contentState.currentChapterIndex]?.isScrollInProgress) {
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     if (!it.isScrollInProgress && autoScrollState.isStart && !autoScrollState.isPaused) {
@@ -349,36 +359,54 @@ fun ContentScreen(
                     }
                 }
             }
+
             LaunchedEffect(lazyListStates[contentState.currentChapterIndex]?.isScrollInProgress,autoScrollState.isPaused){
                 if(autoScrollState.isStart && !autoScrollState.isPaused) {
                     lazyListStates[contentState.currentChapterIndex]?.let {
-                        snapshotFlow { it.layoutInfo }
-                            .collect { layoutInfo ->
-                                if (layoutInfo.visibleItemsInfo.isNotEmpty()) {
-                                    val lastVisibleItem = layoutInfo.visibleItemsInfo.last()
-                                    if (lastVisibleItem.index == layoutInfo.totalItemsCount - 1 &&
-                                        lastVisibleItem.offset + lastVisibleItem.size <= layoutInfo.viewportEndOffset + 1
-                                    ) {
-                                        if (!isAnimationRunning && !hasPrintedAtEnd && contentState.previousChapterIndex <= contentState.currentChapterIndex) {
-                                            delay(autoScrollState.delayAtEnd.toLong())
-                                            autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
-                                            if(contentState.currentChapterIndex + 1 < contentState.book?.totalChapter!!){
-                                                currentChapter(contentState.currentChapterIndex + 1,0,true)
-                                            } else if (contentState.currentChapterIndex + 1 == contentState.book.totalChapter){
-                                                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(false))
-                                                autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
-                                                autoScrollViewModel.onAction(AutoScrollAction.UpdateStopAutoScroll(true))
-                                            }
-                                            hasPrintedAtEnd = true
+                        snapshotFlow { it.layoutInfo }.collect { layoutInfo ->
+                            if (layoutInfo.visibleItemsInfo.isNotEmpty()) {
+                                val lastVisibleItem = layoutInfo.visibleItemsInfo.last()
+                                if (lastVisibleItem.index == layoutInfo.totalItemsCount - 1 &&
+                                    lastVisibleItem.offset + lastVisibleItem.size <= layoutInfo.viewportEndOffset + 1
+                                ) {
+                                    if (!isAnimationRunning && !hasPrintedAtEnd && contentState.previousChapterIndex <= contentState.currentChapterIndex) {
+                                        delay(autoScrollState.delayAtEnd.toLong())
+                                        autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
+                                        if(contentState.currentChapterIndex + 1 < contentState.book?.totalChapter!!){
+                                            currentChapter(contentState.currentChapterIndex + 1,0,true)
+                                        } else if (contentState.currentChapterIndex + 1 == contentState.book.totalChapter){
+                                            autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(false))
+                                            autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+                                            autoScrollViewModel.onAction(AutoScrollAction.UpdateStopAutoScroll(true))
                                         }
-                                    } else {
-                                        hasPrintedAtEnd = false
+                                        hasPrintedAtEnd = true
                                     }
+                                } else {
+                                    hasPrintedAtEnd = false
                                 }
                             }
+                        }
                     }
                 }
             }
+
+            LaunchedEffect(originalZoom) {
+                if (originalZoom > 1f) {
+                    viewModel.onContentAction(ContentAction.UpdateEnablePagerScroll(false))
+                    viewModel.onContentAction(ContentAction.UpdateEnableUndoButton(true))
+                } else {
+                    viewModel.onContentAction(ContentAction.UpdateEnablePagerScroll(true))
+                    viewModel.onContentAction(ContentAction.UpdateEnableUndoButton(false))
+                }
+            }
+
+            LaunchedEffect(contentState.enableUndoButton) {
+                if (!contentState.enableUndoButton) {
+                    originalZoom = 1f
+                    originalOffset = Offset.Zero
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -388,15 +416,19 @@ fun ContentScreen(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() },
                                 onClick = {
-                                    updateSystemBar()
+                                    if(!contentState.enableUndoButton) {
+                                        updateSystemBar()
+                                    }
                                 },
                             )
-                        }else{
+                        } else {
                             Modifier.combinedClickable(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() },
                                 onClick = {
-                                    updateSystemBar()
+                                    if(!contentState.enableUndoButton) {
+                                        updateSystemBar()
+                                    }
                                 },
                                 onDoubleClick = {
                                     autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(!autoScrollState.isPaused))
@@ -443,22 +475,61 @@ fun ContentScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .graphicsLayer {
+                            val zoom = originalZoom
+                            val offset = originalOffset
+                            translationX = offset.x
+                            translationY = offset.y
+                            scaleX = zoom
+                            scaleY = zoom
+                        }
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown()
+                                do {
+                                    val event = awaitPointerEvent()
+                                    var zoom = originalZoom
+                                    zoom *= event.calculateZoom()
+                                    zoom = zoom.coerceIn(1f, 3f)
+                                    originalZoom = zoom
+                                    val pan = event.calculatePan()
+                                    val currentOffset = if (zoom == 1f) {
+                                        Offset.Zero
+                                    } else {
+                                        val temp = originalOffset + pan.times(zoom)
+                                        val maxX = (size.width * (zoom - 1) / 2f)
+                                        val maxY = (size.height * (zoom - 1) / 2f)
+                                        Offset(
+                                            temp.x.coerceIn(-maxX, maxX),
+                                            temp.y.coerceIn(-maxY, maxY)
+                                        )
+                                    }
+                                    originalOffset = currentOffset
+                                } while (event.changes.any { it.pressed })
+                            }
+                        }
+                        .onSizeChanged {
+                            size = it
+                        }
                         .onGloballyPositioned { coordinates ->
                             viewModel.onContentAction(ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
                             viewModel.onContentAction(ContentAction.UpdateScreenHeight(coordinates.size.height))
                         },
                     state = listState,
                 ) {
-                    itemsIndexed(
-                        items = contentList.value,
-                        key = { index, _ -> index }
-                    ) { index, composable ->
-                        composable(
-                            index == contentState.currentReadingParagraph,
-                            contentState.isFocused,
-                            colorPaletteState,
-                            contentState
-                        )
+                    chapterContents[page]?.let {
+                        itemsIndexed(
+                            items = it,
+                            key = { index:Int, _:String -> index }
+                        ) {  index, content ->
+                            Content(
+                                content = content,
+                                isHighlighted = index == contentState.currentReadingParagraph,
+                                isSpeaking = contentState.isSpeaking,
+                                colorPaletteState = colorPaletteState,
+                                fontState = contentState
+                            )
+                        }
                     }
                 }
                 Row(
@@ -472,7 +543,7 @@ fun ContentScreen(
                         modifier = Modifier
                             .navigationBarsPadding()
                             .padding(start = 4.dp),
-                        text = "${contentState.lastVisibleItemIndex + 1} / ${contentList.value.size}",
+                        text = "${contentState.lastVisibleItemIndex + 1} / ${chapterContents[page]?.size}",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             textAlign = TextAlign.Right,
@@ -484,64 +555,4 @@ fun ContentScreen(
             }
         }
     }
-}
-@UnstableApi
-@SuppressLint("SdCardPath")
-fun parseListToUsableLists(
-    paragraphs: List<String>,
-): Pair<List<@Composable (Boolean, Boolean, ColorPalette, ContentState) -> Unit>,List<String>> {
-    val composable = mutableListOf<@Composable (Boolean,Boolean,ColorPalette,ContentState) -> Unit>()
-    val ttsParagraph = mutableListOf<String>()
-    paragraphs.forEach {
-        val linkPattern = Regex("""/data/user/0/com\.capstone\.bookshelf/files/[^ ]*""")
-        val headerPatten = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
-        val headerLevel = Regex("""<h([1-6])>.*?</h\1>""")
-        val htmlTagPattern = Regex(pattern = """<[^>]+>""")
-        if(it.isNotEmpty()){
-            if(linkPattern.containsMatchIn(it)) {
-                composable.add{ _,_,_,_->
-                    ImageComponent(
-                        content = ImageContent(
-                            content = it
-                        )
-                    )
-                }
-                ttsParagraph.add(" ")
-            }else if(headerPatten.containsMatchIn(it)) {
-                if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
-                    composable.add {isHighlighted, isSpeaking, colorPaletteState, fontState ->
-                        HeaderText(
-                            colorPaletteState = colorPaletteState,
-                            contentState = fontState,
-                            content = HeaderContent(
-                                content = htmlTagPattern.replace(it, replacement = ""),
-                                contentState = fontState,
-                                level = headerLevel.find(it)!!.groupValues[1].toInt(),
-                            ),
-                            isHighlighted = isHighlighted,
-                            isSpeaking = isSpeaking
-                        )
-                    }
-                    ttsParagraph.add(htmlTagPattern.replace(it, replacement = ""))
-                }
-            } else{
-                if(htmlTagPattern.replace(it, replacement = "").isNotEmpty()){
-                    composable.add { isHighlighted,isSpeaking, colorPaletteState, fontState->
-                        ParagraphText(
-                            colorPaletteState = colorPaletteState,
-                            contentState = fontState,
-                            content = ParagraphContent(
-                                content = it,
-                                contentState = fontState,
-                            ),
-                            isHighlighted = isHighlighted,
-                            isSpeaking = isSpeaking
-                        )
-                    }
-                    ttsParagraph.add(htmlTagPattern.replace(it, replacement = ""))
-                }
-            }
-        }
-    }
-    return Pair(composable,ttsParagraph)
 }

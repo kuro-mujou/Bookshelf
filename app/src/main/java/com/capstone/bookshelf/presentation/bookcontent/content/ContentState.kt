@@ -15,6 +15,7 @@ data class ContentState(
     val tts : TextToSpeech? = null,
     val enableScaffoldBar : Boolean = true,
     val enablePagerScroll : Boolean = true,
+    val enableUndoButton : Boolean = false,
     //content
     val currentChapterIndex: Int = 0,
     val previousChapterIndex: Int = 0,

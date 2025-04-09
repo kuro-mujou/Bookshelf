@@ -239,12 +239,11 @@ fun BookContentScreenRoot(
             }
             Scaffold(
                 floatingActionButton = {
-                    if(contentState.book?.fileType == "cbz") {
+                    if(contentState.enableUndoButton) {
                         CustomFab(
                             colorPaletteState = colorPaletteState,
                             onFabClick = {
-                                topBarViewModel.onAction(TopBarAction.UpdateVisibility(!topBarState.visibility))
-                                bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(!bottomBarState.visibility))
+                                viewModel.onContentAction(ContentAction.UpdateEnableUndoButton(false))
                             }
                         )
                     }

@@ -362,6 +362,12 @@ class ContentViewModel(
                     getChapter(action.index)
                 }
             }
+
+            is ContentAction.UpdateEnableUndoButton -> {
+                _state.update { it.copy(
+                    enableUndoButton = action.enable
+                ) }
+            }
         }
     }
     fun onTtsUiEvent(event: TtsUiEvent){
@@ -500,24 +506,28 @@ class ContentViewModel(
                     ttsServiceHandler.currentChapterIndex.collectLatest { currentChapterIndex ->
                         _state.update { it.copy(currentChapterIndex = currentChapterIndex) }
                         val chapter = chapterRepository.getChapterContent(bookId, currentChapterIndex)
-                        chapter?.let {content->
-                            parseListToUsableLists(content.content).also {
-                                ttsServiceHandler.currentChapterParagraphs = it.second
+                        val htmlTagPattern = Regex(pattern = """<[^>]+>""")
+                        val linkPattern = Regex("""\.capstone\.bookshelf/files/[^ ]*""")
+                        ttsServiceHandler.currentChapterParagraphs = chapter?.content?.map { raw ->
+                            val cleaned = htmlTagPattern.replace(raw, replacement = "")
+                            if (linkPattern.containsMatchIn(cleaned)) {
+                                " "
+                            } else {
+                                cleaned.trim()
                             }
-                            mediaController?.apply {
-                                if(_state.value.isSpeaking) {
-                                    val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
-                                        ?.setArtist(content.chapterTitle)?.build()!!
-                                    val updatedMediaItem =
-                                        currentMediaItem?.buildUpon()?.setMediaMetadata(updatedMetadata)
-                                            ?.build()!!
-                                    replaceMediaItem(0, updatedMediaItem)
-                                    prepare()
-                                    play()
-                                }
+                        }?:emptyList()
+                        mediaController?.apply {
+                            if(_state.value.isSpeaking) {
+                                val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
+                                    ?.setArtist(chapter?.chapterTitle)?.build()!!
+                                val updatedMediaItem =
+                                    currentMediaItem?.buildUpon()?.setMediaMetadata(updatedMetadata)
+                                        ?.build()!!
+                                replaceMediaItem(0, updatedMediaItem)
+                                prepare()
+                                play()
                             }
                         }
-
                     }
                 }
                 serviceJob += launch {

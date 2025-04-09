@@ -55,8 +55,8 @@ class EpubImportWorker(
     private val md = MessageDigest.getInstance("MD5")
     private val notificationManager =
         appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    private val notificationId = System.currentTimeMillis().toInt() // Base ID for progress
-    private val completionNotificationId = notificationId + 1 // Separate ID for completion
+    private val notificationId = System.currentTimeMillis().toInt()
+    private val completionNotificationId = notificationId + 1
 
     companion object {
         const val INPUT_URI_KEY = "input_uri"
@@ -328,7 +328,8 @@ class EpubImportWorker(
                         bookId,
                         extraTitle,
                         overallChapterIndex
-                    ); saveEmptyChapterContent(bookId, extraTitle, overallChapterIndex)
+                    )
+                    saveEmptyChapterContent(bookId, extraTitle, overallChapterIndex)
                     overallChapterIndex++
                 }
 
@@ -447,8 +448,9 @@ class EpubImportWorker(
                 }
                 var isStartAnchorNode = false
                 if (!passedStartAnchor && startElement != null && node == startElement) {
-                    passedStartAnchor = true; processingActive = true; isStartAnchorNode =
-                    true
+                    passedStartAnchor = true
+                    processingActive = true
+                    isStartAnchorNode = true
                 }
                 when (node) {
                     is TextNode -> {
@@ -498,37 +500,41 @@ class EpubImportWorker(
                             "img", "image" -> {
                                 flushParagraphWithFormatting(currentParagraph, contentList)
                                 val srcAttr = when (tagName) {
-                                    "img" -> node.attr("src"); "image" -> node.attr("xlink:href")
-                                        .ifEmpty { node.attr("href") }; else -> ""
+                                    "img" -> node.attr("src")
+                                    "image" -> node.attr("xlink:href").ifEmpty { node.attr("href") }
+                                    else -> ""
                                 }
                                 if (srcAttr.isNotBlank()) {
                                     val imageResource = getImageResourceFromBook(srcAttr, book)
                                     if (imageResource != null) {
-                                        var savedImagePath: String? = null; try {
+                                        var savedImagePath: String? = null
+                                        try {
                                             imageResource.inputStream.use { stream ->
                                                 val bitmap = decodeSampledBitmapFromStream(
                                                     stream,
                                                     MAX_BITMAP_DIMENSION,
                                                     MAX_BITMAP_DIMENSION
-                                                ); if (bitmap != null) {
-                                                val name =
-                                                    "image_${bookId}_${chapterIndex}_seg${imageCounter++}"; savedImagePath =
-                                                    saveBitmapToPrivateStorage(
-                                                        context = context,
-                                                        bitmap = bitmap,
-                                                        filenameWithoutExtension = name
-                                                    ); bitmap.recycle()
-                                            } else {
-                                                savedImagePath = "error_decode"
-                                            }
+                                                )
+                                                if (bitmap != null) {
+                                                    val name =
+                                                        "image_${bookId}_${chapterIndex}_seg${imageCounter++}"
+                                                    savedImagePath =
+                                                        saveBitmapToPrivateStorage(
+                                                            context = context,
+                                                            bitmap = bitmap,
+                                                            filenameWithoutExtension = name
+                                                        )
+                                                    bitmap.recycle()
+                                                } else {
+                                                    savedImagePath = "error_decode"
+                                                }
                                             }
                                         } catch (e: Exception) {
 
                                         }
                                         if (savedImagePath != null && !savedImagePath!!.startsWith("error_")) {
-                                            contentList.add(savedImagePath!!); imagePaths.add(
-                                                savedImagePath!!
-                                            )
+                                            contentList.add(savedImagePath!!)
+                                            imagePaths.add(savedImagePath!!)
                                         }
                                     }
                                 }
@@ -573,7 +579,8 @@ class EpubImportWorker(
                                     currentParagraph.setLength(currentParagraph.length - "<$tagName>".length)
                                 }
                                 else {
-                                    currentParagraph.append("</$tagName>"); flushParagraphWithFormatting(
+                                    currentParagraph.append("</$tagName>")
+                                    flushParagraphWithFormatting(
                                         currentParagraph,
                                         contentList
                                     )
@@ -641,8 +648,14 @@ class EpubImportWorker(
     }
 
     private suspend fun saveBookInfo(
-        bookID: String, title: String, coverImagePath: String?, authors: List<Author>?,
-        categories: List<String>?, description: String?, totalChapters: Int, storagePath: String
+        bookID: String,
+        title: String,
+        coverImagePath: String?,
+        authors: List<Author>?,
+        categories: List<String>?,
+        description: String?,
+        totalChapters: Int,
+        storagePath: String
     ): Long {
         val cleanedCategories =
             categories?.mapNotNull { it.trim().takeIf(String::isNotBlank) } ?: emptyList()
@@ -664,7 +677,11 @@ class EpubImportWorker(
         return bookRepository.insertBook(bookEntity)
     }
 
-    private suspend fun saveTableOfContentEntry(bookId: String, title: String, index: Int): Long {
+    private suspend fun saveTableOfContentEntry(
+        bookId: String,
+        title: String,
+        index: Int
+    ): Long {
         val tocEntity = TableOfContentEntity(bookId = bookId, title = title, index = index)
         return tableOfContentsRepository.saveTableOfContent(tocEntity)
     }
@@ -684,7 +701,11 @@ class EpubImportWorker(
         chapterRepository.saveChapterContent(chapterEntity)
     }
 
-    private suspend fun saveEmptyChapterContent(bookId: String, title: String, index: Int) {
+    private suspend fun saveEmptyChapterContent(
+        bookId: String,
+        title: String,
+        index: Int
+    ) {
         saveChapterContent(bookId, title, index, emptyList())
     }
 
@@ -697,7 +718,10 @@ class EpubImportWorker(
         saveChapterContent(bookId, title, index, listOf(errorMessage))
     }
 
-    private fun createNotificationChannelIfNeeded(channelId: String, channelName: String) {
+    private fun createNotificationChannelIfNeeded(
+        channelId: String,
+        channelName: String
+    ) {
         if (notificationManager.getNotificationChannel(channelId) == null) {
             val importance =
                 if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
@@ -742,7 +766,7 @@ class EpubImportWorker(
         isSuccess: Boolean,
         bookTitle: String?,
         failureReason: String? = null
-    ) { /* ... (copy implementation, adjust reasons) ... */
+    ) {
         val title = if (isSuccess) "Import Successful" else "Import Failed"
         val defaultTitle = bookTitle ?: "EPUB File"
         val userFriendlyReason = when {
@@ -761,10 +785,13 @@ class EpubImportWorker(
         }
         val builder = NotificationCompat.Builder(appContext, COMPLETION_CHANNEL_ID).apply {
             setSmallIcon(R.drawable.ic_launcher_foreground)
-            setContentTitle(title); setContentText(text); setStyle(
-            NotificationCompat.BigTextStyle().bigText(text)
-        )
-            setPriority(NotificationCompat.PRIORITY_DEFAULT); setAutoCancel(true)
+            setContentTitle(title)
+            setContentText(text)
+            setStyle(
+                NotificationCompat.BigTextStyle().bigText(text)
+            )
+            setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            setAutoCancel(true)
         }
         notificationManager.notify(completionNotificationId, builder.build())
         notificationManager.cancel(notificationId)

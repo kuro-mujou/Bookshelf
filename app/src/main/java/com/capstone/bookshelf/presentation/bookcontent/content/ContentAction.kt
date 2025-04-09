@@ -21,6 +21,7 @@ sealed interface ContentAction {
     data class UpdateBookInfoFirstParagraphIndex(val index: Int) : ContentAction
     data class UpdateChapterHeader(val header: String) : ContentAction
     data class UpdateEnablePagerScroll(val enable: Boolean) : ContentAction
+    data class UpdateEnableUndoButton(val enable: Boolean) : ContentAction
 
     data class UpdateIsSpeaking(val isSpeaking: Boolean) : ContentAction
     data class UpdateIsPaused(val isPaused: Boolean) : ContentAction

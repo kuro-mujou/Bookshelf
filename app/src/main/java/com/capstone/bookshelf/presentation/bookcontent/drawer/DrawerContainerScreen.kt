@@ -258,7 +258,7 @@ fun DrawerScreen(
                 }
             }
         },
-        gesturesEnabled = true
+        gesturesEnabled = contentState.enablePagerScroll || drawerState.isOpen,
     ){
         content()
     }

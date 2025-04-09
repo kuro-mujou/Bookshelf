@@ -1,9 +1,9 @@
 package com.capstone.bookshelf.presentation.bookcontent.content.content_component
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -11,17 +11,64 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.media3.common.util.UnstableApi
+import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.util.calculateHeaderSize
+
+@UnstableApi
+@Composable
+fun Content(
+    content: String,
+    isHighlighted : Boolean,
+    isSpeaking : Boolean,
+    colorPaletteState: ColorPalette,
+    fontState: ContentState,
+){
+    val linkPattern = Regex("""\.capstone\.bookshelf/files/[^ ]*""")
+    val headerPatten = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
+    val headerLevel = Regex("""<h([1-6])>.*?</h\1>""")
+    val htmlTagPattern = Regex(pattern = """<[^>]+>""")
+    if(linkPattern.containsMatchIn(content)) {
+        ImageComponent(
+            content = ImageContent(
+                content = content
+            )
+        )
+    }else if(headerPatten.containsMatchIn(content)) {
+        if(htmlTagPattern.replace(content, replacement = "").isNotEmpty()){
+            HeaderText(
+                colorPaletteState = colorPaletteState,
+                contentState = fontState,
+                content = HeaderContent(
+                    content = htmlTagPattern.replace(content, replacement = ""),
+                    contentState = fontState,
+                    level = headerLevel.find(content)!!.groupValues[1].toInt(),
+                ),
+                isHighlighted = isHighlighted,
+                isSpeaking = isSpeaking
+            )
+        }
+    } else{
+        if(htmlTagPattern.replace(content, replacement = "").isNotEmpty()){
+            ParagraphText(
+                colorPaletteState = colorPaletteState,
+                contentState = fontState,
+                content = ParagraphContent(
+                    content = content,
+                    contentState = fontState,
+                ),
+                isHighlighted = isHighlighted,
+                isSpeaking = isSpeaking
+            )
+        }
+    }
+}
 
 @Immutable
 @UnstableApi
 data class ImageContent(
     val content: String,
-){
-    var zoom = mutableFloatStateOf(1f)
-    var offset = mutableStateOf(Offset.Zero)
-}
+)
 
 @Immutable
 @UnstableApi
