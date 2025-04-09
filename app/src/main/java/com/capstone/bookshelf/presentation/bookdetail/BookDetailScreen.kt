@@ -1,61 +1,71 @@
 package com.capstone.bookshelf.presentation.bookdetail
 
-import android.graphics.drawable.Drawable
 import android.os.Build
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.palette.graphics.Palette
-import coil.ImageLoader
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import coil.request.SuccessResult
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookdetail.component.BookChip
 import dev.chrisbanes.haze.HazeState
@@ -64,69 +74,54 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
-@OptIn(ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalHazeMaterialsApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun BookDetailScreenRoot(
     viewModel: BookDetailViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onBookMarkClick: () -> Unit,
+    onDrawerItemClick: (Int) -> Unit,
+    onReadBookClick: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var vibrantColor by remember { mutableStateOf(Color.Transparent) }
-    val context = LocalContext.current
-    var result by remember { mutableStateOf<Drawable?>(null) }
-    var canvasHeight by remember { mutableFloatStateOf(0f) }
+    val tocLazyColumnState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
     val style = HazeMaterials.ultraThin(Color(0xFF181C20))
     val hazeState = remember { HazeState() }
-    LaunchedEffect(state.book) {
-        val imageUrl =
-            if (state.book?.coverImagePath == "error")
-                R.mipmap.book_cover_not_available
-            else
-                state.book?.coverImagePath
-        val loader = ImageLoader(context)
-        val request = ImageRequest.Builder(context)
-            .data(imageUrl)
-            .allowHardware(false)
-            .build()
-        result = (loader.execute(request) as? SuccessResult)?.drawable
-        result?.toBitmap()?.let { bitmap ->
-            Palette.from(bitmap).generate { palette ->
-                val color = palette?.vibrantSwatch?.rgb
-                if (color != null) {
-                    vibrantColor = Color(color)
-                }
-            }
+    val focusRequester = remember { FocusRequester() }
+    var canvasHeight by remember { mutableFloatStateOf(0f) }
+    var targetSearchIndex by remember { mutableIntStateOf(-1) }
+    var searchInput by remember { mutableStateOf("") }
+    var flag by remember { mutableStateOf(false) }
+    var enableSearch by remember { mutableStateOf(false) }
+    val isImeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(flag) {
+        if(flag){
+            tocLazyColumnState.scrollToItem(targetSearchIndex)
+            searchInput = ""
+            flag = false
+        }
+    }
+    LaunchedEffect(isImeVisible) {
+        if (!isImeVisible) {
+            focusManager.clearFocus()
         }
     }
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
         ){
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(with(LocalDensity.current) { canvasHeight.toDp() + 8.dp })
-                        .align(Alignment.BottomStart)
-                        .blur(30.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
-                ) {
-                    drawRect(
-                        color = vibrantColor.copy(alpha = 0.5f),
-                    )
-                }
-            }
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .height(with(LocalDensity.current) { canvasHeight.toDp() })
                 .clip(RoundedCornerShape(bottomEnd = 30.dp, bottomStart = 30.dp))
             ) {
                 AsyncImage(
-                    model = result,
+                    model = state.book?.coverImagePath,
                     contentDescription = null,
                     contentScale = ContentScale.FillWidth,
                     modifier = Modifier
@@ -177,15 +172,20 @@ fun BookDetailScreenRoot(
                             )
                         }
                         IconButton(
-                            onClick = {},
+                            onClick = {
+                                onBookMarkClick()
+                            },
                         ) {
                             Icon(
                                 imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
                                 contentDescription = null,
-                                tint = if (state.book?.isFavorite == true)
-                                    Color.Green
+                                tint = if (state.isSortedByFavorite)
+                                    if(isSystemInDarkTheme())
+                                        Color(155, 212, 161)
+                                    else
+                                        Color(52, 105, 63)
                                 else
-                                    Color.White,
+                                    Color.Gray,
                             )
                         }
                     }
@@ -198,10 +198,10 @@ fun BookDetailScreenRoot(
                             modifier = Modifier
                                 .width(125.dp)
                                 .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 30.dp, bottomEnd = 8.dp))
-                                .background(Color(0xFF156683).copy(0.5f))
+                                .background(MaterialTheme.colorScheme.primaryContainer.copy(0.5f))
                         ) {
                             AsyncImage(
-                                model = result,
+                                model = state.book?.coverImagePath,
                                 contentDescription = null,
                                 contentScale = ContentScale.FillWidth,
                                 modifier = Modifier
@@ -255,66 +255,191 @@ fun BookDetailScreenRoot(
                 }
             }
         }
-        Column(
+        LazyColumn(
             modifier = Modifier
-                .fillMaxSize()
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize(),
+            state = tocLazyColumnState,
         ) {
-            Text(
-                text = "Category",
-                style = TextStyle(
-                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
-                if(state.book?.categories?.isNotEmpty() == true){
-                    state.book?.categories?.forEach {
-                        BookChip {
-                            Text(text = it)
-                        }
-                    }
-                } else {
-                    Text(
-                        text = "no category available",
-                        style = TextStyle(
-                            fontSize = MaterialTheme.typography.bodyMedium.fontSize
-                        )
+            item{
+                Text(
+                    text = "Category",
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
+                    style = TextStyle(
+                        textAlign = TextAlign.Center,
+                        fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                        fontWeight = FontWeight.Medium
                     )
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    if(state.book?.categories?.isNotEmpty() == true){
+                        state.book?.categories?.forEach {
+                            BookChip {
+                                Text(text = it)
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "no category available",
+                            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
+                            style = TextStyle(
+                                fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                            )
+                        )
+                    }
+                }
+                Text(
+                    text = "Description",
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
+                    style = TextStyle(
+                        textAlign = TextAlign.Center,
+                        fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+                Text(
+                    text = state.book?.description ?: "no description available",
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
+                    style = TextStyle(
+                        textIndent = TextIndent(firstLine = 20.sp),
+                        textAlign = TextAlign.Justify,
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                    )
+                )
+            }
+            stickyHeader {
+                Column(
+                    modifier = Modifier
+                        .wrapContentHeight()
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .wrapContentHeight()
+                            .fillMaxWidth()
+                    ) {
+                        IconButton(
+                            onClick = {
+                                enableSearch = !enableSearch
+                            },
+                            modifier = Modifier.align(Alignment.CenterEnd)
+                        ){
+                            Icon(
+                                imageVector = if(enableSearch)
+                                    ImageVector.vectorResource(R.drawable.ic_up)
+                                else
+                                    ImageVector.vectorResource(R.drawable.ic_down),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        Text(
+                            text = "Table of Content",
+                            modifier = Modifier.align(Alignment.Center),
+                            style = TextStyle(
+                                fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = enableSearch
+                    ) {
+                        OutlinedTextField(
+                            value = searchInput,
+                            onValueChange = { newValue ->
+                                if (newValue.all { it.isDigit() }) {
+                                    searchInput = newValue
+                                }
+                            },
+                            label = {
+                                Text(
+                                    text = "Enter a chapter number",
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    val chapterIndex = searchInput.toIntOrNull()
+                                    if (chapterIndex != null) {
+                                        targetSearchIndex =
+                                            if (chapterIndex < state.tableOfContents.size)
+                                                chapterIndex
+                                            else
+                                                state.tableOfContents.size - 1
+                                        flag = true
+                                        focusManager.clearFocus()
+                                    }
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                        )
+                    }
                 }
             }
-            Text(
-                text = "Description",
-                style = TextStyle(
-                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                    fontWeight = FontWeight.Medium
+            itemsIndexed(
+                items = state.tableOfContents,
+                key = { _, tocItem -> tocItem.index }
+            ) {index, tocItem ->
+                NavigationDrawerItem(
+                    label = {
+                        Text(
+                            text = tocItem.title,
+                            style =
+                                if (state.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
+                                    TextStyle(
+                                        color =  MaterialTheme.colorScheme.onSecondaryContainer,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,
+                                    )
+                                } else {
+                                    TextStyle(
+                                        fontSize = 14.sp,
+                                        fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,
+                                    )
+                                },
+                        )
+                    },
+                    selected = state.tableOfContents.indexOf(tocItem) == targetSearchIndex,
+                    onClick = {
+                        onDrawerItemClick(index)
+                    },
+                    modifier = Modifier.padding(4.dp,2.dp,4.dp,2.dp).wrapContentHeight(),
+                    colors = NavigationDrawerItemDefaults.colors(
+                        selectedContainerColor =  if (state.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        } else {
+                            Color.Transparent
+                        },
+                        selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        unselectedTextColor = MaterialTheme.colorScheme.onBackground,
+                    ),
                 )
-            )
-            Text(
-                text = state.book?.description ?: "no description available",
-                style = TextStyle(
-                    fontSize = MaterialTheme.typography.bodyMedium.fontSize
-                )
-            )
+            }
         }
         Button(
             onClick = {
-
+                onReadBookClick()
             },
             modifier = Modifier
-                .fillMaxWidth()
+                .padding(16.dp)
                 .navigationBarsPadding()
-                .padding(end = 16.dp, start = 16.dp, bottom = 16.dp)
+                .fillMaxWidth()
                 .height(50.dp)
         ) {
             Text(
                 text = "Read Book",
                 style = TextStyle(
-                    color = Color.White,
                     fontSize = MaterialTheme.typography.titleMedium.fontSize,
                     fontWeight = FontWeight.Medium
                 )

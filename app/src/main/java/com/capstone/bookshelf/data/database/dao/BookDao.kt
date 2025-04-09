@@ -19,6 +19,10 @@ interface BookDao {
     fun readAllBooks(): Flow<List<BookEntity>>
 
     @Transaction
+    @Query("SELECT * FROM books WHERE bookId = :bookId LIMIT 1")
+    fun getBookAsFlow(bookId: String): Flow<BookEntity>
+
+    @Transaction
     @Query("SELECT * FROM books ORDER BY isFavorite DESC")
     fun readAllBooksSortByFavorite(): Flow<List<BookEntity>>
 

@@ -18,6 +18,11 @@ class BookRepositoryImpl(
     override suspend fun isBookExist(title: String): Boolean {
         return bookDao.isBookExist(title) != null
     }
+    override fun getBookAsFlow(bookId: String): Flow<Book> {
+        return bookDao
+            .getBookAsFlow(bookId)
+            .map { it.toDataClass() }
+    }
     override fun readAllBooksSortByFavorite(): Flow<List<Book>> {
         return bookDao
             .readAllBooksSortByFavorite()

@@ -64,7 +64,10 @@ fun BookList(
                     Icon(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_write_ebook),
                         contentDescription = "Write new ebook icon",
-                        tint = if(isSystemInDarkTheme()) Color(193, 225, 193) else Color(80, 105, 73)
+                        tint = if(isSystemInDarkTheme())
+                            Color(155, 212, 161)
+                        else
+                            Color(52, 105, 63)
                     )
                 }
                 ImportBookRoot(
@@ -82,9 +85,9 @@ fun BookList(
                         contentDescription = "Sorting Icon",
                         tint = if (localBookListState.isSortedByFavorite)
                             if(isSystemInDarkTheme())
-                                Color(193, 225, 193)
+                                Color(155, 212, 161)
                             else
-                                Color(80, 105, 73)
+                                Color(52, 105, 63)
                         else Color.Gray
                     )
                 }

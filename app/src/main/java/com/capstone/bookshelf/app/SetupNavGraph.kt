@@ -86,8 +86,7 @@ fun SetupNavGraph(
                 exitTransition = { slideOutHorizontally() },
                 popEnterTransition = { slideInHorizontally() },
             ) { nav ->
-                val selectedBookViewModel =
-                    nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
+                val selectedBookViewModel = nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
                 val viewModel = koinViewModel<BookDetailViewModel>()
                 val selectedBook by selectedBookViewModel.selectedBook.collectAsStateWithLifecycle()
 
@@ -100,6 +99,24 @@ fun SetupNavGraph(
                     viewModel = viewModel,
                     onBackClick = {
                         navController.navigateUp()
+                    },
+                    onBookMarkClick = {
+                        viewModel.onAction(BookDetailAction.OnBookMarkClick)
+                    },
+                    onDrawerItemClick = {
+                        viewModel.onAction(BookDetailAction.OnDrawerItemClick(it))
+                        navController.navigate(Route.BookContent(selectedBook?.id!!)){
+                            popUpTo(Route.BookDetail(selectedBook?.id!!)){
+                                inclusive = true
+                            }
+                        }
+                    },
+                    onReadBookClick = {
+                        navController.navigate(Route.BookContent(selectedBook?.id!!)){
+                            popUpTo(Route.BookDetail(selectedBook?.id!!)){
+                                inclusive = true
+                            }
+                        }
                     }
                 )
             }

@@ -146,9 +146,9 @@ fun BookView(
                     contentDescription = null,
                     tint = if (book.isFavorite)
                         if(isSystemInDarkTheme())
-                            Color(193, 225, 193)
+                            Color(155, 212, 161)
                         else
-                            Color(80, 105, 73)
+                            Color(52, 105, 63)
                     else
                         Color.Gray,
                 )
