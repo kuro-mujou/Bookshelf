@@ -52,13 +52,15 @@ fun SetupNavGraph(
                 val bookListViewModel = koinViewModel<BookListViewModel>()
                 val selectedBookViewModel =
                     nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
+                val dataStoreManager = DataStoreManager(LocalContext.current)
                 LaunchedEffect(true) {
                     selectedBookViewModel.onSelectBook(null)
                 }
                 BookList(
                     bookListViewModel = bookListViewModel,
                     importBookViewModel = importBookViewModel,
-                    onAction = {action->
+                    dataStoreManager = dataStoreManager,
+                    onAction = { action->
                         when(action){
                             is BookListAction.OnBookClick -> {
                                 selectedBookViewModel.onSelectBook(action.book)
@@ -75,6 +77,11 @@ fun SetupNavGraph(
                             is BookListAction.OnWritingNewBook -> {
                                 navController.navigate(
                                     Route.WriteBook
+                                )
+                            }
+                            is BookListAction.UpdateBookListType -> {
+                                bookListViewModel.onAction(
+                                    BookListAction.UpdateBookListType(action.type)
                                 )
                             }
                             else -> Unit

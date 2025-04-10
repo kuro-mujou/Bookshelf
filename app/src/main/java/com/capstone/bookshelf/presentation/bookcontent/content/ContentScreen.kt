@@ -172,7 +172,10 @@ fun ContentScreen(
             val density = LocalDensity.current
 
             if(data == null && contentState.currentChapterIndex == page){
-                LoadingAnimation()
+                LoadingAnimation(
+                    contentState = contentState,
+                    colorPaletteState = colorPaletteState
+                )
             }
 
             LaunchedEffect(Unit) {

@@ -10,5 +10,6 @@ data class BookListState(
     val selectedBook: Book? = null,
     val isLoading: Boolean = true,
     val isSavingBook: Boolean = false,
+    val listViewType: Int = -1,
     val selectedBookList: List<Book> = emptyList()
 )

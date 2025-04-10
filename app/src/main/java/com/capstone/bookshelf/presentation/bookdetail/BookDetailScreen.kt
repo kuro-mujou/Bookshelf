@@ -121,7 +121,10 @@ fun BookDetailScreenRoot(
                 .clip(RoundedCornerShape(bottomEnd = 30.dp, bottomStart = 30.dp))
             ) {
                 AsyncImage(
-                    model = state.book?.coverImagePath,
+                    model = if(state.book?.coverImagePath == "error")
+                        R.mipmap.book_cover_not_available
+                    else
+                        state.book?.coverImagePath,
                     contentDescription = null,
                     contentScale = ContentScale.FillWidth,
                     modifier = Modifier
@@ -201,7 +204,10 @@ fun BookDetailScreenRoot(
                                 .background(MaterialTheme.colorScheme.primaryContainer.copy(0.5f))
                         ) {
                             AsyncImage(
-                                model = state.book?.coverImagePath,
+                                model = if(state.book?.coverImagePath == "error")
+                                    R.mipmap.book_cover_not_available
+                                else
+                                    state.book?.coverImagePath,
                                 contentDescription = null,
                                 contentScale = ContentScale.FillWidth,
                                 modifier = Modifier
@@ -287,6 +293,8 @@ fun BookDetailScreenRoot(
                             text = "no category available",
                             modifier = Modifier.padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
                             style = TextStyle(
+                                textIndent = TextIndent(firstLine = 20.sp),
+                                textAlign = TextAlign.Justify,
                                 fontSize = MaterialTheme.typography.bodyMedium.fontSize
                             )
                         )

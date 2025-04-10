@@ -10,6 +10,7 @@ sealed interface BookListAction {
     data class OnViewBookDetailClick(val book: Book): BookListAction
     data class OnBookCheckBoxClick(val checked: Boolean,val book: Book): BookListAction
     data class OnDeletingBooks(val deleteState: Boolean): BookListAction
+    data class UpdateBookListType(val type: Int): BookListAction
     data class OnBookClick(val book: Book): BookListAction
     data object OnConfirmDeleteBooks : BookListAction
     data object OnWritingNewBook : BookListAction

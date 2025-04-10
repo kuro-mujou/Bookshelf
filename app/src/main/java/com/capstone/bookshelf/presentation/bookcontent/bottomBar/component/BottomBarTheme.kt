@@ -30,6 +30,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -416,6 +418,36 @@ fun BottomBarTheme(
                         )
                     )
                 }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround
+            ){
+                Text(
+                    text = "Image padding",
+                    style = TextStyle(
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    )
+                )
+                Switch(
+                    checked = contentState.imagePaddingState,
+                    onCheckedChange = {
+                        viewModel.onContentAction(ContentAction.UpdateImagePaddingState(it))
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = colorPaletteState.textColor,
+                        checkedTrackColor = colorPaletteState.textColor.copy(0.5f),
+                        checkedBorderColor = colorPaletteState.textColor,
+                        uncheckedThumbColor = colorPaletteState.textColor,
+                        uncheckedTrackColor = colorPaletteState.textColor.copy(0.5f),
+                        uncheckedBorderColor = colorPaletteState.textColor,
+                    )
+                )
             }
         }
         Spacer(modifier = Modifier.height(4.dp))

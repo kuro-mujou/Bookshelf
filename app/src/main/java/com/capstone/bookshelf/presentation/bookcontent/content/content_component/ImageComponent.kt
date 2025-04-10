@@ -16,11 +16,16 @@ import coil.compose.AsyncImage
 @Composable
 @UnstableApi
 fun ImageComponent(
-    content: ImageContent
+    content: ImageContent,
 ) {
     Card(
         modifier = Modifier
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+            .then(
+                if(content.contentState.imagePaddingState)
+                    Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
+                else
+                    Modifier
+            )
             .fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = Color.White

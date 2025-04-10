@@ -27,6 +27,7 @@ data class ContentState(
     val firstVisibleItemIndex : Int = 0,
     val lastVisibleItemIndex : Int = 0,
     val chapterHeader : String = "",
+    val imagePaddingState : Boolean = false,
 
     val screenHeight : Int = 0,
     val screenWidth : Int = 0,

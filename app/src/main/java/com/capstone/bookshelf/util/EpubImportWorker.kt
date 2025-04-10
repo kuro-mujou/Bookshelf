@@ -8,6 +8,7 @@ import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
@@ -172,24 +173,27 @@ class EpubImportWorker(
             } catch (e: Exception) {
                 coverImagePath = "error_processing_cover"
             }
-            val finalCoverPathForDb =
-                if (coverImagePath?.startsWith("error_") == true) "error" else coverImagePath
+            val finalCoverPathForDb = if(coverImagePath == null)
+                "error"
+            else
+                if (coverImagePath.startsWith("error_") == true)
+                    "error"
+                else
+                    coverImagePath
             onProgress(null, "Processing table of contents...")
             val flattenedToc = flattenTocReferences(book.tableOfContents?.tocReferences)
             val totalChapters = flattenedToc.size
-
             if (totalChapters == 0) {
                 return kotlin.Result.failure(IOException("EPUB Table of Contents is empty or missing."))
             }
+            Log.d(TAG, "Total chapters: $finalCoverPathForDb")
             onProgress(null, "Saving book information...")
             saveBookInfo(
                 bookId, finalBookTitle, finalCoverPathForDb, book.metadata.authors,
                 book.metadata.types, book.metadata.descriptions.firstOrNull(),
                 totalChapters, tempEpubFile.absolutePath
             )
-            if (finalCoverPathForDb != null) {
-                imagePathRepository.saveImagePath(bookId, listOf(finalCoverPathForDb))
-            }
+            imagePathRepository.saveImagePath(bookId, listOf(finalCoverPathForDb))
             processAndSaveChapters(bookId, book, flattenedToc, context, onProgress)
             return kotlin.Result.success(finalBookTitle)
         } catch (e: Exception) {

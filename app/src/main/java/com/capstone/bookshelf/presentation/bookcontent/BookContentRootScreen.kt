@@ -110,6 +110,7 @@ fun BookContentScreenRoot(
         viewModel.onContentAction(ContentAction.UpdateTextIndent(dataStoreManager.textIndent.first()))
         viewModel.onContentAction(ContentAction.UpdateLineSpacing(dataStoreManager.lineSpacing.first()))
         viewModel.onContentAction(ContentAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
+        viewModel.onContentAction(ContentAction.UpdateImagePaddingState(dataStoreManager.imagePaddingState.first()))
         yield()
     }
     DrawerScreen(

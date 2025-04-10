@@ -38,6 +38,8 @@ object PreferencesKeys {
     val IS_SORTED_BY_FAVORITE = booleanPreferencesKey("IS_SORTED_BY_FAVORITE")
     val ENABLE_BACKGROUND_MUSIC = booleanPreferencesKey("ENABLE_BACKGROUND_MUSIC")
     val PLAYER_VOLUME = floatPreferencesKey("PLAYER_VOLUME")
+    val BOOK_LIST_VIEW = intPreferencesKey("BOOK_LIST_VIEW")
+    val IMAGE_PADDING_STATE = booleanPreferencesKey("IMAGE_PADDING_STATE")
 }
 class DataStoreManager(val context: Context) {
     private val dataStore = context.dataStore
@@ -103,6 +105,12 @@ class DataStoreManager(val context: Context) {
     }
     val playerVolume: Flow<Float> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.PLAYER_VOLUME] ?: 1f
+    }
+    val bookListView: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.BOOK_LIST_VIEW] ?: 1
+    }
+    val imagePaddingState: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.IMAGE_PADDING_STATE] != false
     }
     suspend fun setKeepScreenOn(value: Boolean) {
         dataStore.edit { preferences ->
@@ -207,6 +215,16 @@ class DataStoreManager(val context: Context) {
     suspend fun setPlayerVolume(value: Float) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.PLAYER_VOLUME] = value
+        }
+    }
+    suspend fun setBookListView(value: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BOOK_LIST_VIEW] = value
+        }
+    }
+    suspend fun setImagePaddingState(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IMAGE_PADDING_STATE] = value
         }
     }
 }

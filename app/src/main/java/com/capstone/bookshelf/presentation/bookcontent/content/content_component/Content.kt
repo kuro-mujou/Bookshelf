@@ -31,8 +31,9 @@ fun Content(
     if(linkPattern.containsMatchIn(content)) {
         ImageComponent(
             content = ImageContent(
-                content = content
-            )
+                content = content,
+                contentState = fontState
+            ),
         )
     }else if(headerPatten.containsMatchIn(content)) {
         if(htmlTagPattern.replace(content, replacement = "").isNotEmpty()){
@@ -68,6 +69,7 @@ fun Content(
 @UnstableApi
 data class ImageContent(
     val content: String,
+    val contentState : ContentState
 )
 
 @Immutable

@@ -127,6 +127,15 @@ class BookListViewModel(
             is BookListAction.OnWritingNewBook -> {
 
             }
+
+            is BookListAction.UpdateBookListType -> {
+                _state.update { it.copy(
+                    listViewType = action.type
+                ) }
+                viewModelScope.launch {
+                    dataStoreManager.setBookListView(action.type)
+                }
+            }
         }
     }
 

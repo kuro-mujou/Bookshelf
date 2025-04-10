@@ -6,11 +6,17 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -42,11 +48,12 @@ import com.capstone.bookshelf.presentation.booklist.BookListState
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun BookView(
+fun GridBookView(
     book: Book,
     bookListState: BookListState,
     onItemClick: () -> Unit,
     onItemLongClick: () -> Unit,
+    onItemDoubleClick: () -> Unit,
     onItemStarClick: () -> Unit,
     onItemCheckBoxClick: (Boolean, Book) -> Unit
 ){
@@ -59,6 +66,8 @@ fun BookView(
             .combinedClickable(
                 onClick = { onItemClick() },
                 onLongClick = { onItemLongClick() },
+                onDoubleClick = { onItemDoubleClick() },
+                hapticFeedbackEnabled = false
             )
     ) {
         Column(
@@ -66,9 +75,10 @@ fun BookView(
                 .fillMaxWidth()
                 .padding(8.dp)
         ){
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
                 contentAlignment = Alignment.BottomEnd
             ){
                 AsyncImage(
@@ -78,7 +88,7 @@ fun BookView(
                     else
                         book.coverImagePath,
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                    contentScale = ContentScale.FillWidth,
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
@@ -130,6 +140,147 @@ fun BookView(
                     fontSize = MaterialTheme.typography.bodyMedium.fontSize
                 )
             )
+        }
+        if(!bookListState.isOnDeleteBooks) {
+            IconButton(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                onClick = {
+                    onItemStarClick()
+                }
+            ) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
+                    contentDescription = null,
+                    tint = if (book.isFavorite)
+                        if(isSystemInDarkTheme())
+                            Color(155, 212, 161)
+                        else
+                            Color(52, 105, 63)
+                    else
+                        Color.Gray,
+                )
+            }
+        }
+        LaunchedEffect(bookListState.isOnDeleteBooks) {
+            if(!bookListState.isOnDeleteBooks){
+                checkBoxState = false
+            }
+        }
+        if(bookListState.isOnDeleteBooks){
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Checkbox(
+                    checked = checkBoxState,
+                    onCheckedChange = {
+                        checkBoxState = it
+                        onItemCheckBoxClick(it, book)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ListBookView(
+    book: Book,
+    bookListState: BookListState,
+    onItemClick: () -> Unit,
+    onItemLongClick: () -> Unit,
+    onItemDoubleClick: () -> Unit,
+    onItemStarClick: () -> Unit,
+    onItemCheckBoxClick: (Boolean, Book) -> Unit
+){
+    var checkBoxState by rememberSaveable { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .padding(start = 8.dp, top = 4.dp, end = 8.dp, bottom = 4.dp)
+            .fillMaxWidth()
+            .height(150.dp)
+            .clip(RoundedCornerShape(15.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .combinedClickable(
+                onClick = { onItemClick() },
+                onLongClick = { onItemLongClick() },
+                onDoubleClick = { onItemDoubleClick() },
+                hapticFeedbackEnabled = false
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ){
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .wrapContentWidth(),
+                contentAlignment = Alignment.BottomEnd
+            ){
+                AsyncImage(
+                    model =
+                        if(book.coverImagePath=="error")
+                            R.mipmap.book_cover_not_available
+                        else
+                            book.coverImagePath,
+                    contentDescription = null,
+                    contentScale = ContentScale.FillHeight,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .wrapContentWidth()
+                        .clip(RoundedCornerShape(15.dp))
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Text(
+                    text = book.title,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                        fontWeight = FontWeight.Medium
+                    ),
+                )
+                Text(
+                    text = book.authors.joinToString(","),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    modifier = Modifier.padding(top = 2.dp, start = 4.dp).align(Alignment.End),
+                    text = "${book.currentChapter+1} / ${book.totalChapter}",
+                    style = TextStyle(
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                        background = MaterialTheme.colorScheme.surfaceContainer,
+                    )
+                )
+                LinearProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    progress = {
+                        (book.currentChapter + 1).toFloat() / book.totalChapter.toFloat()
+                    },
+                    modifier = Modifier
+                        .size(width = 200.dp , height = 4.dp)
+                        .align(Alignment.End)
+                )
+            }
         }
         if(!bookListState.isOnDeleteBooks) {
             IconButton(

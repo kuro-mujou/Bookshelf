@@ -368,6 +368,15 @@ class ContentViewModel(
                     enableUndoButton = action.enable
                 ) }
             }
+
+            is ContentAction.UpdateImagePaddingState -> {
+                _state.update { it.copy(
+                    imagePaddingState = action.imagePaddingState
+                ) }
+                viewModelScope.launch {
+                    dataStoreManager.setImagePaddingState(action.imagePaddingState)
+                }
+            }
         }
     }
     fun onTtsUiEvent(event: TtsUiEvent){
