@@ -3,6 +3,9 @@ package com.capstone.bookshelf.presentation.bookcontent.component.colorpicker
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.capstone.bookshelf.util.darken
+import com.capstone.bookshelf.util.isDark
+import com.capstone.bookshelf.util.lighten
 import com.capstone.bookshelf.util.toHsv
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,23 +31,11 @@ class ColorPaletteViewModel : ViewModel() {
         )
     }
 
-    private fun generateContainerColor(backgroundColor: Color): Color {
-        val bgV = backgroundColor.toHsv().third
-        return if (bgV <= 0.5) {
-            generateLightenColor(backgroundColor)
-        }else{
-            generateDarkenColor(backgroundColor)
-        }
-    }
-
     fun updateTextColor(it: Color) {
         _colorPalette.value = _colorPalette.value.copy(
             textColor = it,
             tocTextColor = generateTOCTextColor(_colorPalette.value.backgroundColor),
-            textBackgroundColor = generateTextSelectionColor(
-                _colorPalette.value.backgroundColor,
-                it
-            ),
+            textBackgroundColor = generateTextSelectionColor(_colorPalette.value.backgroundColor,it),
         )
     }
 
@@ -54,52 +45,43 @@ class ColorPaletteViewModel : ViewModel() {
         )
     }
 
+    private fun generateContainerColor(backgroundColor: Color): Color {
+        return if (backgroundColor.isDark()) {
+            backgroundColor.lighten(0.05f)
+        }else{
+            backgroundColor.darken(0.05f)
+        }
+    }
+
     private fun generateTextSelectionColor(backgroundColor: Color, textColor: Color): Color {
-        val bgH: Float
-        val bgS: Float
-        val bgV: Float
-        backgroundColor.toHsv().let {
-            bgH = it.first
-            bgS = it.second
-            bgV = it.third
+        val (bgH, bgS, bgV) = backgroundColor.toHsv()
+        val (txtH, txtS, txtV) = textColor.toHsv()
+        val h = circularHueAverage(bgH, txtH)
+        val s = (bgS + txtS) / 2
+        val rawV = (bgV + txtV) / 2
+        val v = when {
+            bgV > 0.7f && txtV > 0.7f -> 0.3f
+            bgV < 0.3f && txtV < 0.3f -> 0.7f
+            else -> rawV
         }
-        val txtH: Float
-        val txtS: Float
-        val txtV: Float
-        textColor.toHsv().let {
-            txtH = it.first
-            txtS = it.second
-            txtV = it.third
+        return Color.hsv(h, s, v).copy(alpha = 0.8f)
+    }
+
+    private fun circularHueAverage(h1: Float, h2: Float): Float {
+        val diff = abs(h1 - h2)
+        return if (diff > 180) {
+            (h1 + h2 + 360) / 2 % 360
+        } else {
+            (h1 + h2) / 2
         }
-        val selectionColor = Color.hsv(abs(bgH + txtH)/2, abs(bgS + txtS)/2, abs(bgV + txtV)/2)
-        return selectionColor.copy(0.8f)
     }
 
     private fun generateTOCTextColor(backgroundColor: Color): Color {
-        val tocTextColor: Color
-        val bgV = backgroundColor.toHsv().third
-        tocTextColor = if (bgV <= 0.5) {
+        val tocTextColor: Color = if (backgroundColor.isDark()) {
             Color.White
         } else {
             Color.Black
         }
         return tocTextColor
-    }
-
-    private fun generateDarkenColor(backgroundColor: Color): Color {
-        val r = backgroundColor.red * (1 - 0.1f)
-        val g = backgroundColor.green * (1 - 0.1f)
-        val b = backgroundColor.blue * (1 - 0.1f)
-        return Color(r, g, b)
-    }
-
-    private fun generateLightenColor(backgroundColor: Color): Color {
-        val r = backgroundColor.red * 255
-        val g = backgroundColor.green * 255
-        val b = backgroundColor.blue * 255
-        val r1 = ((100 - 5) * r + 5 * 255) / 100
-        val g1 = ((100 - 5) * g + 5 * 255) / 100
-        val b1 = ((100 - 5) * b + 5 * 255) / 100
-        return Color(r1/255, g1/255, b1/255)
     }
 }

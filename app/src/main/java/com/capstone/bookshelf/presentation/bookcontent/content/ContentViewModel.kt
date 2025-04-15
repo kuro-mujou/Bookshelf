@@ -266,12 +266,18 @@ class ContentViewModel(
                 _state.update { it.copy(
                     textAlign = action.textAlign
                 ) }
+                viewModelScope.launch {
+                    dataStoreManager.setTextAlign(action.textAlign)
+                }
                 ttsServiceHandler.textAlignTTS = action.textAlign
             }
             is ContentAction.UpdateTextIndent -> {
                 _state.update { it.copy(
                     textIndent = action.textIndent
                 ) }
+                viewModelScope.launch {
+                    dataStoreManager.setTextIndent(action.textIndent)
+                }
                 ttsServiceHandler.textIndentTTS = action.textIndent
             }
             is ContentAction.SelectedBook -> {
@@ -375,6 +381,15 @@ class ContentViewModel(
                 ) }
                 viewModelScope.launch {
                     dataStoreManager.setImagePaddingState(action.imagePaddingState)
+                }
+            }
+
+            is ContentAction.UpdateSelectedBookmarkStyle -> {
+                _state.update { it.copy(
+                    selectedBookmarkStyle = action.style
+                ) }
+                viewModelScope.launch {
+                    dataStoreManager.setBookmarkStyle(action.style)
                 }
             }
         }

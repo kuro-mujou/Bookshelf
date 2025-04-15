@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkStyle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.Locale
@@ -40,6 +41,7 @@ object PreferencesKeys {
     val PLAYER_VOLUME = floatPreferencesKey("PLAYER_VOLUME")
     val BOOK_LIST_VIEW = intPreferencesKey("BOOK_LIST_VIEW")
     val IMAGE_PADDING_STATE = booleanPreferencesKey("IMAGE_PADDING_STATE")
+    val BOOKMARK_STYLE = stringPreferencesKey("BOOKMARK_STYLE")
 }
 class DataStoreManager(val context: Context) {
     private val dataStore = context.dataStore
@@ -111,6 +113,14 @@ class DataStoreManager(val context: Context) {
     }
     val imagePaddingState: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.IMAGE_PADDING_STATE] != false
+    }
+    val bookmarkStyle: Flow<BookmarkStyle> = dataStore.data.map { preferences ->
+        val raw = preferences[PreferencesKeys.BOOKMARK_STYLE] ?: BookmarkStyle.WAVE_WITH_BIRDS.name
+        try {
+            BookmarkStyle.valueOf(raw)
+        } catch (e: IllegalArgumentException) {
+            BookmarkStyle.WAVE_WITH_BIRDS
+        }
     }
     suspend fun setKeepScreenOn(value: Boolean) {
         dataStore.edit { preferences ->
@@ -225,6 +235,11 @@ class DataStoreManager(val context: Context) {
     suspend fun setImagePaddingState(value: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.IMAGE_PADDING_STATE] = value
+        }
+    }
+    suspend fun setBookmarkStyle(bookmarkStyle: BookmarkStyle) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BOOKMARK_STYLE] = bookmarkStyle.name
         }
     }
 }

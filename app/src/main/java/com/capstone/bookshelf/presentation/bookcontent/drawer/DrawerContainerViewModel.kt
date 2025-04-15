@@ -64,7 +64,8 @@ class DrawerContainerViewModel(
                     val newChapter = TableOfContent(
                         bookId = bookId,
                         title = action.chapter,
-                        index = currentSize
+                        index = currentSize,
+                        isFavorite = false
                     )
                     tableOfContentRepository.addChapter(bookId, newChapter)
                     bookRepository.saveBookInfoTotalChapter(bookId, currentSize + 1)
@@ -78,6 +79,12 @@ class DrawerContainerViewModel(
                         content = contentList
                     )
                     chapterRepository.saveChapterContent(newChapterContent)
+                }
+            }
+
+            is DrawerContainerAction.UpdateIsFavorite -> {
+                viewModelScope.launch {
+                    tableOfContentRepository.updateTableOfContent(bookId, _state.value.currentTOC!!.index, action.isFavorite)
                 }
             }
         }

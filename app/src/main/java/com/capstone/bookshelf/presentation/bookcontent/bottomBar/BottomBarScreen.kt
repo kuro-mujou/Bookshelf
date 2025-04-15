@@ -31,6 +31,7 @@ import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
+import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkMenu
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
 import com.capstone.bookshelf.util.DataStoreManager
@@ -58,8 +59,10 @@ fun BottomBarManager(
     onSwitchChange: (Boolean) -> Unit
 ){
     var openBackgroundMusicMenu by remember {mutableStateOf(false)}
+    var openBookmarkThemeMenu by remember {mutableStateOf(false)}
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
-    val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val musicMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val bookmarkMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     LaunchedEffect(bottomBarState.visibility,contentState.isSpeaking,autoScrollState.stopAutoScroll){
         if(!bottomBarState.visibility) {
             if(contentState.isSpeaking){
@@ -173,6 +176,9 @@ fun BottomBarManager(
             },
             onBackgroundMusicSetting = {
                 openBackgroundMusicMenu = true
+            },
+            onBookmarkThemeSetting = {
+                openBookmarkThemeMenu = true
             }
         )
     }
@@ -246,11 +252,26 @@ fun BottomBarManager(
     if(openBackgroundMusicMenu){
         ModalBottomSheet(
             modifier = Modifier.fillMaxSize(),
-            sheetState = modalBottomSheetState,
+            sheetState = musicMenuSheetState,
             onDismissRequest = { openBackgroundMusicMenu = false },
             containerColor = colorPaletteState.backgroundColor
         ) {
             MusicMenu(
+                contentViewModel = viewModel,
+                dataStoreManager = dataStoreManager,
+                colorPalette = colorPaletteState,
+                contentState = contentState
+            )
+        }
+    }
+    if(openBookmarkThemeMenu){
+        ModalBottomSheet(
+            modifier = Modifier.fillMaxSize(),
+            sheetState = bookmarkMenuSheetState,
+            onDismissRequest = { openBookmarkThemeMenu = false },
+            containerColor = colorPaletteState.backgroundColor
+        ) {
+            BookmarkMenu(
                 contentViewModel = viewModel,
                 dataStoreManager = dataStoreManager,
                 colorPalette = colorPaletteState,

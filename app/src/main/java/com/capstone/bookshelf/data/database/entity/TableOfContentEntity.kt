@@ -22,6 +22,7 @@ data class TableOfContentEntity(
     @PrimaryKey(autoGenerate = true) val tocId: Int = 0,
     val bookId: String,
     val title: String,
-    val index: Int
+    val index: Int,
+    val isFavorite: Boolean = false
 )
 

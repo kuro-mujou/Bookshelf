@@ -1,6 +1,7 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer
 
 import android.os.Build
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
@@ -41,6 +44,7 @@ import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkList
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContents
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -73,8 +77,9 @@ fun DrawerScreen(
             title = "Book Mark",
         ),
     )
-    var selectedTabIndex by remember {
-        mutableIntStateOf(0)
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    LaunchedEffect(drawerState.isClosed){
+        selectedTabIndex = 0
     }
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -214,6 +219,7 @@ fun DrawerScreen(
                                         Text(
                                             text = item.title,
                                             style = TextStyle(
+                                                textAlign = TextAlign.Center,
                                                 fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                                             )
                                         )
@@ -221,39 +227,41 @@ fun DrawerScreen(
                                 )
                             }
                         }
-                        when (selectedTabIndex) {
-                            0 -> {
-                                TableOfContents(
-                                    drawerContainerState = drawerContainerState,
-                                    contentState = contentState,
-                                    drawerLazyColumnState = drawerLazyColumnState,
-                                    colorPaletteState = colorPaletteState,
-                                    onDrawerItemClick = { contentPageIndex ->
-                                        onDrawerItemClick(contentPageIndex)
-                                    },
-                                    onAddingChapter = { chapterTitle, headerSize->
-                                        onAddingChapter( chapterTitle, headerSize)
-                                    }
-                                )
-                            }
-
-                            1 -> {
-                                Box(
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Text(text = "Note")
+                        Crossfade(targetState = selectedTabIndex) { option ->
+                            when (option) {
+                                0 -> {
+                                    TableOfContents(
+                                        drawerContainerState = drawerContainerState,
+                                        contentState = contentState,
+                                        drawerLazyColumnState = drawerLazyColumnState,
+                                        colorPaletteState = colorPaletteState,
+                                        onDrawerItemClick = { contentPageIndex ->
+                                            onDrawerItemClick(contentPageIndex)
+                                        },
+                                        onAddingChapter = { chapterTitle, headerSize ->
+                                            onAddingChapter(chapterTitle, headerSize)
+                                        }
+                                    )
                                 }
-                            }
-
-                            2 -> {
-                                Box(
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Text(text = "BookMark")
+                                1 -> {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        Text(text = "Note")
+                                    }
+                                }
+                                2 -> {
+                                    BookmarkList(
+                                        drawerContainerState = drawerContainerState,
+                                        contentState = contentState,
+                                        colorPaletteState = colorPaletteState,
+                                        onCardClicked = {
+                                            onDrawerItemClick(it)
+                                        }
+                                    )
                                 }
                             }
                         }
-
                     }
                 }
             }

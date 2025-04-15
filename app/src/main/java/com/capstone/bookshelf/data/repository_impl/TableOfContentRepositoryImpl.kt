@@ -29,4 +29,7 @@ class TableOfContentRepositoryImpl(
     override suspend fun addChapter(bookId: String, chapter: TableOfContent) {
         tableOfContentDao.insertTableOfContent(chapter.toEntity())
     }
+    override suspend fun updateTableOfContent(bookId: String, index: Int, isFavorite: Boolean) {
+        tableOfContentDao.updateTableOfContent(bookId,index,isFavorite)
+    }
 }

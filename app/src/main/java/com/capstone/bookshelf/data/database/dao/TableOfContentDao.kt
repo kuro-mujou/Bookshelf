@@ -20,4 +20,7 @@ interface TableOfContentDao {
     @Transaction
     @Query("SELECT * FROM table_of_contents WHERE bookId = :bookId AND `index` = :tocId")
     suspend fun getTableOfContent(bookId: String, tocId: Int): TableOfContentEntity?
+
+    @Query("UPDATE table_of_contents SET isFavorite = :isFavorite WHERE bookId = :bookId AND `index` = :index")
+    suspend fun updateTableOfContent(bookId: String, index: Int, isFavorite: Boolean)
 }

@@ -280,6 +280,7 @@ fun ListBookView(
                         .size(width = 200.dp , height = 4.dp)
                         .align(Alignment.End)
                 )
+                Spacer(modifier = Modifier.height(4.dp))
             }
         }
         if(!bookListState.isOnDeleteBooks) {

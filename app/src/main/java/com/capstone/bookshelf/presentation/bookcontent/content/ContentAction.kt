@@ -2,6 +2,7 @@ package com.capstone.bookshelf.presentation.bookcontent.content
 
 import android.speech.tts.Voice
 import com.capstone.bookshelf.domain.wrapper.Book
+import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkStyle
 import java.util.Locale
 
 sealed interface ContentAction {
@@ -41,6 +42,7 @@ sealed interface ContentAction {
     data class UpdateLineSpacing(val lineSpacing: Int) : ContentAction
     data class UpdateImagePaddingState(val imagePaddingState: Boolean) : ContentAction
     data class UpdateKeepScreenOn(val keepScreenOn: Boolean) : ContentAction
+    data class UpdateSelectedBookmarkStyle(val style: BookmarkStyle) : ContentAction
 
     data class GetChapterContent(val index: Int) : ContentAction
 }

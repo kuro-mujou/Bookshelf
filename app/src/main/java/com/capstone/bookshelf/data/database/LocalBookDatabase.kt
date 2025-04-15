@@ -20,10 +20,10 @@ import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
         TableOfContentEntity::class,
         ChapterContentEntity::class,
         ImagePathEntity::class,
-        MusicPathEntity::class
+        MusicPathEntity::class,
     ],
     exportSchema = false,
-    version = 4
+    version = 6
 )
 @TypeConverters(StringListTypeConverter::class)
 abstract class LocalBookDatabase : RoomDatabase() {

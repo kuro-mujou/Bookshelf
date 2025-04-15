@@ -2,6 +2,7 @@ package com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -104,88 +105,6 @@ fun TableOfContents(
             }
         )
     }
-    OutlinedTextField(
-        value = searchInput,
-        onValueChange = { newValue ->
-            if (newValue.all { it.isDigit() }) {
-                searchInput = newValue
-            }
-        },
-        textStyle = TextStyle(
-            color = if(contentState.book?.isEditable == true){
-                MaterialTheme.colorScheme.onBackground
-            } else{
-                colorPaletteState.textColor
-            },
-            fontFamily = if(contentState.book?.isEditable == true){
-                MaterialTheme.typography.bodyMedium.fontFamily
-            } else{
-                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-            },
-        ),
-        label = {
-            Text(
-                text = "Enter a chapter number",
-                style = TextStyle(
-                    color = if(contentState.book?.isEditable == true){
-                        MaterialTheme.colorScheme.onBackground
-                    } else{
-                        colorPaletteState.textColor
-                    },
-                    fontFamily = if(contentState.book?.isEditable == true){
-                        MaterialTheme.typography.bodyMedium.fontFamily
-                    } else{
-                        contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                    },
-                )
-            )
-        },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Number,
-            imeAction = ImeAction.Done
-        ),
-        keyboardActions = KeyboardActions(
-            onDone = {
-                val chapterIndex = searchInput.toIntOrNull()
-                if (chapterIndex != null) {
-                    targetSearchIndex = if(chapterIndex < drawerContainerState.tableOfContents.size)
-                        chapterIndex
-                    else
-                        drawerContainerState.tableOfContents.size-1
-                    flag = true
-                    focusManager.clearFocus()
-                }
-            }
-        ),
-        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedBorderColor = if(contentState.book?.isEditable == true){
-                MaterialTheme.colorScheme.onBackground
-            } else{
-                colorPaletteState.textColor
-            },
-            unfocusedLabelColor = if(contentState.book?.isEditable == true){
-                MaterialTheme.colorScheme.onBackground
-            } else{
-                colorPaletteState.textColor
-            },
-            focusedBorderColor = if(contentState.book?.isEditable == true){
-                MaterialTheme.colorScheme.onBackground
-            } else{
-                colorPaletteState.textColor
-            },
-            focusedLabelColor = if(contentState.book?.isEditable == true){
-                MaterialTheme.colorScheme.onBackground
-            } else{
-                colorPaletteState.textColor
-            },
-            cursorColor = if(contentState.book?.isEditable == true){
-                MaterialTheme.colorScheme.onBackground
-            } else{
-                colorPaletteState.textColor
-            },
-        )
-    )
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent,
@@ -249,112 +168,207 @@ fun TableOfContents(
             }
         }
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            state = drawerLazyColumnState,
-        ) {
-            items(
-                items = drawerContainerState.tableOfContents
-            ) { tocItem ->
-                NavigationDrawerItem(
-                    label = {
-                        Text(
-                            text = tocItem.title,
-                            style =
-                                if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
-                                    TextStyle(
-                                        color = if (contentState.book?.isEditable == true) {
-                                            MaterialTheme.colorScheme.onSecondaryContainer
-                                        } else {
-                                            colorPaletteState.containerColor
-                                        },
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = if (contentState.book?.isEditable == true) {
-                                            MaterialTheme.typography.bodyMedium.fontFamily
-                                        } else {
-                                            contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                        },
-                                    )
-                                } else if (drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex) {
-                                    TextStyle(
-                                        fontStyle = FontStyle.Italic,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = if (contentState.book?.isEditable == true) {
-                                            MaterialTheme.typography.bodyMedium.fontFamily
-                                        } else {
-                                            contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                        },
-                                    )
-                                } else {
-                                    TextStyle(
-                                        fontSize = 14.sp,
-                                        fontFamily = if (contentState.book?.isEditable == true) {
-                                            MaterialTheme.typography.bodyMedium.fontFamily
-                                        } else {
-                                            contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                        },
-                                    )
-                                },
+        Column {
+            OutlinedTextField(
+                value = searchInput,
+                onValueChange = { newValue ->
+                    if (newValue.all { it.isDigit() }) {
+                        searchInput = newValue
+                    }
+                },
+                textStyle = TextStyle(
+                    color = if (contentState.book?.isEditable == true) {
+                        MaterialTheme.colorScheme.onBackground
+                    } else {
+                        colorPaletteState.textColor
+                    },
+                    fontFamily = if (contentState.book?.isEditable == true) {
+                        MaterialTheme.typography.bodyMedium.fontFamily
+                    } else {
+                        contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    },
+                ),
+                label = {
+                    Text(
+                        text = "Enter a chapter number",
+                        style = TextStyle(
+                            color = if (contentState.book?.isEditable == true) {
+                                MaterialTheme.colorScheme.onBackground
+                            } else {
+                                colorPaletteState.textColor
+                            },
+                            fontFamily = if (contentState.book?.isEditable == true) {
+                                MaterialTheme.typography.bodyMedium.fontFamily
+                            } else {
+                                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            },
                         )
-                    },
-                    selected = drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex,
-                    onClick = {
-                        onDrawerItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
-                    },
-                    modifier = Modifier.padding(4.dp,2.dp,4.dp,2.dp).wrapContentHeight(),
-                    colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor =  if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
-                            if (contentState.book?.isEditable == true) {
-                                MaterialTheme.colorScheme.secondaryContainer
-                            } else {
-                                colorPaletteState.textColor
-                            }
-                        } else {
-                            Color.Transparent
-                        },
-                        unselectedContainerColor = if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
-                            if (contentState.book?.isEditable == true) {
-                                MaterialTheme.colorScheme.secondaryContainer
-                            } else {
-                                colorPaletteState.textColor
-                            }
-                        } else {
-                            Color.Transparent
-                        },
-                        selectedTextColor = if (contentState.book?.isEditable == true) {
-                            MaterialTheme.colorScheme.onBackground
-                        } else {
-                            colorPaletteState.tocTextColor
-                        },
-                        unselectedTextColor = if (contentState.book?.isEditable == true) {
-                            MaterialTheme.colorScheme.onBackground
-                        } else {
-                            colorPaletteState.tocTextColor.copy(alpha = 0.75f)
-                        },
-                    ),
-                    badge = {
-                        if(contentState.book?.isEditable == true){
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-
-                                    }
-                                },
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = Color.Transparent
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
-                                    contentDescription = null,
-                                    tint = if(isSystemInDarkTheme()) Color(250, 160, 160) else Color(194, 59, 34)
-                                )
-                            }
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        val chapterIndex = searchInput.toIntOrNull()
+                        if (chapterIndex != null) {
+                            targetSearchIndex =
+                                if (chapterIndex < drawerContainerState.tableOfContents.size)
+                                    chapterIndex
+                                else
+                                    drawerContainerState.tableOfContents.size - 1
+                            flag = true
+                            focusManager.clearFocus()
                         }
                     }
+                ),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = if (contentState.book?.isEditable == true) {
+                        MaterialTheme.colorScheme.onBackground
+                    } else {
+                        colorPaletteState.textColor
+                    },
+                    unfocusedLabelColor = if (contentState.book?.isEditable == true) {
+                        MaterialTheme.colorScheme.onBackground
+                    } else {
+                        colorPaletteState.textColor
+                    },
+                    focusedBorderColor = if (contentState.book?.isEditable == true) {
+                        MaterialTheme.colorScheme.onBackground
+                    } else {
+                        colorPaletteState.textColor
+                    },
+                    focusedLabelColor = if (contentState.book?.isEditable == true) {
+                        MaterialTheme.colorScheme.onBackground
+                    } else {
+                        colorPaletteState.textColor
+                    },
+                    cursorColor = if (contentState.book?.isEditable == true) {
+                        MaterialTheme.colorScheme.onBackground
+                    } else {
+                        colorPaletteState.textColor
+                    },
                 )
+            )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = drawerLazyColumnState,
+            ) {
+                items(
+                    items = drawerContainerState.tableOfContents
+                ) { tocItem ->
+                    NavigationDrawerItem(
+                        label = {
+                            Text(
+                                text = tocItem.title,
+                                style =
+                                    if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
+                                        TextStyle(
+                                            color = if (contentState.book?.isEditable == true) {
+                                                MaterialTheme.colorScheme.onSecondaryContainer
+                                            } else {
+                                                colorPaletteState.containerColor
+                                            },
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = if (contentState.book?.isEditable == true) {
+                                                MaterialTheme.typography.bodyMedium.fontFamily
+                                            } else {
+                                                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                            },
+                                        )
+                                    } else if (drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex) {
+                                        TextStyle(
+                                            fontStyle = FontStyle.Italic,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = if (contentState.book?.isEditable == true) {
+                                                MaterialTheme.typography.bodyMedium.fontFamily
+                                            } else {
+                                                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                            },
+                                        )
+                                    } else {
+                                        TextStyle(
+                                            fontSize = 14.sp,
+                                            fontFamily = if (contentState.book?.isEditable == true) {
+                                                MaterialTheme.typography.bodyMedium.fontFamily
+                                            } else {
+                                                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                            },
+                                        )
+                                    },
+                            )
+                        },
+                        selected = drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex,
+                        onClick = {
+                            onDrawerItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
+                        },
+                        modifier = Modifier.padding(4.dp, 2.dp, 4.dp, 2.dp).wrapContentHeight(),
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = if (drawerContainerState.tableOfContents.indexOf(
+                                    tocItem
+                                ) == targetSearchIndex
+                            ) {
+                                if (contentState.book?.isEditable == true) {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                } else {
+                                    colorPaletteState.textColor
+                                }
+                            } else {
+                                Color.Transparent
+                            },
+                            unselectedContainerColor = if (drawerContainerState.tableOfContents.indexOf(
+                                    tocItem
+                                ) == targetSearchIndex
+                            ) {
+                                if (contentState.book?.isEditable == true) {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                } else {
+                                    colorPaletteState.textColor
+                                }
+                            } else {
+                                Color.Transparent
+                            },
+                            selectedTextColor = if (contentState.book?.isEditable == true) {
+                                MaterialTheme.colorScheme.onBackground
+                            } else {
+                                colorPaletteState.tocTextColor
+                            },
+                            unselectedTextColor = if (contentState.book?.isEditable == true) {
+                                MaterialTheme.colorScheme.onBackground
+                            } else {
+                                colorPaletteState.tocTextColor.copy(alpha = 0.75f)
+                            },
+                        ),
+                        badge = {
+                            if (contentState.book?.isEditable == true) {
+                                IconButton(
+                                    onClick = {
+                                        scope.launch {
+
+                                        }
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = Color.Transparent
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
+                                        contentDescription = null,
+                                        tint = if (isSystemInDarkTheme()) Color(
+                                            250,
+                                            160,
+                                            160
+                                        ) else Color(194, 59, 34)
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
             }
         }
     }

@@ -7,6 +7,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.domain.wrapper.Book
+import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkStyle
 import java.util.Locale
 
 @UnstableApi
@@ -75,5 +76,6 @@ data class ContentState(
         "Source Sans Pro",
     ),
     val selectedFontFamilyIndex : Int = 0,
-    val keepScreenOn : Boolean = false
+    val keepScreenOn : Boolean = false,
+    val selectedBookmarkStyle : BookmarkStyle = BookmarkStyle.WAVE_WITH_BIRDS,
 )

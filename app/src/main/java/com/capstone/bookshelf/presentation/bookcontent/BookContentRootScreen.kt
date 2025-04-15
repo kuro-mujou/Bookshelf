@@ -1,6 +1,7 @@
 package com.capstone.bookshelf.presentation.bookcontent
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -12,6 +13,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,8 +21,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -46,6 +50,7 @@ import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterEdit
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
 import com.capstone.bookshelf.util.DataStoreManager
+import com.capstone.bookshelf.util.isDark
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -71,6 +76,7 @@ fun BookContentScreenRoot(
     val textMeasurer = rememberTextMeasurer()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var pagerState by remember { mutableStateOf<PagerState?>(null) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -79,11 +85,18 @@ fun BookContentScreenRoot(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
                 viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
-                viewModel.onContentAction(ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
+                if(contentState.isSpeaking){
+                    viewModel.onContentAction(ContentAction.UpdateCurrentReadingParagraph(contentState.currentReadingParagraph))
+                } else {
+                    viewModel.onContentAction(ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
+                }
                 if(contentState.book?.isEditable == false) {
                     viewModel.stopTTSService(context)
                     viewModel.stopTTS()
                 }
+            } else if(event == Lifecycle.Event.ON_STOP) {
+                viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
+                viewModel.onContentAction(ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -98,6 +111,12 @@ fun BookContentScreenRoot(
             }
         }
     )
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        val insetsController = WindowCompat.getInsetsController(window, view)
+        insetsController.isAppearanceLightStatusBars = !colorPaletteState.backgroundColor.isDark()
+        insetsController.isAppearanceLightNavigationBars = !colorPaletteState.backgroundColor.isDark()
+    }
     LaunchedEffect(Unit) {
         if(contentState.book == null) {
             viewModel.onContentAction(ContentAction.LoadBook)
@@ -111,6 +130,7 @@ fun BookContentScreenRoot(
         viewModel.onContentAction(ContentAction.UpdateLineSpacing(dataStoreManager.lineSpacing.first()))
         viewModel.onContentAction(ContentAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
         viewModel.onContentAction(ContentAction.UpdateImagePaddingState(dataStoreManager.imagePaddingState.first()))
+        viewModel.onContentAction(ContentAction.UpdateSelectedBookmarkStyle(dataStoreManager.bookmarkStyle.first()))
         yield()
     }
     DrawerScreen(
@@ -251,6 +271,8 @@ fun BookContentScreenRoot(
                 },
                 topBar = {
                     TopBar(
+                        contentState = contentState,
+                        drawerContainerState = drawerContainerState,
                         hazeState = hazeState,
                         topBarState = topBarState.visibility,
                         colorPaletteState = colorPaletteState,
@@ -269,6 +291,15 @@ fun BookContentScreenRoot(
                             viewModel.onContentAction(ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
                             viewModel.stopTTSService(context)
                             viewModel.stopTTS()
+                        },
+                        onBookmarkIconClick = {
+                            drawerContainerViewModel.onAction(
+                                DrawerContainerAction.UpdateIsFavorite(
+                                    !drawerContainerState
+                                        .tableOfContents[contentState.currentChapterIndex]
+                                        .isFavorite
+                                )
+                            )
                         }
                     )
                 },

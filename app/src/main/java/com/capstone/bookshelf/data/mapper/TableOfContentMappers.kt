@@ -8,7 +8,8 @@ fun TableOfContentEntity.toDataClass(): TableOfContent {
         tocId = tocId,
         bookId = bookId,
         title = title,
-        index = index
+        index = index,
+        isFavorite = isFavorite
     )
 }
 fun TableOfContent.toEntity(): TableOfContentEntity {

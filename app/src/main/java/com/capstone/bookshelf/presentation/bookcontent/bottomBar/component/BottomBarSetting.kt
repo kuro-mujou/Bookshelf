@@ -62,6 +62,7 @@ fun BottomBarSetting(
     tts : TextToSpeech,
     onKeepScreenOnChange: (Boolean) -> Unit,
     onBackgroundMusicSetting: () -> Unit,
+    onBookmarkThemeSetting: () -> Unit,
 ) {
     if(bottomBarState.openTTSVoiceMenu){
         VoiceMenuDialog(
@@ -133,14 +134,15 @@ fun BottomBarSetting(
             HorizontalDivider(thickness = 2.dp, color = colorPaletteState.textColor.copy(0.8f))
             Row(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
                     .fillMaxWidth()
                     .height(50.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Icon(
-                    modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_keep_screen_on),
                     tint = colorPaletteState.textColor,
                     contentDescription = "background music"
@@ -172,7 +174,6 @@ fun BottomBarSetting(
             HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
             Row(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
                     .fillMaxWidth()
                     .height(50.dp)
                     .clickable {
@@ -182,7 +183,9 @@ fun BottomBarSetting(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Icon(
-                    modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_music_background),
                     tint = colorPaletteState.textColor,
                     contentDescription = "background music"
@@ -197,17 +200,55 @@ fun BottomBarSetting(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Icon(
-                    modifier = Modifier.size(30.dp),
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
                     tint = colorPaletteState.textColor,
                     contentDescription = "background music"
+                )
+            }
+            HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        onBookmarkThemeSetting()
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_tag),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "Bookmark theme"
+                )
+                Text(
+                    text = "Bookmark theme",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        color = colorPaletteState.textColor,
+                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    tint = colorPaletteState.textColor,
+                    contentDescription = "Bookmark theme"
                 )
             }
             if(contentState.book?.fileType != "cbz") {
                 HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
                 Row(
                     modifier = Modifier
-                        .padding(start = 8.dp, end = 8.dp)
                         .fillMaxWidth()
                         .height(50.dp)
                         .clickable {
@@ -219,7 +260,9 @@ fun BottomBarSetting(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Icon(
-                        modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp)
+                            .size(24.dp),
                         imageVector = ImageVector.vectorResource(id = R.drawable.ic_headphones),
                         tint = colorPaletteState.textColor,
                         contentDescription = "text to speech"
@@ -234,7 +277,9 @@ fun BottomBarSetting(
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Icon(
-                        modifier = Modifier.size(30.dp),
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp)
+                            .size(30.dp),
                         imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
                         tint = colorPaletteState.textColor,
                         contentDescription = "text to speech"
@@ -244,7 +289,6 @@ fun BottomBarSetting(
             HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
             Row(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
                     .fillMaxWidth()
                     .height(50.dp)
                     .clickable {
@@ -253,7 +297,9 @@ fun BottomBarSetting(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    modifier = Modifier.size(24.dp).padding(end = 8.dp),
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_scroll),
                     tint = colorPaletteState.textColor,
                     contentDescription = "auto scroll up"
@@ -268,7 +314,9 @@ fun BottomBarSetting(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Icon(
-                    modifier = Modifier.size(30.dp),
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
                     tint = colorPaletteState.textColor,
                     contentDescription = "auto scroll up"

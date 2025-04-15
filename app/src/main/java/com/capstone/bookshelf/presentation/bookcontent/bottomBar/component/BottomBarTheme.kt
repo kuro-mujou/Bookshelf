@@ -1,6 +1,7 @@
 package com.capstone.bookshelf.presentation.bookcontent.bottomBar.component
 
 import android.os.Build
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,11 +29,10 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,11 +42,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.model.ColorSample
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPaletteViewModel
@@ -78,6 +81,8 @@ fun BottomBarTheme(
     var openColorPickerForBackground by remember { mutableStateOf(false) }
     var openColorPickerForText by remember { mutableStateOf(false) }
     var openChangeColorMenu by remember { mutableStateOf(false) }
+    var textWidth by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
     val scope = rememberCoroutineScope()
     if (openColorPickerForBackground) {
         ColorPicker(
@@ -126,337 +131,313 @@ fun BottomBarTheme(
                 }
             ),
     ) {
-        if(openChangeColorMenu){
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(start = 8.dp,end = 4.dp)
-                        .weight(1f)
-                        .height(40.dp)
-                        .border(width = 3.dp, color = Color.Gray)
-                        .background(color = colorPaletteState.containerColor)
-                        .clickable(
-                            onClick = {
-                                openColorPickerForBackground = true
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ){
-                    Text(
-                        text = "Background",
-                        style = TextStyle(
-                            color = colorPaletteState.textColor,
-                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                        )
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .padding(start = 4.dp,end = 8.dp)
-                        .weight(1f)
-                        .height(40.dp)
-                        .border(width = 3.dp, color = Color.Gray)
-                        .background(color = colorPaletteState.textColor)
-                        .clickable(
-                            onClick = {
-                                openColorPickerForText = true
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ){
-                    Text(
-                        text = "Text",
-                        style = TextStyle(
-                            color = colorPaletteState.backgroundColor,
-                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                        )
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Row (
-            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-            verticalAlignment = Alignment.CenterVertically
-        ){
-            LazyRow(
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .weight(1f)
-            ) {
-                itemsIndexed(
-                    items = colorPaletteState.colorSamples,
-                ) {index, sample->
-                    SampleColorItem(
-                        colorSample = sample,
-                        contentState = contentState,
-                        selected = colorPaletteState.selectedColorSet == index,
-                        onClick = {
-                            scope.launch {
-                                dataStore.setSelectedColorSet(index)
-                                dataStore.setTextColor(sample.colorTxt.toArgb())
-                                dataStore.setBackgroundColor(sample.colorBg.toArgb())
-                            }
-                            colorPaletteViewModel.updateTextColor(sample.colorTxt)
-                            colorPaletteViewModel.updateBackgroundColor(sample.colorBg)
-                            colorPaletteViewModel.updateSelectedColorSet(index)
-                        }
-                    )
-                }
-            }
-            OutlinedIconButton(
-                onClick = {
-                    openChangeColorMenu = !openChangeColorMenu
-                },
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .size(40.dp),
-                colors = IconButtonDefaults. outlinedIconButtonColors(
-                    containerColor = colorPaletteState.backgroundColor
-                ),
-                border = BorderStroke(width = 2.dp, color = colorPaletteState.textColor)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    tint = colorPaletteState.textColor,
-                    contentDescription = null
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        LazyRow(
-            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+        Column(
+            modifier = Modifier.padding(8.dp).navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            itemsIndexed(
-                items = contentState.fontFamilies,
-            ) {index, sample->
-                SampleFontItem(
-                    fontSample = sample,
-                    fontName = contentState.fontNames[index],
-                    selected = contentState.selectedFontFamilyIndex == index,
-                    colorPaletteState = colorPaletteState,
-                    onClick = {
-                        scope.launch {
-                            dataStore.setFontFamily(index)
-                        }
-                        viewModel.onContentAction(ContentAction.UpdateSelectedFontFamilyIndex(index))
+            AnimatedVisibility(
+                visible = openChangeColorMenu
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .weight(1f)
+                            .height(40.dp)
+                            .border(width = 2.dp, color = Color.Gray)
+                            .background(color = colorPaletteState.containerColor)
+                            .clickable(
+                                onClick = {
+                                    openColorPickerForBackground = true
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Background",
+                            style = TextStyle(
+                                color = colorPaletteState.textColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            )
+                        )
                     }
-                )
-            }
-        }
-        if(contentState.book?.fileType != "cbz") {
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    modifier = Modifier.padding(start = 8.dp).width(120.dp),
-                    text = "Font Size",
-                    style = TextStyle(
-                        color = colorPaletteState.textColor,
-                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                    )
-                )
-                Slider(
-                    modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
-                    value = contentState.fontSize.toFloat(),
-                    onValueChange = { value ->
-                        viewModel.onContentAction(ContentAction.UpdateFontSize(value.roundToInt()))
-                    },
-                    onValueChangeFinished = {
-                        scope.launch {
-                            dataStore.setFontSize(contentState.fontSize)
-                        }
-                    },
-                    colors = SliderDefaults.colors(
-                        activeTrackColor = colorPaletteState.textColor,
-                        activeTickColor = colorPaletteState.containerColor,
-                        inactiveTickColor = colorPaletteState.containerColor.copy(alpha = 0.5f),
-                        inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f),
-                    ),
-                    valueRange = 12f..48f,
-                    thumb = {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .background(
-                                    color = colorPaletteState.textColor,
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "${contentState.fontSize}",
-                                style = TextStyle(
-                                    color = colorPaletteState.containerColor,
-                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                )
-                            )
-                        }
-                    },
-                    steps = 8
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    modifier = Modifier.padding(start = 8.dp).width(120.dp),
-                    text = "Line Spacing",
-                    style = TextStyle(
-                        color = colorPaletteState.textColor,
-                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                    )
-                )
-                Slider(
-                    modifier = Modifier.padding(end = 8.dp).fillMaxWidth(),
-                    value = contentState.lineSpacing.toFloat(),
-                    onValueChange = { value ->
-                        viewModel.onContentAction(ContentAction.UpdateLineSpacing(value.roundToInt()))
-                    },
-                    onValueChangeFinished = {
-                        scope.launch {
-                            dataStore.setLineSpacing(contentState.lineSpacing)
-                        }
-                    },
-                    colors = SliderDefaults.colors(
-                        activeTrackColor = colorPaletteState.textColor,
-                        activeTickColor = colorPaletteState.containerColor,
-                        inactiveTickColor = colorPaletteState.containerColor.copy(alpha = 0.5f),
-                        inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f),
-                    ),
-                    valueRange = 4f..24f,
-                    thumb = {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .background(
-                                    color = colorPaletteState.textColor,
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "${contentState.lineSpacing}",
-                                style = TextStyle(
-                                    color = colorPaletteState.containerColor,
-                                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                )
-                            )
-                        }
-                    },
-                    steps = 9
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(start = 8.dp, end = 4.dp)
-                        .weight(1f)
-                        .height(40.dp)
-                        .border(width = 1.dp, color = colorPaletteState.textColor)
-                        .background(color = colorPaletteState.containerColor)
-                        .clickable(
-                            onClick = {
-                                viewModel.onContentAction(ContentAction.UpdateTextAlign(!contentState.textAlign))
-                                scope.launch {
-                                    dataStore.setTextAlign(!contentState.textAlign)
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .weight(1f)
+                            .height(40.dp)
+                            .border(width = 2.dp, color = Color.Gray)
+                            .background(color = colorPaletteState.textColor)
+                            .clickable(
+                                onClick = {
+                                    openColorPickerForText = true
                                 }
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Text",
+                            style = TextStyle(
+                                color = colorPaletteState.backgroundColor,
+                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                            )
+                        )
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.padding(top = 2.dp, bottom = 2.dp).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                LazyRow(
+                    modifier = Modifier.padding(end = 8.dp).weight(1f).wrapContentHeight()
                 ) {
-                    val displayState = if (contentState.textAlign) "Justify" else "Left"
+                    itemsIndexed(
+                        items = colorPaletteState.colorSamples,
+                    ) { index, sample ->
+                        SampleColorItem(
+                            index = index,
+                            colorSample = sample,
+                            contentState = contentState,
+                            selected = colorPaletteState.selectedColorSet == index,
+                            onClick = {
+                                scope.launch {
+                                    dataStore.setSelectedColorSet(index)
+                                    dataStore.setTextColor(sample.colorTxt.toArgb())
+                                    dataStore.setBackgroundColor(sample.colorBg.toArgb())
+                                }
+                                colorPaletteViewModel.updateTextColor(sample.colorTxt)
+                                colorPaletteViewModel.updateBackgroundColor(sample.colorBg)
+                                colorPaletteViewModel.updateSelectedColorSet(index)
+                            }
+                        )
+                    }
+                }
+                OutlinedIconButton(
+                    onClick = {
+                        openChangeColorMenu = !openChangeColorMenu
+                    },
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.outlinedIconButtonColors(
+                        containerColor = colorPaletteState.backgroundColor
+                    ),
+                    border = BorderStroke(width = 2.dp, color = colorPaletteState.textColor)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        tint = colorPaletteState.textColor,
+                        contentDescription = null
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.padding(top = 2.dp, bottom = 2.dp).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                LazyRow(
+                    modifier = Modifier.padding(end = 8.dp).weight(1f).wrapContentHeight(),
+                ) {
+                    itemsIndexed(
+                        items = contentState.fontFamilies,
+                    ) { index, sample ->
+                        SampleFontItem(
+                            index = index,
+                            fontSample = sample,
+                            fontName = contentState.fontNames[index],
+                            selected = contentState.selectedFontFamilyIndex == index,
+                            colorPaletteState = colorPaletteState,
+                            onClick = {
+                                scope.launch {
+                                    dataStore.setFontFamily(index)
+                                }
+                                viewModel.onContentAction(
+                                    ContentAction.UpdateSelectedFontFamilyIndex(
+                                        index
+                                    )
+                                )
+                            }
+                        )
+                    }
+                }
+                OutlinedIconButton(
+                    onClick = {
+                        viewModel.onContentAction(ContentAction.UpdateImagePaddingState(!contentState.imagePaddingState))
+                    },
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.outlinedIconButtonColors(
+                        containerColor = if (contentState.imagePaddingState) colorPaletteState.textColor else Color.Transparent
+                    ),
+                    border = BorderStroke(width = 2.dp, color = colorPaletteState.textColor)
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_image_padding),
+                        contentDescription = null,
+                        tint = if (contentState.imagePaddingState) colorPaletteState.backgroundColor else colorPaletteState.textColor
+                    )
+                }
+            }
+            if (contentState.book?.fileType != "cbz") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
-                        text = "Align: $displayState",
+                        modifier = Modifier.width(with(density) {textWidth.toDp()}),
+                        text = "Font Size",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
-                }
-                Box(
-                    modifier = Modifier
-                        .padding(start = 4.dp, end = 8.dp)
-                        .weight(1f)
-                        .height(40.dp)
-                        .border(width = 1.dp, color = colorPaletteState.textColor)
-                        .background(color = colorPaletteState.containerColor)
-                        .clickable(
-                            onClick = {
-                                viewModel.onContentAction(ContentAction.UpdateTextIndent(!contentState.textIndent))
-                                scope.launch {
-                                    dataStore.setTextIndent(!contentState.textIndent)
-                                }
+                    Slider(
+                        modifier = Modifier.padding(end = 8.dp).weight(1f),
+                        value = contentState.fontSize.toFloat(),
+                        onValueChange = { value ->
+                            viewModel.onContentAction(ContentAction.UpdateFontSize(value.roundToInt()))
+                        },
+                        onValueChangeFinished = {
+                            scope.launch {
+                                dataStore.setFontSize(contentState.fontSize)
                             }
+                        },
+                        colors = SliderDefaults.colors(
+                            activeTrackColor = colorPaletteState.textColor,
+                            activeTickColor = colorPaletteState.containerColor,
+                            inactiveTickColor = colorPaletteState.containerColor.copy(alpha = 0.5f),
+                            inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f),
                         ),
-                    contentAlignment = Alignment.Center
+                        valueRange = 12f..48f,
+                        thumb = {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .background(
+                                        color = colorPaletteState.textColor,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${contentState.fontSize}",
+                                    style = TextStyle(
+                                        color = colorPaletteState.containerColor,
+                                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                    )
+                                )
+                            }
+                        },
+                        steps = 8
+                    )
+                    OutlinedIconButton(
+                        onClick = {
+                            viewModel.onContentAction(ContentAction.UpdateTextAlign(!contentState.textAlign))
+                        },
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.outlinedIconButtonColors(
+                            containerColor = colorPaletteState.textColor
+                        ),
+                        border = BorderStroke(width = 2.dp, color = colorPaletteState.textColor)
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(
+                                id = if (contentState.textAlign)
+                                    R.drawable.ic_align_justify
+                                else
+                                    R.drawable.ic_align_left
+                            ),
+                            contentDescription = null,
+                            tint = colorPaletteState.backgroundColor
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val displayState = if (contentState.textIndent) "Indent" else "No Indent"
                     Text(
-                        text = displayState,
+                        modifier = Modifier.onGloballyPositioned {
+                            textWidth = it.size.width
+                        },
+                        text = "Line Spacing",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
+                    Slider(
+                        modifier = Modifier.padding(end = 8.dp).weight(1f),
+                        value = contentState.lineSpacing.toFloat(),
+                        onValueChange = { value ->
+                            viewModel.onContentAction(ContentAction.UpdateLineSpacing(value.roundToInt()))
+                        },
+                        onValueChangeFinished = {
+                            scope.launch {
+                                dataStore.setLineSpacing(contentState.lineSpacing)
+                            }
+                        },
+                        colors = SliderDefaults.colors(
+                            activeTrackColor = colorPaletteState.textColor,
+                            activeTickColor = colorPaletteState.containerColor,
+                            inactiveTickColor = colorPaletteState.containerColor.copy(alpha = 0.5f),
+                            inactiveTrackColor = colorPaletteState.textColor.copy(alpha = 0.5f),
+                        ),
+                        valueRange = 4f..24f,
+                        thumb = {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .background(
+                                        color = colorPaletteState.textColor,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${contentState.lineSpacing}",
+                                    style = TextStyle(
+                                        color = colorPaletteState.containerColor,
+                                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                    )
+                                )
+                            }
+                        },
+                        steps = 9
+                    )
+                    OutlinedIconButton(
+                        onClick = {
+                            viewModel.onContentAction(ContentAction.UpdateTextIndent(!contentState.textIndent))
+                        },
+                        modifier = Modifier.size(40.dp),
+                        colors = IconButtonDefaults.outlinedIconButtonColors(
+                            if (contentState.textIndent) colorPaletteState.textColor else Color.Transparent
+                        ),
+                        border = BorderStroke(width = 2.dp, color = colorPaletteState.textColor)
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.ic_text_indent),
+                            contentDescription = null,
+                            tint = if (contentState.textIndent) colorPaletteState.backgroundColor else colorPaletteState.textColor
+                        )
+                    }
                 }
             }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround
-            ){
-                Text(
-                    text = "Image padding",
-                    style = TextStyle(
-                        color = colorPaletteState.textColor,
-                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                    )
-                )
-                Switch(
-                    checked = contentState.imagePaddingState,
-                    onCheckedChange = {
-                        viewModel.onContentAction(ContentAction.UpdateImagePaddingState(it))
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = colorPaletteState.textColor,
-                        checkedTrackColor = colorPaletteState.textColor.copy(0.5f),
-                        checkedBorderColor = colorPaletteState.textColor,
-                        uncheckedThumbColor = colorPaletteState.textColor,
-                        uncheckedTrackColor = colorPaletteState.textColor.copy(0.5f),
-                        uncheckedBorderColor = colorPaletteState.textColor,
-                    )
-                )
-            }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Spacer(modifier = Modifier.navigationBarsPadding())
     }
 }
 @Composable
 @UnstableApi
 fun SampleColorItem(
+    index: Int,
     colorSample: ColorSample,
     selected: Boolean,
     contentState: ContentState,
@@ -464,12 +445,17 @@ fun SampleColorItem(
 ){
     Box(
         modifier = Modifier
-            .padding(8.dp)
+            .then(
+                if (index == 0)
+                    Modifier.padding(end = 8.dp)
+                else
+                    Modifier.padding(start = 8.dp, end = 8.dp)
+            )
             .size(40.dp)
             .clip(CircleShape)
             .background(color = colorSample.colorBg)
             .border(
-                width = 4.dp,
+                width = 2.dp,
                 color = if (selected) colorSample.colorTxt else colorSample.colorBg,
                 shape = CircleShape
             )
@@ -491,6 +477,7 @@ fun SampleColorItem(
 
 @Composable
 fun SampleFontItem(
+    index: Int,
     fontSample: FontFamily,
     fontName: String,
     colorPaletteState: ColorPalette,
@@ -499,15 +486,20 @@ fun SampleFontItem(
 ){
     Box(
         modifier = Modifier
-            .padding(8.dp)
+            .then(
+                if (index == 0)
+                    Modifier.padding(end = 8.dp)
+                else
+                    Modifier.padding(start = 8.dp, end = 8.dp)
+            )
             .height(40.dp)
             .wrapContentWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(CircleShape)
             .background(color = colorPaletteState.backgroundColor)
             .border(
-                width = 4.dp,
+                width = 2.dp,
                 color = if (selected) colorPaletteState.textColor else colorPaletteState.backgroundColor,
-                shape = RoundedCornerShape(20.dp)
+                shape = CircleShape
             )
             .clickable {
                 onClick()
