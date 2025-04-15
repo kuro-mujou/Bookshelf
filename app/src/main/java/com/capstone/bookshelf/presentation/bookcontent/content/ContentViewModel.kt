@@ -557,6 +557,10 @@ class ContentViewModel(
                 serviceJob += launch {
                     ttsServiceHandler.isSpeaking.collectLatest { isSpeaking ->
                         _state.update { it.copy(isSpeaking = isSpeaking) }
+                        if(!isSpeaking){
+                            bookRepository.saveBookInfoChapterIndex(bookId, _state.value.currentChapterIndex)
+                            bookRepository.saveBookInfoParagraphIndex(bookId, _state.value.currentReadingParagraph)
+                        }
                     }
                 }
                 serviceJob += launch {

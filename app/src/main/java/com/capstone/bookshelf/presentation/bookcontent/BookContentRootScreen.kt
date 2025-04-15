@@ -86,7 +86,7 @@ fun BookContentScreenRoot(
             if (event == Lifecycle.Event.ON_DESTROY) {
                 viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
                 if(contentState.isSpeaking){
-                    viewModel.onContentAction(ContentAction.UpdateCurrentReadingParagraph(contentState.currentReadingParagraph))
+                    viewModel.onContentAction(ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.currentReadingParagraph))
                 } else {
                     viewModel.onContentAction(ContentAction.UpdateBookInfoFirstParagraphIndex(contentState.firstVisibleItemIndex))
                 }
@@ -134,6 +134,8 @@ fun BookContentScreenRoot(
         yield()
     }
     DrawerScreen(
+        dataStoreManager = dataStoreManager,
+        contentViewModel = viewModel,
         drawerContainerState = drawerContainerState,
         contentState = contentState,
         drawerState = drawerState,
@@ -155,6 +157,12 @@ fun BookContentScreenRoot(
             viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(drawerContainerState.tableOfContents.size))
             viewModel.onContentAction(ContentAction.GetChapterContent(contentState.currentChapterIndex))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
+        },
+        onDeleteBookmark = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.DeleteBookmark(it))
+        },
+        onUndo = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.Undo)
         }
     ) {
         LaunchedEffect(contentState.book) {
@@ -198,6 +206,7 @@ fun BookContentScreenRoot(
                 drawerState.open()
             }else{
                 drawerState.close()
+                drawerContainerViewModel.onAction(DrawerContainerAction.DisableUndo)
                 drawerLazyColumnState.animateScrollToItem(contentState.currentChapterIndex)
                 pagerState?.animateScrollToPage(contentState.currentChapterIndex)
             }
@@ -277,11 +286,7 @@ fun BookContentScreenRoot(
                         topBarState = topBarState.visibility,
                         colorPaletteState = colorPaletteState,
                         onMenuIconClick = {
-                            drawerContainerViewModel.onAction(
-                                DrawerContainerAction.UpdateDrawerState(
-                                    true
-                                )
-                            )
+                            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(true))
                             topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
                             bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
                         },

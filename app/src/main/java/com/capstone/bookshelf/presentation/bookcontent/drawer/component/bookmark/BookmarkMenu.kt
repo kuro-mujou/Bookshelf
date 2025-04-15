@@ -140,7 +140,7 @@ fun BookmarkItemView(
             bookmarkStyle = listItem.bookmarkStyle,
             onCardClicked = {
                 onSelected(listItem.bookmarkStyle)
-            }
+            },
         )
     }
 }

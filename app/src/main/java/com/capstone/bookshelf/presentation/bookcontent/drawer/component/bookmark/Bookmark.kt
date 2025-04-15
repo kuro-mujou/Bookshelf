@@ -1,40 +1,121 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark
 
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.media3.common.util.UnstableApi
+import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
+import com.capstone.bookshelf.util.DataStoreManager
 
+@OptIn(ExperimentalMaterial3Api::class)
 @UnstableApi
 @Composable
 fun BookmarkList(
     drawerContainerState : DrawerContainerState,
     contentState : ContentState,
+    viewModel: ContentViewModel,
+    dataStoreManager: DataStoreManager,
     colorPaletteState: ColorPalette,
     onCardClicked: (Int) -> Unit,
+    onDeleted: (Int) -> Unit,
+    onUndo: () -> Unit
 ){
-    LazyColumn(
+    var openBookmarkThemeMenu by remember {mutableStateOf(false)}
+    val bookmarkMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    Column(
         modifier = Modifier
-            .fillMaxHeight()
+            .fillMaxSize()
     ) {
-        items(
-            items = drawerContainerState.tableOfContents.filter { it.isFavorite == true },
-            key =  { it.index }
-        ) {bookMark ->
-            BookmarkCard(
-                bookmarkContent = bookMark.title,
-                bookmarkIndex = bookMark.index,
-                contentState = contentState,
-                colorPaletteState = colorPaletteState,
-                bookmarkStyle = contentState.selectedBookmarkStyle,
-                onCardClicked = {
-                    onCardClicked(it)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(
+                onClick = {
+                    openBookmarkThemeMenu = true
                 }
+            ) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_setting),
+                    contentDescription = null,
+                    tint = colorPaletteState.textColor
+                )
+            }
+            AnimatedVisibility(
+                visible = drawerContainerState.enableUndo
+            ) {
+                IconButton(
+                    onClick = {
+                        onUndo()
+                    }
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_undo),
+                        contentDescription = null,
+                        tint = colorPaletteState.textColor
+                    )
+                }
+            }
+        }
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            items(
+                items = drawerContainerState.tableOfContents.filter { it.isFavorite == true },
+                key = { it.index }
+            ) { bookMark ->
+                BookmarkCard(
+                    bookmarkContent = bookMark.title,
+                    bookmarkIndex = bookMark.index,
+                    contentState = contentState,
+                    colorPaletteState = colorPaletteState,
+                    bookmarkStyle = contentState.selectedBookmarkStyle,
+                    onCardClicked = {
+                        onCardClicked(it)
+                    },
+                    onDeleted = {
+                        onDeleted(it)
+                    }
+                )
+            }
+        }
+    }
+    if(openBookmarkThemeMenu){
+        ModalBottomSheet(
+            modifier = Modifier.fillMaxSize(),
+            sheetState = bookmarkMenuSheetState,
+            onDismissRequest = { openBookmarkThemeMenu = false },
+            containerColor = colorPaletteState.backgroundColor
+        ) {
+            BookmarkMenu(
+                contentViewModel = viewModel,
+                dataStoreManager = dataStoreManager,
+                colorPalette = colorPaletteState,
+                contentState = contentState
             )
         }
     }

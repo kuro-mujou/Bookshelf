@@ -166,7 +166,6 @@ class TTSServiceHandler (
         if (currentChapterParagraphs.isEmpty()) {
             return
         }
-
         audioFocusRequestResult = audioManager!!.requestAudioFocus(focusRequest!!)
         _isSpeaking.value = true
         _isPaused.value = false

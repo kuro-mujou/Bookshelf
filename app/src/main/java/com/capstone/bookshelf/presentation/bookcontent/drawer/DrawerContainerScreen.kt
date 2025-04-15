@@ -44,8 +44,10 @@ import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkList
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContents
+import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -55,6 +57,8 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 @UnstableApi
 @Composable
 fun DrawerScreen(
+    dataStoreManager: DataStoreManager,
+    contentViewModel: ContentViewModel,
     drawerContainerState : DrawerContainerState,
     contentState: ContentState,
     drawerState: DrawerState,
@@ -63,6 +67,8 @@ fun DrawerScreen(
     hazeState: HazeState,
     onDrawerItemClick: (Int) -> Unit,
     onAddingChapter: (String,String) -> Unit,
+    onDeleteBookmark: (Int) -> Unit,
+    onUndo: () -> Unit,
     content: @Composable () -> Unit
 ){
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
@@ -254,9 +260,17 @@ fun DrawerScreen(
                                     BookmarkList(
                                         drawerContainerState = drawerContainerState,
                                         contentState = contentState,
+                                        viewModel = contentViewModel,
+                                        dataStoreManager = dataStoreManager,
                                         colorPaletteState = colorPaletteState,
                                         onCardClicked = {
                                             onDrawerItemClick(it)
+                                        },
+                                        onDeleted = {
+                                            onDeleteBookmark(it)
+                                        },
+                                        onUndo = {
+                                            onUndo()
                                         }
                                     )
                                 }

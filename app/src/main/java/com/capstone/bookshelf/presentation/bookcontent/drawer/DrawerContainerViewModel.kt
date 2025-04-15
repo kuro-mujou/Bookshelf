@@ -87,6 +87,33 @@ class DrawerContainerViewModel(
                     tableOfContentRepository.updateTableOfContent(bookId, _state.value.currentTOC!!.index, action.isFavorite)
                 }
             }
+
+            is DrawerContainerAction.DeleteBookmark -> {
+                viewModelScope.launch {
+                    tableOfContentRepository.updateTableOfContent(bookId, action.tocId, false)
+                }
+                _state.value.undoList += action.tocId
+                _state.update { it.copy(
+                    enableUndo = true
+                ) }
+            }
+            is DrawerContainerAction.Undo -> {
+                viewModelScope.launch {
+                    _state.value.undoList.forEach {
+                        tableOfContentRepository.updateTableOfContent(bookId, it, true)
+                    }
+                    _state.update { it.copy(
+                        enableUndo = false
+                    ) }
+                    _state.value.undoList = emptyList()
+                }
+            }
+            is DrawerContainerAction.DisableUndo -> {
+                _state.update { it.copy(
+                    enableUndo = false
+                ) }
+                _state.value.undoList = emptyList()
+            }
         }
     }
     init {
