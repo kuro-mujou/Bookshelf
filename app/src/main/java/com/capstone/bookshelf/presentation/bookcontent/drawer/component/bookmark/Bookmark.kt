@@ -65,7 +65,7 @@ fun BookmarkList(
                 )
             }
             AnimatedVisibility(
-                visible = drawerContainerState.enableUndo
+                visible = drawerContainerState.enableUndoDeleteBookmark
             ) {
                 IconButton(
                     onClick = {

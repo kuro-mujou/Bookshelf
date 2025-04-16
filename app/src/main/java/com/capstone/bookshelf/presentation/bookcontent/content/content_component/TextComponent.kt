@@ -11,10 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,8 +31,8 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
-import com.capstone.bookshelf.presentation.bookcontent.component.dialog.NoteDialog
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,24 +43,14 @@ fun HeaderText(
     contentState: ContentState,
     content: HeaderContent,
     isHighlighted: Boolean,
-    isSpeaking: Boolean
+    isSpeaking: Boolean,
+    openNoteDialog: () -> Unit,
 ) {
     val color = if(isHighlighted && isSpeaking)
         colorPaletteState.textBackgroundColor
     else
         Color.Transparent
-    var isOpenDialog by remember { mutableStateOf(false) }
     val tooltipState = rememberTooltipState()
-    if(isOpenDialog){
-        NoteDialog(
-            contentState = contentState,
-            note = content.content.trim(),
-            colorPaletteState = colorPaletteState,
-            onDismiss = {
-                isOpenDialog = false
-            }
-        )
-    }
     TooltipBox(
         positionProvider = customPopupPositionProvider(),
         tooltip = {
@@ -74,7 +61,7 @@ fun HeaderText(
                         shape = CircleShape
                     ),
                 onClick = {
-                    isOpenDialog = true
+                    openNoteDialog()
                 }
             ) {
                 Icon(
@@ -106,28 +93,19 @@ fun HeaderText(
 @Composable
 @UnstableApi
 fun ParagraphText(
+    drawerContainerViewModel: DrawerContainerViewModel,
     colorPaletteState: ColorPalette,
     contentState: ContentState,
     content: ParagraphContent,
     isHighlighted: Boolean,
     isSpeaking: Boolean,
+    openNoteDialog: () -> Unit,
 ) {
     val color = if(isHighlighted && isSpeaking)
         colorPaletteState.textBackgroundColor
     else
         Color.Transparent
-    var isOpenDialog by remember { mutableStateOf(false) }
     val tooltipState = rememberTooltipState()
-    if(isOpenDialog){
-        NoteDialog(
-            contentState = contentState,
-            note = content.text.value,
-            colorPaletteState = colorPaletteState,
-            onDismiss = {
-                isOpenDialog = false
-            }
-        )
-    }
     TooltipBox(
         positionProvider = customPopupPositionProvider(),
         tooltip = {
@@ -138,7 +116,7 @@ fun ParagraphText(
                         shape = CircleShape
                     ),
                 onClick = {
-                    isOpenDialog = true
+                    openNoteDialog()
                 }
             ) {
                 Icon(

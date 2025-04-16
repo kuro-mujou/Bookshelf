@@ -392,6 +392,11 @@ class ContentViewModel(
                     dataStoreManager.setBookmarkStyle(action.style)
                 }
             }
+            is ContentAction.UpdateFlagTriggerScrollForNote -> {
+                _state.update { it.copy(
+                    flagTriggerScrollForNote = action.value
+                ) }
+            }
         }
     }
     fun onTtsUiEvent(event: TtsUiEvent){

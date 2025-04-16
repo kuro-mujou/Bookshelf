@@ -161,8 +161,30 @@ fun BookContentScreenRoot(
         onDeleteBookmark = {
             drawerContainerViewModel.onAction(DrawerContainerAction.DeleteBookmark(it))
         },
-        onUndo = {
-            drawerContainerViewModel.onAction(DrawerContainerAction.Undo)
+        onUndoDeleteBookmark = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.UndoDeleteBookmark)
+        },
+        onNoteClicked = { tocId, contentId->
+            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
+            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(tocId))
+            viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(tocId))
+            viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(tocId))
+            viewModel.onContentAction(ContentAction.UpdateFlagTriggerScrollForNote(contentId))
+            if(contentState.isSpeaking){
+                viewModel.onTtsUiEvent(TtsUiEvent.JumpToRandomChapter)
+            }
+        },
+        onNoteSelected = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateSelectedNote(it))
+        },
+        onEditNote = { note, newInput->
+            drawerContainerViewModel.onAction(DrawerContainerAction.EditNote(note,newInput))
+        },
+        onDeleteNote = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.DeleteNote(it))
+        },
+        onUndoDeleteNote = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.UndoDeleteNote)
         }
     ) {
         LaunchedEffect(contentState.book) {
@@ -185,6 +207,9 @@ fun BookContentScreenRoot(
         LaunchedEffect(drawerState.currentValue) {
             if(drawerState.currentValue == DrawerValue.Closed) {
                 drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
+                drawerContainerViewModel.onAction(DrawerContainerAction.UpdateSelectedNote(-1))
+                drawerContainerViewModel.onAction(DrawerContainerAction.DisableUndoDeleteBookmark)
+                drawerContainerViewModel.onAction(DrawerContainerAction.DisableUndoDeleteNote)
                 drawerLazyColumnState.scrollToItem(contentState.currentChapterIndex)
             } else if(drawerState.currentValue == DrawerValue.Open) {
                 drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(true))
@@ -206,7 +231,6 @@ fun BookContentScreenRoot(
                 drawerState.open()
             }else{
                 drawerState.close()
-                drawerContainerViewModel.onAction(DrawerContainerAction.DisableUndo)
                 drawerLazyColumnState.animateScrollToItem(contentState.currentChapterIndex)
                 pagerState?.animateScrollToPage(contentState.currentChapterIndex)
             }
@@ -360,6 +384,7 @@ fun BookContentScreenRoot(
                         ContentScreen(
                             viewModel = viewModel,
                             autoScrollViewModel = autoScrollViewModel,
+                            drawerContainerViewModel = drawerContainerViewModel,
                             hazeState = hazeState,
                             pagerState = it,
                             drawerContainerState = drawerContainerState,

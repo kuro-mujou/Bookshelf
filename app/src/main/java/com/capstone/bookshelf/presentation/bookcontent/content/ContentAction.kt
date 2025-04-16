@@ -8,6 +8,7 @@ import java.util.Locale
 sealed interface ContentAction {
     data object LoadBook : ContentAction
     data class SelectedBook(val book: Book): ContentAction
+    data class UpdateFlagTriggerScrollForNote(val value: Int) : ContentAction
     data class UpdateFlagTriggerAdjustScroll(val value: Boolean) : ContentAction
     data class UpdateFlagStartScrolling(val value: Boolean): ContentAction
     data class UpdateFlagScrollAdjusted(val value: Boolean): ContentAction

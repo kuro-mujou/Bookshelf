@@ -9,7 +9,9 @@ import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
+import com.capstone.bookshelf.domain.repository.NoteRepository
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
+import com.capstone.bookshelf.domain.wrapper.Note
 import com.capstone.bookshelf.domain.wrapper.TableOfContent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,16 +19,19 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class DrawerContainerViewModel(
     private val tableOfContentRepository: TableOfContentRepository,
     private val bookRepository: BookRepository,
     private val chapterRepository: ChapterRepository,
     private val imagePathRepository: ImagePathRepository,
+    private val noteRepository: NoteRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
-
     private val bookId = savedStateHandle.toRoute<Route.BookContent>().bookId
+    private val dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm  dd-MM-yyyy")
     private val _state = MutableStateFlow(DrawerContainerState())
     val state = _state
         .stateIn(
@@ -92,27 +97,88 @@ class DrawerContainerViewModel(
                 viewModelScope.launch {
                     tableOfContentRepository.updateTableOfContent(bookId, action.tocId, false)
                 }
-                _state.value.undoList += action.tocId
+                _state.value.undoBookmarkList += action.tocId
                 _state.update { it.copy(
-                    enableUndo = true
+                    enableUndoDeleteBookmark = true
                 ) }
             }
-            is DrawerContainerAction.Undo -> {
+            is DrawerContainerAction.UndoDeleteBookmark -> {
                 viewModelScope.launch {
-                    _state.value.undoList.forEach {
+                    _state.value.undoBookmarkList.forEach {
                         tableOfContentRepository.updateTableOfContent(bookId, it, true)
                     }
                     _state.update { it.copy(
-                        enableUndo = false
+                        enableUndoDeleteBookmark = false
                     ) }
-                    _state.value.undoList = emptyList()
+                    _state.value.undoBookmarkList = emptyList()
                 }
             }
-            is DrawerContainerAction.DisableUndo -> {
+            is DrawerContainerAction.DisableUndoDeleteBookmark -> {
                 _state.update { it.copy(
-                    enableUndo = false
+                    enableUndoDeleteBookmark = false
                 ) }
-                _state.value.undoList = emptyList()
+                _state.value.undoBookmarkList = emptyList()
+            }
+
+            is DrawerContainerAction.AddNote -> {
+                viewModelScope.launch {
+                    noteRepository.upsertNote(
+                        Note(
+                            bookId = bookId,
+                            tocId = action.tocId,
+                            contentId = action.contentId,
+                            noteBody = action.noteBody,
+                            noteInput = action.noteInput,
+                            timestamp = LocalDateTime.now().format(dateTimeFormatter)
+                        )
+                    )
+                }
+            }
+            is DrawerContainerAction.EditNote -> {
+                viewModelScope.launch {
+                    noteRepository.upsertNote(
+                        Note(
+                            noteId = action.note.noteId,
+                            bookId = action.note.bookId,
+                            tocId = action.note.tocId,
+                            contentId = action.note.contentId,
+                            noteBody = action.note.noteBody,
+                            noteInput = action.newInput,
+                            timestamp = LocalDateTime.now().format(dateTimeFormatter)
+                        )
+                    )
+                }
+            }
+            is DrawerContainerAction.DeleteNote -> {
+                viewModelScope.launch {
+                    noteRepository.deleteNote(action.note.noteId)
+                }
+                _state.value.undoNoteList += action.note
+                _state.update { it.copy(
+                    enableUndoDeleteNote = true,
+                    currentSelectedNote = -1
+                ) }
+            }
+            is DrawerContainerAction.UpdateSelectedNote -> {
+                _state.update { it.copy(
+                    currentSelectedNote = action.index
+                ) }
+            }
+            is DrawerContainerAction.UndoDeleteNote -> {
+                viewModelScope.launch {
+                    _state.value.undoNoteList.forEach {
+                        noteRepository.upsertNote(it)
+                    }
+                    _state.update { it.copy(
+                        enableUndoDeleteNote = false
+                    ) }
+                }
+            }
+            is DrawerContainerAction.DisableUndoDeleteNote -> {
+                _state.update { it.copy(
+                    enableUndoDeleteNote = false
+                ) }
+                _state.value.undoNoteList = emptyList()
             }
         }
     }
@@ -123,6 +189,15 @@ class DrawerContainerViewModel(
                 .collectLatest{ tableOfContents ->
                     _state.update { it.copy(
                         tableOfContents = tableOfContents
+                    ) }
+                }
+        }
+        viewModelScope.launch {
+            noteRepository
+                .getNotes(bookId)
+                .collectLatest { notes ->
+                    _state.update { it.copy(
+                        notes = notes
                     ) }
                 }
         }

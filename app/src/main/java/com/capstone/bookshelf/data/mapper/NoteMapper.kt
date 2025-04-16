@@ -6,9 +6,10 @@ import com.capstone.bookshelf.domain.wrapper.Note
 fun Note.toEntity(): NoteEntity {
     return NoteEntity(
         bookId = bookId,
-        contentIndex = contentIndex,
-        contentDetail = contentDetail,
-        noteContent = noteContent,
+        tocId = tocId,
+        contentId = contentId,
+        noteBody = noteBody,
+        noteInput = noteInput,
         timestamp = timestamp
     )
 }
@@ -17,9 +18,10 @@ fun NoteEntity.toDataClass(): Note {
     return Note(
         noteId = noteId,
         bookId = bookId,
-        contentIndex = contentIndex,
-        contentDetail = contentDetail,
-        noteContent = noteContent,
+        tocId = tocId,
+        contentId = contentId,
+        noteBody = noteBody,
+        noteInput = noteInput,
         timestamp = timestamp
     )
 }

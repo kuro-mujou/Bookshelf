@@ -22,8 +22,9 @@ import androidx.room.PrimaryKey
 data class NoteEntity(
     @PrimaryKey(autoGenerate = true) val noteId: Int = 0,
     val bookId: String,
-    val contentIndex: Int,
-    val contentDetail: String,
-    val noteContent: String,
-    val timestamp: Long
+    val tocId: Int,
+    val contentId: Int,
+    val noteBody: String,
+    val noteInput: String,
+    val timestamp: String
 )

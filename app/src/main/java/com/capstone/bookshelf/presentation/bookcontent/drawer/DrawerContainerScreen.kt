@@ -3,7 +3,6 @@ package com.capstone.bookshelf.presentation.bookcontent.drawer
 import android.os.Build
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -42,10 +41,12 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
+import com.capstone.bookshelf.domain.wrapper.Note
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkList
+import com.capstone.bookshelf.presentation.bookcontent.drawer.component.note.NoteList
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContents
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
@@ -68,7 +69,12 @@ fun DrawerScreen(
     onDrawerItemClick: (Int) -> Unit,
     onAddingChapter: (String,String) -> Unit,
     onDeleteBookmark: (Int) -> Unit,
-    onUndo: () -> Unit,
+    onUndoDeleteBookmark: () -> Unit,
+    onNoteClicked: (Int,Int) -> Unit,
+    onNoteSelected: (Int) -> Unit,
+    onEditNote: (Note,String) -> Unit,
+    onDeleteNote: (Note) -> Unit,
+    onUndoDeleteNote: () -> Unit,
     content: @Composable () -> Unit
 ){
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
@@ -250,11 +256,26 @@ fun DrawerScreen(
                                     )
                                 }
                                 1 -> {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize()
-                                    ) {
-                                        Text(text = "Note")
-                                    }
+                                    NoteList(
+                                        drawerContainerState = drawerContainerState,
+                                        contentState = contentState,
+                                        colorPaletteState = colorPaletteState,
+                                        onUndo = {
+                                            onUndoDeleteNote()
+                                        },
+                                        onCardClicked = {tocId,contentId->
+                                            onNoteClicked(tocId,contentId)
+                                        },
+                                        onCardSelected = {
+                                            onNoteSelected(it)
+                                        },
+                                        onCardDeleted = {
+                                            onDeleteNote(it)
+                                        },
+                                        onEditNote = {note,newInput->
+                                            onEditNote(note,newInput)
+                                        }
+                                    )
                                 }
                                 2 -> {
                                     BookmarkList(
@@ -270,7 +291,7 @@ fun DrawerScreen(
                                             onDeleteBookmark(it)
                                         },
                                         onUndo = {
-                                            onUndo()
+                                            onUndoDeleteBookmark()
                                         }
                                     )
                                 }

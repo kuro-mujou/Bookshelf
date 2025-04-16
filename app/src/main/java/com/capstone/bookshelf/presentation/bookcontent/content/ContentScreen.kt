@@ -63,6 +63,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.autoscroll.Auto
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.Content
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
+import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerViewModel
 import com.capstone.bookshelf.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
@@ -81,6 +82,7 @@ import kotlin.math.abs
 fun ContentScreen(
     viewModel: ContentViewModel,
     autoScrollViewModel: AutoScrollViewModel,
+    drawerContainerViewModel: DrawerContainerViewModel,
     hazeState: HazeState,
     pagerState : PagerState,
     drawerContainerState: DrawerContainerState,
@@ -130,7 +132,7 @@ fun ContentScreen(
                 chapterContents.remove(pageIndex)
             }
         }
-        LaunchedEffect(callbackLoadChapter, contentState.currentChapterIndex) {
+        LaunchedEffect(callbackLoadChapter, contentState.currentChapterIndex,contentState.flagTriggerScrollForNote) {
             if (callbackLoadChapter) {
                 triggerLoadChapter = false
                 callbackLoadChapter = false
@@ -139,6 +141,10 @@ fun ContentScreen(
             if(autoScrollState.isStart && autoScrollState.isPaused){
                 delay(autoScrollState.delayAtStart.toLong())
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+            }
+            if(contentState.flagTriggerScrollForNote != -1){
+                lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(contentState.flagTriggerScrollForNote)
+                viewModel.onContentAction(ContentAction.UpdateFlagTriggerScrollForNote(-1))
             }
         }
         val beyondBoundsPageCount = 1
@@ -526,11 +532,13 @@ fun ContentScreen(
                             key = { index:Int, _:String -> index }
                         ) {  index, content ->
                             Content(
+                                drawerContainerViewModel = drawerContainerViewModel,
                                 content = content,
+                                index = index,
                                 isHighlighted = index == contentState.currentReadingParagraph,
                                 isSpeaking = contentState.isSpeaking,
                                 colorPaletteState = colorPaletteState,
-                                fontState = contentState
+                                contentState = contentState
                             )
                         }
                     }

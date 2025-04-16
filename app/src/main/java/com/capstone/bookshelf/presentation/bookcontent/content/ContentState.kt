@@ -29,7 +29,7 @@ data class ContentState(
     val lastVisibleItemIndex : Int = 0,
     val chapterHeader : String = "",
     val imagePaddingState : Boolean = false,
-
+    val flagTriggerScrollForNote : Int = -1,
     val screenHeight : Int = 0,
     val screenWidth : Int = 0,
     //tts

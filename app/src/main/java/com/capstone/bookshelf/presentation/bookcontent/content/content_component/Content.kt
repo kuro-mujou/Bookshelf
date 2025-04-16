@@ -2,8 +2,11 @@ package com.capstone.bookshelf.presentation.bookcontent.content.content_componen
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -12,54 +15,87 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.presentation.bookcontent.component.dialog.NoteDialog
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
+import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerAction
+import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerViewModel
 import com.capstone.bookshelf.util.calculateHeaderSize
 
 @UnstableApi
 @Composable
 fun Content(
+    drawerContainerViewModel: DrawerContainerViewModel,
     content: String,
+    index: Int,
     isHighlighted : Boolean,
     isSpeaking : Boolean,
     colorPaletteState: ColorPalette,
-    fontState: ContentState,
+    contentState: ContentState,
 ){
     val linkPattern = Regex("""\.capstone\.bookshelf/files/[^ ]*""")
     val headerPatten = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
     val headerLevel = Regex("""<h([1-6])>.*?</h\1>""")
     val htmlTagPattern = Regex(pattern = """<[^>]+>""")
+    var isOpenDialog by remember { mutableStateOf(false) }
+    if(isOpenDialog){
+        NoteDialog(
+            contentState = contentState,
+            note = htmlTagPattern.replace(content, replacement = "").trim(),
+            colorPaletteState = colorPaletteState,
+            onDismiss = {
+                isOpenDialog = false
+            },
+            onNoteChanged = { noteInput->
+                drawerContainerViewModel.onAction(
+                    DrawerContainerAction.AddNote(
+                        noteBody = htmlTagPattern.replace(content, replacement = "").trim(),
+                        noteInput = noteInput,
+                        tocId = contentState.currentChapterIndex,
+                        contentId = index
+                    )
+                )
+            }
+        )
+    }
     if(linkPattern.containsMatchIn(content)) {
         ImageComponent(
             content = ImageContent(
                 content = content,
-                contentState = fontState
+                contentState = contentState
             ),
         )
     }else if(headerPatten.containsMatchIn(content)) {
         if(htmlTagPattern.replace(content, replacement = "").isNotEmpty()){
             HeaderText(
                 colorPaletteState = colorPaletteState,
-                contentState = fontState,
+                contentState = contentState,
                 content = HeaderContent(
                     content = htmlTagPattern.replace(content, replacement = ""),
-                    contentState = fontState,
+                    contentState = contentState,
                     level = headerLevel.find(content)!!.groupValues[1].toInt(),
                 ),
                 isHighlighted = isHighlighted,
-                isSpeaking = isSpeaking
+                isSpeaking = isSpeaking,
+                openNoteDialog = {
+                    isOpenDialog = true
+                }
             )
         }
     } else{
         if(htmlTagPattern.replace(content, replacement = "").isNotEmpty()){
             ParagraphText(
+                drawerContainerViewModel = drawerContainerViewModel,
                 colorPaletteState = colorPaletteState,
-                contentState = fontState,
+                contentState = contentState,
                 content = ParagraphContent(
                     content = content,
-                    contentState = fontState,
+                    contentState = contentState,
                 ),
                 isHighlighted = isHighlighted,
-                isSpeaking = isSpeaking
+                isSpeaking = isSpeaking,
+                openNoteDialog = {
+                    isOpenDialog = true
+                }
             )
         }
     }
