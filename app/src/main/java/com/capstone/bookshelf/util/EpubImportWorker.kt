@@ -192,7 +192,7 @@ class EpubImportWorker(
                 coverImagePath = finalCoverPathForDb,
                 authors = book.metadata.authors,
                 categories = book.metadata.types,
-                description = book.metadata.descriptions.firstOrNull(),
+                description = book.metadata.descriptions,
                 totalChapters = totalChapters,
                 storagePath = tempEpubFile.absolutePath
             )
@@ -427,7 +427,6 @@ class EpubImportWorker(
         val imagePaths = mutableListOf<String>()
         var currentParagraph = StringBuilder()
         var imageCounter = 0
-        var shouldAddSpace = false
         val startElement = if (!startAnchorId.isNullOrBlank()) {
             try {
                 document.selectFirst("[id=$startAnchorId], [name=$startAnchorId]")
@@ -467,13 +466,6 @@ class EpubImportWorker(
                         val text = node.text()
                         var textToAppend = text.replace(Regex("\\s+"), " ")
                         if (textToAppend.isNotBlank()) {
-                            if (shouldAddSpace) {
-                                textToAppend = " $textToAppend "; shouldAddSpace = false
-                            }
-                            if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ') && !textToAppend.startsWith(' '))
-                                currentParagraph.append(" ")
-                            else if (currentParagraph.isEmpty() && textToAppend.startsWith(' '))
-                                textToAppend = textToAppend.trimStart()
                             currentParagraph.append(textToAppend)
                         }
                     }
@@ -498,7 +490,6 @@ class EpubImportWorker(
                             }
                             "b", "strong", "i", "em", "u" -> {
                                 currentParagraph.append("<$tagName>")
-                                shouldAddSpace = true
                             }
                             "td", "th" -> {
                                 if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
@@ -564,7 +555,6 @@ class EpubImportWorker(
                     when (tagName) {
                         "b", "strong", "i", "em", "u" -> {
                             if (currentParagraph.isNotEmpty()) currentParagraph.append("</$tagName>")
-                            shouldAddSpace = true
                         }
                         "h1", "h2", "h3", "h4", "h5", "h6" -> {
                             if (currentParagraph.isNotEmpty() && currentParagraph.toString().endsWith("<$tagName>")) {
@@ -595,7 +585,7 @@ class EpubImportWorker(
 
     /** Helper to add buffered paragraph text (with formatting) to the list */
     private fun flushParagraphWithFormatting(buffer: StringBuilder, list: MutableList<String>) {
-        val paragraphText = buffer.toString().trim()
+        val paragraphText = buffer.toString()
         if (paragraphText.isNotBlank()) {
             list.add(paragraphText)
         }
@@ -642,7 +632,7 @@ class EpubImportWorker(
         coverImagePath: String?,
         authors: List<Author>?,
         categories: List<String>?,
-        description: String?,
+        description: List<String>?,
         totalChapters: Int,
         storagePath: String
     ): Long {
@@ -655,7 +645,7 @@ class EpubImportWorker(
             coverImagePath = coverImagePath!!,
             authors = normalizedAuthors,
             categories = cleanedCategories,
-            description = description?.trim()?.takeIf(String::isNotBlank),
+            description = description?.joinToString("\n")?: "",
             totalChapter = totalChapters,
             currentChapter = 0,
             currentParagraph = 0,

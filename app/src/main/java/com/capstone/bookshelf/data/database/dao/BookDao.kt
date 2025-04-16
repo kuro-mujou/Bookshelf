@@ -48,5 +48,5 @@ interface BookDao {
 
     @Transaction
     @Delete
-    suspend fun deleteBooks(bookEntities: List<BookEntity>)
+    suspend fun deleteBooks(bookEntity: BookEntity)
 }

@@ -129,7 +129,6 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
     return buildAnnotatedString {
         val stack = mutableListOf<String>()
         var currentIndex = 0
-
         while (currentIndex < paragraph.length) {
             when {
                 paragraph.startsWith("<b>", currentIndex) -> {

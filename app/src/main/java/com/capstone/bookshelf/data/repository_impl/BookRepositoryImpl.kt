@@ -56,6 +56,8 @@ class BookRepositoryImpl(
         val bookEntities = books.map {
             it.toEntity()
         }
-        bookDao.deleteBooks(bookEntities)
+        bookEntities.forEach {bookEntity->
+            bookDao.deleteBooks(bookEntity)
+        }
     }
 }
