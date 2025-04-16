@@ -8,7 +8,6 @@ import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.work.CoroutineWorker
@@ -173,7 +172,7 @@ class EpubImportWorker(
             } catch (e: Exception) {
                 coverImagePath = "error_processing_cover"
             }
-            val finalCoverPathForDb = if(coverImagePath == null)
+            val finalCoverPathForDb = if (coverImagePath == null)
                 "error"
             else
                 if (coverImagePath.startsWith("error_") == true)
@@ -186,12 +185,16 @@ class EpubImportWorker(
             if (totalChapters == 0) {
                 return kotlin.Result.failure(IOException("EPUB Table of Contents is empty or missing."))
             }
-            Log.d(TAG, "Total chapters: $finalCoverPathForDb")
             onProgress(null, "Saving book information...")
             saveBookInfo(
-                bookId, finalBookTitle, finalCoverPathForDb, book.metadata.authors,
-                book.metadata.types, book.metadata.descriptions.firstOrNull(),
-                totalChapters, tempEpubFile.absolutePath
+                bookID = bookId,
+                title = finalBookTitle,
+                coverImagePath = finalCoverPathForDb,
+                authors = book.metadata.authors,
+                categories = book.metadata.types,
+                description = book.metadata.descriptions.firstOrNull(),
+                totalChapters = totalChapters,
+                storagePath = tempEpubFile.absolutePath
             )
             imagePathRepository.saveImagePath(bookId, listOf(finalCoverPathForDb))
             processAndSaveChapters(bookId, book, flattenedToc, context, onProgress)
@@ -237,7 +240,6 @@ class EpubImportWorker(
         onProgress: suspend (progress: Int?, message: String) -> Unit
     ) {
         if (flattenedToc.isEmpty()) return
-
         val tocGroupedByResource = flattenedToc
             .filter { it.resource?.href != null }
             .groupBy { it.resource.href.substringBefore('#') }
@@ -261,8 +263,7 @@ class EpubImportWorker(
 
             }
 
-            val needsSplitting =
-                tocEntriesForResource.any { it.fragmentId != null }
+            val needsSplitting = tocEntriesForResource.any { it.fragmentId != null }
 
             if (document == null) {
                 tocEntriesForResource.forEach {
@@ -365,7 +366,11 @@ class EpubImportWorker(
                         progressPercent,
                         "Processing ${chapterTitle.take(30)}... (Segment ${i + 1})"
                     )
-                    saveTableOfContentEntry(bookId, chapterTitle, overallChapterIndex)
+                    saveTableOfContentEntry(
+                        bookId = bookId,
+                        title = chapterTitle,
+                        index = overallChapterIndex
+                    )
                     var startAnchorId: String?
                     var endAnchorId: String?
                     if (i == 0) {
@@ -408,7 +413,7 @@ class EpubImportWorker(
         }
     }
 
-    /** Parses HTML segment, attempts to keep inline tags within the same paragraph */
+    /** Parses HTML segment between anchors, includes content within start anchor */
     private fun parseChapterHtmlSegment(
         document: org.jsoup.nodes.Document,
         startAnchorId: String?,
@@ -422,6 +427,7 @@ class EpubImportWorker(
         val imagePaths = mutableListOf<String>()
         var currentParagraph = StringBuilder()
         var imageCounter = 0
+        var shouldAddSpace = false
         val startElement = if (!startAnchorId.isNullOrBlank()) {
             try {
                 document.selectFirst("[id=$startAnchorId], [name=$startAnchorId]")
@@ -444,10 +450,7 @@ class EpubImportWorker(
                 if (hitEndAnchor) return
                 if (endElement != null && node == endElement) {
                     hitEndAnchor = true
-                    flushParagraphWithFormatting(
-                        currentParagraph,
-                        contentList
-                    )
+                    flushParagraphWithFormatting(currentParagraph, contentList)
                     return
                 }
                 var isStartAnchorNode = false
@@ -456,51 +459,52 @@ class EpubImportWorker(
                     processingActive = true
                     isStartAnchorNode = true
                 }
+                if (!processingActive || !passedStartAnchor) {
+                        return
+                }
                 when (node) {
                     is TextNode -> {
                         val text = node.text()
-                        val normalizedText = text.replace(Regex("[ \t\n\r]{2,}"), " ")
-                        if (normalizedText.isNotEmpty()) {
-                            if (currentParagraph.isNotEmpty() &&
-                                !currentParagraph.endsWith(' ') &&
-                                !normalizedText.first().isWhitespace()
-                            ) {
-                                currentParagraph.append(" ")
+                        var textToAppend = text.replace(Regex("\\s+"), " ")
+                        if (textToAppend.isNotBlank()) {
+                            if (shouldAddSpace) {
+                                textToAppend = " $textToAppend "; shouldAddSpace = false
                             }
-                            currentParagraph.append(normalizedText)
+                            if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ') && !textToAppend.startsWith(' '))
+                                currentParagraph.append(" ")
+                            else if (currentParagraph.isEmpty() && textToAppend.startsWith(' '))
+                                textToAppend = textToAppend.trimStart()
+                            currentParagraph.append(textToAppend)
                         }
                     }
-
                     is Element -> {
                         val tagName = node.tagName().lowercase()
                         when (tagName) {
-                            "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "h1", "h2", "h3", "h4", "h5", "h6", "tr" -> {
+                            "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "h1", "h2", "h3", "h4", "h5", "h6" -> {
                                 flushParagraphWithFormatting(currentParagraph, contentList)
-                                if (tagName.startsWith("h")) currentParagraph.append("<$tagName>")
+                                if (tagName.startsWith("h"))
+                                    currentParagraph.append("<$tagName>")
                             }
                             "br" -> {
-                                val parent = node.parentNode()
-                                if (parent is Element && parent.tagName().lowercase().startsWith("h")) {
-                                    if (!currentParagraph.endsWith(' '))
+                                val parentNode = node.parentNode()
+                                if (parentNode is Element && parentNode.tagName().lowercase()
+                                        .startsWith("h")
+                                ) {
+                                    if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(" "))
                                         currentParagraph.append(" ")
                                 } else {
                                     flushParagraphWithFormatting(currentParagraph, contentList)
                                 }
                             }
-
                             "b", "strong", "i", "em", "u" -> {
-                                if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
-                                    currentParagraph.append(" ")
-                                }
                                 currentParagraph.append("<$tagName>")
+                                shouldAddSpace = true
                             }
-
                             "td", "th" -> {
                                 if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
                                     currentParagraph.append(" ")
                                 }
                             }
-
                             "img", "image" -> {
                                 flushParagraphWithFormatting(currentParagraph, contentList)
                                 val srcAttr = when (tagName) {
@@ -520,25 +524,22 @@ class EpubImportWorker(
                                                     MAX_BITMAP_DIMENSION
                                                 )
                                                 if (bitmap != null) {
-                                                    val name =
-                                                        "image_${bookId}_${chapterIndex}_seg${imageCounter++}"
-                                                    savedImagePath =
-                                                        saveBitmapToPrivateStorage(
-                                                            context = context,
-                                                            bitmap = bitmap,
-                                                            filenameWithoutExtension = name
-                                                        )
+                                                    val name = "image_${bookId}_${chapterIndex}_seg${imageCounter++}"
+                                                    savedImagePath = saveBitmapToPrivateStorage(
+                                                        context,
+                                                        bitmap,
+                                                        name
+                                                    )
                                                     bitmap.recycle()
                                                 } else {
                                                     savedImagePath = "error_decode"
                                                 }
                                             }
-                                        } catch (e: Exception) {
-
-                                        }
+                                        } catch (e: Exception) {}
                                         if (savedImagePath != null && !savedImagePath!!.startsWith("error_")) {
-                                            contentList.add(savedImagePath!!)
-                                            imagePaths.add(savedImagePath!!)
+                                            contentList.add(savedImagePath!!); imagePaths.add(
+                                                savedImagePath!!
+                                            )
                                         }
                                     }
                                 }
@@ -549,46 +550,28 @@ class EpubImportWorker(
                     }
                 }
             }
-
             override fun tail(node: Node, depth: Int) {
                 if (hitEndAnchor) return
-
                 if (endElement != null && node == endElement) {
-                    hitEndAnchor =true
+                    hitEndAnchor = true
                     flushParagraphWithFormatting(currentParagraph, contentList)
                     return
                 }
-                if (startElement != null && node == startElement) {
-                    if (!passedStartAnchor) {
-                        passedStartAnchor = true
-                        processingActive = true
-                    }
-                }
+                if (!passedStartAnchor) return
                 if (!processingActive) return
-
                 if (node is Element) {
                     val tagName = node.tagName().lowercase()
                     when (tagName) {
                         "b", "strong", "i", "em", "u" -> {
-                            if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
-                                currentParagraph.append(" ")
-                            }
-                            if (currentParagraph.isNotEmpty()) {
-                                currentParagraph.append("</$tagName>")
-                            }
+                            if (currentParagraph.isNotEmpty()) currentParagraph.append("</$tagName>")
+                            shouldAddSpace = true
                         }
                         "h1", "h2", "h3", "h4", "h5", "h6" -> {
-                            if (currentParagraph.isNotEmpty()) {
-                                if (currentParagraph.toString().endsWith("<$tagName>")) {
-                                    currentParagraph.setLength(currentParagraph.length - "<$tagName>".length)
-                                }
-                                else {
-                                    currentParagraph.append("</$tagName>")
-                                    flushParagraphWithFormatting(
-                                        currentParagraph,
-                                        contentList
-                                    )
-                                }
+                            if (currentParagraph.isNotEmpty() && currentParagraph.toString().endsWith("<$tagName>")) {
+                                currentParagraph.setLength(currentParagraph.length - "<$tagName>".length)
+                            } else if (currentParagraph.isNotEmpty()) {
+                                currentParagraph.append("</$tagName>")
+                                flushParagraphWithFormatting(currentParagraph, contentList)
                             }
                         }
                         "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "tr" -> {
@@ -604,7 +587,9 @@ class EpubImportWorker(
                 }
             }
         })
-        flushParagraphWithFormatting(currentParagraph, contentList)
+        if (!hitEndAnchor) {
+            flushParagraphWithFormatting(currentParagraph, contentList)
+        }
         return Pair(contentList, imagePaths)
     }
 
