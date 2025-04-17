@@ -132,20 +132,39 @@ fun ContentScreen(
                 chapterContents.remove(pageIndex)
             }
         }
-        LaunchedEffect(callbackLoadChapter, contentState.currentChapterIndex,contentState.flagTriggerScrollForNote) {
+        LaunchedEffect(callbackLoadChapter) {
             if (callbackLoadChapter) {
                 triggerLoadChapter = false
                 callbackLoadChapter = false
             }
+        }
+        LaunchedEffect(contentState.currentChapterIndex) {
             viewModel.onContentAction(ContentAction.UpdateChapterHeader(drawerContainerState.currentTOC?.title?:""))
+        }
+        LaunchedEffect(contentState.currentChapterIndex) {
             if(autoScrollState.isStart && autoScrollState.isPaused){
                 delay(autoScrollState.delayAtStart.toLong())
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
             }
-            if(contentState.flagTriggerScrollForNote != -1){
-                lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(contentState.flagTriggerScrollForNote)
-                viewModel.onContentAction(ContentAction.UpdateFlagTriggerScrollForNote(-1))
-            }
+        }
+        LaunchedEffect(contentState.flagTriggerScrollForNote) {
+            snapshotFlow { pagerState.settledPage }
+                .collect { page ->
+                    if(contentState.flagTriggerScrollForNote != -1){
+                        delay(500)
+                        lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(contentState.flagTriggerScrollForNote)
+                        viewModel.onContentAction(ContentAction.UpdateFlagTriggerScrollForNote(-1))
+                    }
+                }
+        }
+        LaunchedEffect(autoScrollState.isPaused) {
+            snapshotFlow { pagerState.settledPage }
+                .collect { page ->
+                    if(autoScrollState.isStart && autoScrollState.isPaused && autoScrollState.isAutoResumeScrollMode && contentState.currentChapterIndex == page) {
+                        delay(autoScrollState.delayResumeMode.toLong())
+                        autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
+                    }
+                }
         }
         val beyondBoundsPageCount = 1
         HorizontalPager(
@@ -361,10 +380,6 @@ fun ContentScreen(
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     if (!it.isScrollInProgress && autoScrollState.isStart && !autoScrollState.isPaused) {
                         autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
-                        if(autoScrollState.isAutoResumeScrollMode) {
-                            delay(autoScrollState.delayResumeMode.toLong())
-                            autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
-                        }
                     }
                 }
             }

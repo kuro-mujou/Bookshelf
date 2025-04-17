@@ -185,6 +185,9 @@ fun BookContentScreenRoot(
         },
         onUndoDeleteNote = {
             drawerContainerViewModel.onAction(DrawerContainerAction.UndoDeleteNote)
+        },
+        onTabItemClick = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateSelectedNote(-1))
         }
     ) {
         LaunchedEffect(contentState.book) {
@@ -221,7 +224,10 @@ fun BookContentScreenRoot(
             if(contentState.currentChapterIndex != 0)
                 viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(contentState.currentChapterIndex))
             if(contentState.book?.isEditable == false) {
-                pagerState?.animateScrollToPage(contentState.currentChapterIndex)
+                if(contentState.flagTriggerScrollForNote != -1)
+                    pagerState?.scrollToPage(contentState.currentChapterIndex)
+                else
+                    pagerState?.animateScrollToPage(contentState.currentChapterIndex)
             } else {
                 viewModel.onContentAction(ContentAction.GetChapterContent(contentState.currentChapterIndex))
             }

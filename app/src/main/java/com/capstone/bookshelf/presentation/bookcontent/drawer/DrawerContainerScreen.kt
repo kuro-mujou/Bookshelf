@@ -75,6 +75,7 @@ fun DrawerScreen(
     onEditNote: (Note,String) -> Unit,
     onDeleteNote: (Note) -> Unit,
     onUndoDeleteNote: () -> Unit,
+    onTabItemClick: () -> Unit,
     content: @Composable () -> Unit
 ){
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
@@ -226,6 +227,7 @@ fun DrawerScreen(
                                     selected = index == selectedTabIndex,
                                     onClick = {
                                         selectedTabIndex = index
+                                        onTabItemClick()
                                     },
                                     text = {
                                         Text(

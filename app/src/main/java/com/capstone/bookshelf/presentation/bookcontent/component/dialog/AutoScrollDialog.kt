@@ -94,14 +94,21 @@ fun AutoScrollMenuDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ){
                     Text(
-                        text = "Speed",
+                        text = "Faster",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                         )
                     )
                     Text(
-                        text = "%.2fx".format(speedSliderValue/10000f),
+                        text = "Speed $speedSliderValue",
+                        style = TextStyle(
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                        )
+                    )
+                    Text(
+                        text = "Slower",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
@@ -120,8 +127,8 @@ fun AutoScrollMenuDialog(
                             dataStoreManager.setAutoScrollSpeed(speedSliderValue)
                         }
                     },
-                    valueRange = 0.5f..1.5f,
-                    steps = 9,
+                    valueRange = 0.1f..2f,
+                    steps = 18,
                     thumb = {
                         Box(
                             modifier = Modifier

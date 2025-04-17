@@ -3,6 +3,7 @@ package com.capstone.bookshelf.presentation.bookcontent.drawer.component.note
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Icon
@@ -11,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.domain.wrapper.Note
@@ -51,7 +53,9 @@ fun NoteList(
             }
         }
         LazyColumn(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .padding(top = 4.dp, bottom = 4.dp)
+                .fillMaxSize()
         ) {
             itemsIndexed(
                 items = drawerContainerState.notes
