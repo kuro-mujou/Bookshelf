@@ -27,17 +27,17 @@ fun Content(
     drawerContainerViewModel: DrawerContainerViewModel,
     content: String,
     index: Int,
-    isHighlighted : Boolean,
-    isSpeaking : Boolean,
+    isHighlighted: Boolean,
+    isSpeaking: Boolean,
     colorPaletteState: ColorPalette,
     contentState: ContentState,
-){
+) {
     val linkPattern = Regex("""\.capstone\.bookshelf/files/[^ ]*""")
     val headerPatten = Regex("""<h([1-6])[^>]*>(.*?)</h([1-6])>""")
     val headerLevel = Regex("""<h([1-6])>.*?</h\1>""")
     val htmlTagPattern = Regex(pattern = """<[^>]+>""")
     var isOpenDialog by remember { mutableStateOf(false) }
-    if(isOpenDialog){
+    if (isOpenDialog) {
         NoteDialog(
             contentState = contentState,
             note = htmlTagPattern.replace(content, replacement = "").trim(),
@@ -45,7 +45,7 @@ fun Content(
             onDismiss = {
                 isOpenDialog = false
             },
-            onNoteChanged = { noteInput->
+            onNoteChanged = { noteInput ->
                 drawerContainerViewModel.onAction(
                     DrawerContainerAction.AddNote(
                         noteBody = htmlTagPattern.replace(content, replacement = "").trim(),
@@ -57,15 +57,15 @@ fun Content(
             }
         )
     }
-    if(linkPattern.containsMatchIn(content)) {
+    if (linkPattern.containsMatchIn(content)) {
         ImageComponent(
             content = ImageContent(
                 content = content,
                 contentState = contentState
             ),
         )
-    }else if(headerPatten.containsMatchIn(content)) {
-        if(htmlTagPattern.replace(content, replacement = "").isNotEmpty()){
+    } else if (headerPatten.containsMatchIn(content)) {
+        if (htmlTagPattern.replace(content, replacement = "").isNotEmpty()) {
             HeaderText(
                 colorPaletteState = colorPaletteState,
                 contentState = contentState,
@@ -81,8 +81,8 @@ fun Content(
                 }
             )
         }
-    } else{
-        if(htmlTagPattern.replace(content, replacement = "").isNotEmpty()){
+    } else {
+        if (htmlTagPattern.replace(content, replacement = "").isNotEmpty()) {
             ParagraphText(
                 drawerContainerViewModel = drawerContainerViewModel,
                 colorPaletteState = colorPaletteState,
@@ -105,26 +105,28 @@ fun Content(
 @UnstableApi
 data class ImageContent(
     val content: String,
-    val contentState : ContentState
+    val contentState: ContentState
 )
 
 @Immutable
 @UnstableApi
 data class HeaderContent(
     val content: String,
-    val contentState : ContentState,
-    val level : Int
-){
-    val fontSize = mutableFloatStateOf(calculateHeaderSize(level,contentState.fontSize))
+    val contentState: ContentState,
+    val level: Int
+) {
+    val fontSize = mutableFloatStateOf(calculateHeaderSize(level, contentState.fontSize))
 }
+
 @Immutable
 @UnstableApi
 data class ParagraphContent(
     val content: String,
-    val contentState : ContentState
-){
+    val contentState: ContentState
+) {
     val text = mutableStateOf(convertToAnnotatedStrings(content))
 }
+
 private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
     return buildAnnotatedString {
         val stack = mutableListOf<String>()
@@ -136,6 +138,7 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
                     stack.add("b")
                     currentIndex += 3
                 }
+
                 paragraph.startsWith("</b>", currentIndex) -> {
                     if (stack.lastOrNull() == "b") {
                         pop()
@@ -143,11 +146,13 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
                     }
                     currentIndex += 4
                 }
+
                 paragraph.startsWith("<strong>", currentIndex) -> {
                     pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
                     stack.add("strong")
                     currentIndex += 8
                 }
+
                 paragraph.startsWith("</strong>", currentIndex) -> {
                     if (stack.lastOrNull() == "strong") {
                         pop()
@@ -155,11 +160,13 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
                     }
                     currentIndex += 9
                 }
+
                 paragraph.startsWith("<i>", currentIndex) -> {
                     pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
                     stack.add("i")
                     currentIndex += 3
                 }
+
                 paragraph.startsWith("</i>", currentIndex) -> {
                     if (stack.lastOrNull() == "i") {
                         pop()
@@ -167,11 +174,13 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
                     }
                     currentIndex += 4
                 }
+
                 paragraph.startsWith("<em>", currentIndex) -> {
                     pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
                     stack.add("em")
                     currentIndex += 4
                 }
+
                 paragraph.startsWith("</em>", currentIndex) -> {
                     if (stack.lastOrNull() == "em") {
                         pop()
@@ -179,11 +188,13 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
                     }
                     currentIndex += 5
                 }
+
                 paragraph.startsWith("<u>", currentIndex) -> {
                     pushStyle(SpanStyle(textDecoration = TextDecoration.Underline))
                     stack.add("u")
                     currentIndex += 3
                 }
+
                 paragraph.startsWith("</u>", currentIndex) -> {
                     if (stack.lastOrNull() == "u") {
                         pop()
@@ -191,6 +202,7 @@ private fun convertToAnnotatedStrings(paragraph: String): AnnotatedString {
                     }
                     currentIndex += 4
                 }
+
                 else -> {
                     append(paragraph[currentIndex])
                     currentIndex++

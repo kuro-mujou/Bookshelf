@@ -29,10 +29,10 @@ import org.koin.dsl.module
 val singleModule = module {
     single {
         Room.databaseBuilder(get(), LocalBookDatabase::class.java, LocalBookDatabase.DATABASE_NAME)
-            .fallbackToDestructiveMigration().build()
+            .fallbackToDestructiveMigration(false).build()
     }
 }
-val databaseModule = module{
+val databaseModule = module {
     single { get<LocalBookDatabase>().bookDao }
     single { get<LocalBookDatabase>().chapterDao }
     single { get<LocalBookDatabase>().tableOfContentDao }
@@ -56,5 +56,5 @@ val viewModelModule = module {
     viewModelOf(::BookWriterViewModel)
 }
 val dataStoreModule = module {
-    single{ DataStoreManager(androidContext())}
+    single { DataStoreManager(androidContext()) }
 }

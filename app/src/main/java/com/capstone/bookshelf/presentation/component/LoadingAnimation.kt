@@ -24,14 +24,15 @@ import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 @UnstableApi
 @Composable
 fun LoadingAnimation(
-    contentState : ContentState,
-    colorPaletteState : ColorPalette
+    contentState: ContentState,
+    colorPaletteState: ColorPalette
 ) {
     val composition by rememberLottieComposition(
         LottieCompositionSpec.Asset("loading_animation.json")
     )
     Surface(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
             .zIndex(1f)
             .pointerInput(Unit) {
                 awaitPointerEventScope {

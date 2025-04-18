@@ -41,18 +41,18 @@ import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerSta
 @UnstableApi
 @Composable
 fun NoteCard(
-    drawerContainerState : DrawerContainerState,
-    contentState : ContentState,
-    colorPaletteState : ColorPalette,
+    drawerContainerState: DrawerContainerState,
+    contentState: ContentState,
+    colorPaletteState: ColorPalette,
     index: Int,
     note: Note,
-    onCardClicked: (Int,Int) -> Unit,
+    onCardClicked: (Int, Int) -> Unit,
     onCardSelected: (Int) -> Unit,
     onCardDeleted: (Note) -> Unit,
-    onEditNote: (Note,String) -> Unit
-){
+    onEditNote: (Note, String) -> Unit
+) {
     var isOpenDialog by remember { mutableStateOf(false) }
-    if(isOpenDialog){
+    if (isOpenDialog) {
         NoteDialog(
             contentState = contentState,
             note = note.noteBody,
@@ -61,7 +61,7 @@ fun NoteCard(
             onDismiss = {
                 isOpenDialog = false
             },
-            onNoteChanged = { noteInput->
+            onNoteChanged = { noteInput ->
                 onEditNote(
                     note, noteInput
                 )
@@ -74,7 +74,7 @@ fun NoteCard(
             .fillMaxWidth()
             .combinedClickable(
                 onClick = {
-                    onCardClicked(note.tocId,note.contentId)
+                    onCardClicked(note.tocId, note.contentId)
                 },
                 onLongClick = {
                     onCardSelected(index)
@@ -100,11 +100,14 @@ fun NoteCard(
         )
     ) {
         Column(
-            modifier = Modifier.padding(8.dp).fillMaxWidth()
-        ){
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth()
+        ) {
             Row(
                 modifier = Modifier
-                    .height(IntrinsicSize.Min).fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+                    .fillMaxWidth()
             ) {
                 VerticalDivider(
                     modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),

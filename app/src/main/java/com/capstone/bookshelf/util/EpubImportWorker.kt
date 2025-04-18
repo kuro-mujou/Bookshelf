@@ -459,7 +459,7 @@ class EpubImportWorker(
                     isStartAnchorNode = true
                 }
                 if (!processingActive || !passedStartAnchor) {
-                        return
+                    return
                 }
                 when (node) {
                     is TextNode -> {
@@ -469,6 +469,7 @@ class EpubImportWorker(
                             currentParagraph.append(textToAppend)
                         }
                     }
+
                     is Element -> {
                         val tagName = node.tagName().lowercase()
                         when (tagName) {
@@ -477,25 +478,32 @@ class EpubImportWorker(
                                 if (tagName.startsWith("h"))
                                     currentParagraph.append("<$tagName>")
                             }
+
                             "br" -> {
                                 val parentNode = node.parentNode()
                                 if (parentNode is Element && parentNode.tagName().lowercase()
                                         .startsWith("h")
                                 ) {
-                                    if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(" "))
+                                    if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(
+                                            " "
+                                        )
+                                    )
                                         currentParagraph.append(" ")
                                 } else {
                                     flushParagraphWithFormatting(currentParagraph, contentList)
                                 }
                             }
+
                             "b", "strong", "i", "em", "u" -> {
                                 currentParagraph.append("<$tagName>")
                             }
+
                             "td", "th" -> {
                                 if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
                                     currentParagraph.append(" ")
                                 }
                             }
+
                             "img", "image" -> {
                                 flushParagraphWithFormatting(currentParagraph, contentList)
                                 val srcAttr = when (tagName) {
@@ -515,7 +523,8 @@ class EpubImportWorker(
                                                     MAX_BITMAP_DIMENSION
                                                 )
                                                 if (bitmap != null) {
-                                                    val name = "image_${bookId}_${chapterIndex}_seg${imageCounter++}"
+                                                    val name =
+                                                        "image_${bookId}_${chapterIndex}_seg${imageCounter++}"
                                                     savedImagePath = saveBitmapToPrivateStorage(
                                                         context,
                                                         bitmap,
@@ -526,7 +535,8 @@ class EpubImportWorker(
                                                     savedImagePath = "error_decode"
                                                 }
                                             }
-                                        } catch (e: Exception) {}
+                                        } catch (e: Exception) {
+                                        }
                                         if (savedImagePath != null && !savedImagePath!!.startsWith("error_")) {
                                             contentList.add(savedImagePath!!); imagePaths.add(
                                                 savedImagePath!!
@@ -536,11 +546,13 @@ class EpubImportWorker(
                                 }
                                 currentParagraph.setLength(0)
                             }
+
                             "tbody", "thead", "tfoot" -> {}
                         }
                     }
                 }
             }
+
             override fun tail(node: Node, depth: Int) {
                 if (hitEndAnchor) return
                 if (endElement != null && node == endElement) {
@@ -556,22 +568,28 @@ class EpubImportWorker(
                         "b", "strong", "i", "em", "u" -> {
                             if (currentParagraph.isNotEmpty()) currentParagraph.append("</$tagName>")
                         }
+
                         "h1", "h2", "h3", "h4", "h5", "h6" -> {
-                            if (currentParagraph.isNotEmpty() && currentParagraph.toString().endsWith("<$tagName>")) {
+                            if (currentParagraph.isNotEmpty() && currentParagraph.toString()
+                                    .endsWith("<$tagName>")
+                            ) {
                                 currentParagraph.setLength(currentParagraph.length - "<$tagName>".length)
                             } else if (currentParagraph.isNotEmpty()) {
                                 currentParagraph.append("</$tagName>")
                                 flushParagraphWithFormatting(currentParagraph, contentList)
                             }
                         }
+
                         "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "tr" -> {
                             flushParagraphWithFormatting(currentParagraph, contentList)
                         }
+
                         "td", "th" -> {
                             if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
                                 currentParagraph.append(" ")
                             }
                         }
+
                         "tbody", "thead", "tfoot" -> {}
                     }
                 }
@@ -645,7 +663,7 @@ class EpubImportWorker(
             coverImagePath = coverImagePath!!,
             authors = normalizedAuthors,
             categories = cleanedCategories,
-            description = description?.joinToString("\n")?: "",
+            description = description?.joinToString("\n") ?: "",
             totalChapter = totalChapters,
             currentChapter = 0,
             currentParagraph = 0,

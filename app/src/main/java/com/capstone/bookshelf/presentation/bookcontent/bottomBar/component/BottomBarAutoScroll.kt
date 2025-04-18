@@ -41,7 +41,7 @@ fun BottomBarAutoScroll(
     dataStoreManager: DataStoreManager,
     hazeState: HazeState,
     style: HazeStyle,
-    autoScrollViewModel : AutoScrollViewModel,
+    autoScrollViewModel: AutoScrollViewModel,
     bottomBarState: BottomBarState,
     autoScrollState: AutoScrollState,
     colorPaletteState: ColorPalette,
@@ -49,7 +49,7 @@ fun BottomBarAutoScroll(
     onStopIconClick: () -> Unit,
     onSettingIconClick: () -> Unit,
     onDismissDialogRequest: () -> Unit,
-){
+) {
     val iconList = listOf(
         R.drawable.ic_skip_to_back,
         R.drawable.ic_play,

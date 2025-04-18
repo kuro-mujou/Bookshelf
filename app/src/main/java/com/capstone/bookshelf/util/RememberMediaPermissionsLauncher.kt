@@ -55,7 +55,8 @@ fun rememberMediaPermissionsState(
         if (!primaryPermissionGranted) {
             val requiresVisual = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
                     (permission == Manifest.permission.READ_MEDIA_IMAGES || permission == Manifest.permission.READ_MEDIA_VIDEO)
-            val visualSelectedGranted = if(requiresVisual) permissionsResultMap[Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED] == true else false
+            val visualSelectedGranted =
+                if (requiresVisual) permissionsResultMap[Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED] == true else false
             if (!visualSelectedGranted) {
                 val activity = context.findActivity()
                 if (activity != null && !activity.shouldShowRequestPermissionRationale(permission)) {
@@ -95,7 +96,10 @@ class MediaPermissionsState internal constructor(
 
     /** Checks if the primary media permission is currently granted. */
     fun hasPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        return ContextCompat.checkSelfPermission(
+            context,
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     /**
@@ -104,8 +108,12 @@ class MediaPermissionsState internal constructor(
      */
     fun hasPartialAccess(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
-            (permission == Manifest.permission.READ_MEDIA_IMAGES || permission == Manifest.permission.READ_MEDIA_VIDEO)) {
-            return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED) == PackageManager.PERMISSION_GRANTED
+            (permission == Manifest.permission.READ_MEDIA_IMAGES || permission == Manifest.permission.READ_MEDIA_VIDEO)
+        ) {
+            return ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+            ) == PackageManager.PERMISSION_GRANTED
         }
         return false
     }
@@ -179,6 +187,7 @@ fun Context.findActivity(): android.app.Activity? {
     }
     return null
 }
+
 @Composable
 fun RationaleDialog(
     onConfirm: () -> Unit,

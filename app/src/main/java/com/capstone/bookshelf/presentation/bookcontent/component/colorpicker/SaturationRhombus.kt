@@ -8,11 +8,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -20,20 +21,23 @@ import kotlin.math.roundToInt
 @Composable
 fun SaturationRhombus(
     modifier: Modifier = Modifier,
+    density: Density,
     hue: Float,
     saturation: Float = 0.5f,
     lightness: Float = 0.5f,
     selectionRadius: Dp = (-1).dp,
     onChange: (Float, Float) -> Unit
 ) {
-    BoxWithConstraints(modifier) {
-        val density = LocalDensity.current.density
-        val length = this.maxWidth.value * density
+    BoxWithConstraints(
+        modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        val length = this.maxWidth.value * density.density
         val colorPoints: MutableList<ColorPoint> = remember {
             getPointsInRhombus(length)
         }
         val selectorRadius =
-            if (selectionRadius > 0.dp) selectionRadius.value * density else length * .04f
+            if (selectionRadius > 0.dp) selectionRadius.value * density.density else length * .04f
         var currentPosition by remember(saturation, lightness) {
             mutableStateOf(
                 setSelectorPositionFromColorParams(saturation, lightness, length)
@@ -82,7 +86,7 @@ fun SaturationRhombus(
                 drawCircle(
                     Color.hsl(hue, colorPoint.saturation, colorPoint.lightness),
                     center = colorPoint.point,
-                    radius = 5f
+                    radius = length / 100f
                 )
             }
             drawCircle(
@@ -94,6 +98,7 @@ fun SaturationRhombus(
         }
     }
 }
+
 private fun setSelectorPositionFromColorParams(
     saturation: Float,
     lightness: Float,
@@ -104,6 +109,7 @@ private fun setSelectorPositionFromColorParams(
     val horizontalPositionOnRhombus = (saturation * length).coerceIn(range)
     return Offset(horizontalPositionOnRhombus, verticalPositionOnRhombus)
 }
+
 fun getBoundsInLength(
     length: Float,
     position: Float
@@ -116,6 +122,7 @@ fun getBoundsInLength(
         (center - heightAfterCenter)..(center + heightAfterCenter)
     }
 }
+
 fun getIntRangeInLength(
     length: Float,
     position: Float
@@ -128,6 +135,7 @@ fun getIntRangeInLength(
         (center - heightAfterCenter).roundToInt()..(center + heightAfterCenter).roundToInt()
     }
 }
+
 fun getPointsInRhombus(length: Float): MutableList<ColorPoint> {
     val step = length.toInt() / 100
     val colorPints = mutableListOf<ColorPoint>()
@@ -143,4 +151,5 @@ fun getPointsInRhombus(length: Float): MutableList<ColorPoint> {
     }
     return colorPints
 }
+
 data class ColorPoint(val point: Offset, val saturation: Float, val lightness: Float)

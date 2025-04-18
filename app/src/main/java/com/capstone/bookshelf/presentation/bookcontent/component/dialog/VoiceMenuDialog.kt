@@ -65,29 +65,29 @@ fun VoiceMenuDialog(
     dataStoreManager: DataStoreManager,
     onDismiss: () -> Unit,
     testVoiceButtonClicked: () -> Unit
-){
-    var speedSliderValue by remember { mutableFloatStateOf(contentState.currentSpeed?:1f) }
-    var pitchSliderValue by remember { mutableFloatStateOf(contentState.currentPitch?:1f) }
+) {
+    var speedSliderValue by remember { mutableFloatStateOf(contentState.currentSpeed ?: 1f) }
+    var pitchSliderValue by remember { mutableFloatStateOf(contentState.currentPitch ?: 1f) }
     val locales = tts.availableLanguages?.toList()?.sortedBy { it.displayName }
     val voices = tts.voices
-        ?.filter{ !it.isNetworkConnectionRequired }
+        ?.filter { !it.isNetworkConnectionRequired }
         ?.sortedBy { it.name }
     var languageMenuExpanded by remember { mutableStateOf(false) }
     var voiceMenuExpanded by remember { mutableStateOf(false) }
     val filteredVoices = voices?.filter { it.locale == contentState.currentLanguage }
     Dialog(
         onDismissRequest = {
-            if(contentState.currentVoice == null){
-                viewModel.fixNullVoice(dataStoreManager,tts)
+            if (contentState.currentVoice == null) {
+                viewModel.fixNullVoice(dataStoreManager, tts)
             }
             onDismiss()
         }
     ) {
-        LaunchedEffect (contentState.currentSpeed){
-            speedSliderValue = contentState.currentSpeed?:1f
+        LaunchedEffect(contentState.currentSpeed) {
+            speedSliderValue = contentState.currentSpeed ?: 1f
         }
-        LaunchedEffect (contentState.currentPitch){
-            pitchSliderValue = contentState.currentPitch?:1f
+        LaunchedEffect(contentState.currentPitch) {
+            pitchSliderValue = contentState.currentPitch ?: 1f
         }
         Surface(
             color = colorPaletteState.backgroundColor,
@@ -118,7 +118,7 @@ fun VoiceMenuDialog(
                         .fillMaxWidth()
                         .padding(top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                ){
+                ) {
                     Box(
                         modifier = Modifier
                             .wrapContentHeight()
@@ -183,7 +183,11 @@ fun VoiceMenuDialog(
                                         )
                                     },
                                     onClick = {
-                                        viewModel.onContentAction(ContentAction.UpdateTTSLanguage(locale))
+                                        viewModel.onContentAction(
+                                            ContentAction.UpdateTTSLanguage(
+                                                locale
+                                            )
+                                        )
                                         languageMenuExpanded = false
                                         viewModel.onContentAction(ContentAction.UpdateTTSVoice(null))
                                     },
@@ -192,8 +196,12 @@ fun VoiceMenuDialog(
                                         leadingIconColor = colorPaletteState.textColor,
                                         trailingIconColor = colorPaletteState.textColor,
                                         disabledTextColor = colorPaletteState.textColor.copy(alpha = 0.5f),
-                                        disabledLeadingIconColor = colorPaletteState.textColor.copy(alpha = 0.5f),
-                                        disabledTrailingIconColor = colorPaletteState.textColor.copy(alpha = 0.5f),
+                                        disabledLeadingIconColor = colorPaletteState.textColor.copy(
+                                            alpha = 0.5f
+                                        ),
+                                        disabledTrailingIconColor = colorPaletteState.textColor.copy(
+                                            alpha = 0.5f
+                                        ),
                                     )
                                 )
                             }
@@ -205,7 +213,7 @@ fun VoiceMenuDialog(
                         .fillMaxWidth()
                         .padding(top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                ){
+                ) {
                     Box(
                         modifier = Modifier
                             .wrapContentHeight()
@@ -258,7 +266,7 @@ fun VoiceMenuDialog(
                             onDismissRequest = { voiceMenuExpanded = false },
                             containerColor = colorPaletteState.backgroundColor,
                         ) {
-                            filteredVoices?.forEach{voice ->
+                            filteredVoices?.forEach { voice ->
                                 DropdownMenuItem(
                                     text = {
                                         Column {
@@ -291,7 +299,7 @@ fun VoiceMenuDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
-                ){
+                ) {
                     Text(
                         text = "Speed",
                         style = TextStyle(
@@ -337,7 +345,7 @@ fun VoiceMenuDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
-                ){
+                ) {
                     Text(
                         text = "Pitch",
                         style = TextStyle(

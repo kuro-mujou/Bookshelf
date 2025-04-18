@@ -26,21 +26,18 @@ class BookmarkShape(
         val hole = with(density) { holeRadius.toPx() }
 
         val path = Path().apply {
-            // Bookmark outer shape
             moveTo(radius, 0f)
             lineTo(size.width - 1.25f * cut, 0f)
             lineTo(size.width, cut)
             lineTo(size.width, size.height - cut)
             lineTo(size.width - 1.25f * cut, size.height)
             lineTo(radius, size.height)
-            // Bottom left arc
             arcTo(
                 rect = Rect(0f, size.height - radius * 2, radius * 2, size.height),
                 startAngleDegrees = 90f,
                 sweepAngleDegrees = 90f,
                 forceMoveTo = false
             )
-            // Top left arc
             arcTo(
                 rect = Rect(0f, 0f, radius * 2, radius * 2),
                 startAngleDegrees = 180f,
@@ -48,7 +45,6 @@ class BookmarkShape(
                 forceMoveTo = false
             )
             close()
-            // Subtract circular hole
             val holeCenter = Offset(size.width - 3 * hole, size.height / 2)
             addOval(
                 Rect(

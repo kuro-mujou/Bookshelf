@@ -36,6 +36,7 @@ abstract class LocalBookDatabase : RoomDatabase() {
     abstract val imagePathDao: ImagePathDao
     abstract val musicPathDao: MusicPathDao
     abstract val noteDao: NoteDao
+
     companion object {
         const val DATABASE_NAME = "local_book_database"
     }

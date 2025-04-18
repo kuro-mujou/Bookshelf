@@ -25,11 +25,14 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -48,29 +51,30 @@ import kotlinx.coroutines.delay
 @UnstableApi
 @Composable
 fun BookmarkCard(
-    bookmarkContent : String,
-    bookmarkIndex : Int,
-    contentState : ContentState,
+    bookmarkContent: String,
+    bookmarkIndex: Int,
+    contentState: ContentState,
     colorPaletteState: ColorPalette,
     bookmarkStyle: BookmarkStyle,
     onCardClicked: (Int) -> Unit,
     onDeleted: ((Int) -> Unit)? = null
-){
-    val baseColor = if(colorPaletteState.containerColor.isDark()){
+) {
+    val baseColor = if (colorPaletteState.containerColor.isDark()) {
         colorPaletteState.containerColor.lighten(0.2f)
-    }else{
+    } else {
         colorPaletteState.containerColor.darken(0.2f)
     }
     val tooltipState = rememberTooltipState(
         isPersistent = true
     )
     val isBackgroundReady = remember { mutableStateOf(false) }
-
+    var cardWidth by remember { mutableStateOf(0) }
+    var cardHeight by remember { mutableStateOf(0) }
     LaunchedEffect(bookmarkIndex) {
         delay(500)
         isBackgroundReady.value = true
     }
-    val cardComposable : @Composable () -> Unit = {
+    val cardComposable: @Composable () -> Unit = {
         ElevatedCard(
             shape = BookmarkShape(),
             modifier = Modifier
@@ -97,7 +101,12 @@ fun BookmarkCard(
                 contentAlignment = Alignment.Center
             ) {
                 Column(
-                    modifier = Modifier.matchParentSize()
+                    modifier = Modifier
+                        .matchParentSize()
+                        .onGloballyPositioned { coordinates ->
+                            cardWidth = coordinates.size.width
+                            cardHeight = coordinates.size.height
+                        }
                 ) {
                     AnimatedVisibility(
                         visible = isBackgroundReady.value,
@@ -108,49 +117,63 @@ fun BookmarkCard(
                             BookmarkStyle.WAVE_WITH_BIRDS -> {
                                 CardBackgroundWaveWithBirds(
                                     modifier = Modifier.fillMaxSize(),
-                                    baseColor = baseColor
+                                    baseColor = baseColor,
+                                    cardWidth = cardWidth,
+                                    cardHeight = cardHeight
                                 )
                             }
 
                             BookmarkStyle.CLOUD_WITH_BIRDS -> {
                                 CardBackgroundCloudWithBirds(
                                     modifier = Modifier.fillMaxSize(),
-                                    baseColor = baseColor
+                                    baseColor = baseColor,
+                                    cardWidth = cardWidth,
+                                    cardHeight = cardHeight
                                 )
                             }
 
                             BookmarkStyle.STARRY_NIGHT -> {
                                 CardBackgroundStarryNight(
                                     modifier = Modifier.fillMaxSize(),
-                                    baseColor = baseColor
+                                    baseColor = baseColor,
+                                    cardWidth = cardWidth,
+                                    cardHeight = cardHeight
                                 )
                             }
 
                             BookmarkStyle.GEOMETRIC_TRIANGLE -> {
                                 CardBackgroundGeometricTriangle(
                                     modifier = Modifier.fillMaxSize(),
-                                    baseColor = baseColor
+                                    baseColor = baseColor,
+                                    cardWidth = cardWidth,
+                                    cardHeight = cardHeight
                                 )
                             }
 
                             BookmarkStyle.POLYGONAL_HEXAGON -> {
                                 CardBackgroundPolygonalHexagon(
                                     modifier = Modifier.fillMaxSize(),
-                                    baseColor = baseColor
+                                    baseColor = baseColor,
+                                    cardWidth = cardWidth,
+                                    cardHeight = cardHeight
                                 )
                             }
 
                             BookmarkStyle.SCATTERED_HEXAGON -> {
                                 CardBackgroundScatteredHexagons(
                                     modifier = Modifier.fillMaxSize(),
-                                    baseColor = baseColor
+                                    baseColor = baseColor,
+                                    cardWidth = cardWidth,
+                                    cardHeight = cardHeight
                                 )
                             }
 
                             BookmarkStyle.CHERRY_BLOSSOM_RAIN -> {
                                 CardBackgroundCherryBlossomRain(
                                     modifier = Modifier.fillMaxSize(),
-                                    baseColor = baseColor
+                                    baseColor = baseColor,
+                                    cardWidth = cardWidth,
+                                    cardHeight = cardHeight
                                 )
                             }
                         }

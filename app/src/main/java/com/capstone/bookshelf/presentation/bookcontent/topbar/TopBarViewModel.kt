@@ -18,11 +18,13 @@ class TopBarViewModel : ViewModel() {
         )
 
     fun onAction(action: TopBarAction) {
-        when(action){
+        when (action) {
             is TopBarAction.UpdateVisibility -> {
-                _state.update { it.copy(
-                    visibility = action.visibility
-                ) }
+                _state.update {
+                    it.copy(
+                        visibility = action.visibility
+                    )
+                }
             }
         }
     }

@@ -15,48 +15,58 @@ class BookRepositoryImpl(
     override suspend fun insertBook(book: BookEntity): Long {
         return bookDao.insertBook(book)
     }
+
     override suspend fun isBookExist(title: String): Boolean {
         return bookDao.isBookExist(title) != null
     }
+
     override fun getBookAsFlow(bookId: String): Flow<Book> {
         return bookDao
             .getBookAsFlow(bookId)
             .map { it.toDataClass() }
     }
+
     override fun readAllBooksSortByFavorite(): Flow<List<Book>> {
         return bookDao
             .readAllBooksSortByFavorite()
-            .map { bookEntity->
-                bookEntity.map{it.toDataClass()}
+            .map { bookEntity ->
+                bookEntity.map { it.toDataClass() }
             }
     }
+
     override fun readAllBooks(): Flow<List<Book>> {
         return bookDao
             .readAllBooks()
-            .map { bookEntity->
-                bookEntity.map{it.toDataClass()}
+            .map { bookEntity ->
+                bookEntity.map { it.toDataClass() }
             }
     }
+
     override suspend fun getBook(bookId: String): Book? {
         return bookDao.getBook(bookId)?.toDataClass()
     }
+
     override suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean) {
         bookDao.setBookAsFavorite(bookId, isFavorite)
     }
+
     override suspend fun saveBookInfoChapterIndex(bookId: String, chapterIndex: Int) {
-        bookDao.saveBookInfoChapterIndex(bookId,chapterIndex)
+        bookDao.saveBookInfoChapterIndex(bookId, chapterIndex)
     }
+
     override suspend fun saveBookInfoParagraphIndex(bookId: String, paragraphIndex: Int) {
-        bookDao.saveBookInfoParagraphIndex(bookId,paragraphIndex)
+        bookDao.saveBookInfoParagraphIndex(bookId, paragraphIndex)
     }
+
     override suspend fun saveBookInfoTotalChapter(bookId: String, totalChapter: Int) {
-        bookDao.saveBookInfoTotalChapter(bookId,totalChapter)
+        bookDao.saveBookInfoTotalChapter(bookId, totalChapter)
     }
+
     override suspend fun deleteBooks(books: List<Book>) {
         val bookEntities = books.map {
             it.toEntity()
         }
-        bookEntities.forEach {bookEntity->
+        bookEntities.forEach { bookEntity ->
             bookDao.deleteBooks(bookEntity)
         }
     }

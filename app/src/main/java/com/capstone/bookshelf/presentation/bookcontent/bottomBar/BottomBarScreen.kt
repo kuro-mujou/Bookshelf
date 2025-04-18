@@ -57,21 +57,25 @@ fun BottomBarManager(
     colorPaletteState: ColorPalette,
     connectToService: () -> Unit,
     onSwitchChange: (Boolean) -> Unit
-){
-    var openBackgroundMusicMenu by remember {mutableStateOf(false)}
-    var openBookmarkThemeMenu by remember {mutableStateOf(false)}
+) {
+    var openBackgroundMusicMenu by remember { mutableStateOf(false) }
+    var openBookmarkThemeMenu by remember { mutableStateOf(false) }
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
     val musicMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val bookmarkMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    LaunchedEffect(bottomBarState.visibility,contentState.isSpeaking,autoScrollState.stopAutoScroll){
-        if(!bottomBarState.visibility) {
-            if(contentState.isSpeaking){
+    LaunchedEffect(
+        bottomBarState.visibility,
+        contentState.isSpeaking,
+        autoScrollState.stopAutoScroll
+    ) {
+        if (!bottomBarState.visibility) {
+            if (contentState.isSpeaking) {
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(true))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarAutoScrollState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarSettingState(false))
-            } else if(!autoScrollState.stopAutoScroll){
+            } else if (!autoScrollState.stopAutoScroll) {
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarDefaultState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarThemeState(false))
                 bottomBarViewModel.onAction(BottomBarAction.UpdateBottomBarTTSState(false))
@@ -205,8 +209,8 @@ fun BottomBarManager(
                 viewModel.onTtsUiEvent(TtsUiEvent.Backward)
             },
             onPlayPauseIconClick = {
-                if(contentState.isSpeaking){
-                    if(!contentState.isPaused){
+                if (contentState.isSpeaking) {
+                    if (!contentState.isPaused) {
                         viewModel.onContentAction(ContentAction.UpdateIsPaused(true))
                     } else {
                         viewModel.onContentAction(ContentAction.UpdateIsPaused(false))
@@ -229,7 +233,7 @@ fun BottomBarManager(
             },
             onTTSSettingIconClick = {
                 bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))
-                viewModel.loadTTSSetting(dataStoreManager,contentState.tts)
+                viewModel.loadTTSSetting(dataStoreManager, contentState.tts)
                 bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
             }
         )
@@ -249,7 +253,7 @@ fun BottomBarManager(
             dataStore = dataStoreManager,
         )
     }
-    if(openBackgroundMusicMenu){
+    if (openBackgroundMusicMenu) {
         ModalBottomSheet(
             modifier = Modifier.fillMaxSize(),
             sheetState = musicMenuSheetState,
@@ -264,7 +268,7 @@ fun BottomBarManager(
             )
         }
     }
-    if(openBookmarkThemeMenu){
+    if (openBookmarkThemeMenu) {
         ModalBottomSheet(
             modifier = Modifier.fillMaxSize(),
             sheetState = bookmarkMenuSheetState,

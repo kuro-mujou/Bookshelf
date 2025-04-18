@@ -44,13 +44,13 @@ fun NoteDialog(
     colorPaletteState: ColorPalette,
     onDismiss: () -> Unit,
     onNoteChanged: (String) -> Unit
-){
+) {
     var noteContent by remember { mutableStateOf("") }
-    LaunchedEffect(noteInput){
+    LaunchedEffect(noteInput) {
         noteContent = noteInput
     }
     Dialog(
-        onDismissRequest = { onDismiss()},
+        onDismissRequest = { onDismiss() },
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = false,
@@ -68,7 +68,8 @@ fun NoteDialog(
             ) {
                 Row(
                     modifier = Modifier
-                        .height(IntrinsicSize.Min).fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                        .fillMaxWidth()
                 ) {
                     VerticalDivider(
                         modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),

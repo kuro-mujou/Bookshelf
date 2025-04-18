@@ -56,19 +56,19 @@ fun BookList(
     val sheetState = rememberModalBottomSheetState()
     val gridState = rememberLazyStaggeredGridState()
     val listState = rememberLazyListState()
-    LaunchedEffect(Unit){
+    LaunchedEffect(Unit) {
         bookListViewModel.onAction(BookListAction.UpdateBookListType(dataStoreManager.bookListView.first()))
     }
     Column(
         modifier = Modifier.systemBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if(!localBookListState.isOnDeleteBooks){
+        if (!localBookListState.isOnDeleteBooks) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround
-            ){
+            ) {
                 IconButton(
                     onClick = {
                         onAction(
@@ -79,7 +79,7 @@ fun BookList(
                     Icon(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_write_ebook),
                         contentDescription = "Write new ebook icon",
-                        tint = if(isSystemInDarkTheme())
+                        tint = if (isSystemInDarkTheme())
                             Color(155, 212, 161)
                         else
                             Color(52, 105, 63)
@@ -99,7 +99,7 @@ fun BookList(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark_star),
                         contentDescription = "Sorting Icon",
                         tint = if (localBookListState.isSortedByFavorite)
-                            if(isSystemInDarkTheme())
+                            if (isSystemInDarkTheme())
                                 Color(155, 212, 161)
                             else
                                 Color(52, 105, 63)
@@ -116,24 +116,28 @@ fun BookList(
                     Icon(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
                         contentDescription = "Delete Icon",
-                        tint = if(isSystemInDarkTheme()) Color(250, 160, 160) else Color(194, 59, 34)
+                        tint = if (isSystemInDarkTheme()) Color(250, 160, 160) else Color(
+                            194,
+                            59,
+                            34
+                        )
                     )
                 }
             }
         }
-        if(localBookListState.isOnDeleteBooks){
+        if (localBookListState.isOnDeleteBooks) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround
-            ){
+            ) {
                 IconButton(
                     onClick = {
                         bookListViewModel.onAction(
                             BookListAction.OnConfirmDeleteBooks
                         )
                     }
-                ){
+                ) {
                     Icon(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_confirm),
                         contentDescription = "Confirm Delete Icon",
@@ -145,7 +149,7 @@ fun BookList(
                             BookListAction.OnDeletingBooks(false)
                         )
                     }
-                ){
+                ) {
                     Icon(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_cancel),
                         contentDescription = "Cancel Delete Icon",
@@ -153,21 +157,21 @@ fun BookList(
                 }
             }
         }
-        Row{
+        Row {
             IconButton(
                 onClick = {
                     onAction(BookListAction.UpdateBookListType(1))
                 }
-            ){
+            ) {
                 Icon(
                     imageVector = ImageVector.vectorResource(R.drawable.ic_grid_view),
                     contentDescription = "Grid",
-                    tint = if(localBookListState.listViewType == 1){
-                        if(isSystemInDarkTheme())
+                    tint = if (localBookListState.listViewType == 1) {
+                        if (isSystemInDarkTheme())
                             Color(154, 204, 250)
                         else
                             Color(45, 98, 139)
-                    }else{
+                    } else {
                         Color.Gray
                     }
                 )
@@ -176,16 +180,16 @@ fun BookList(
                 onClick = {
                     onAction(BookListAction.UpdateBookListType(0))
                 }
-            ){
+            ) {
                 Icon(
                     imageVector = ImageVector.vectorResource(R.drawable.ic_list_view),
                     contentDescription = "List",
-                    tint = if(localBookListState.listViewType == 0){
-                        if(isSystemInDarkTheme())
+                    tint = if (localBookListState.listViewType == 0) {
+                        if (isSystemInDarkTheme())
                             Color(154, 204, 250)
                         else
                             Color(45, 98, 139)
-                    }else{
+                    } else {
                         Color.Gray
                     }
                 )
@@ -196,6 +200,7 @@ fun BookList(
                 -1 -> {
                     Box(modifier = Modifier.fillMaxSize())
                 }
+
                 0 -> {
                     LazyColumn(
                         state = listState,
@@ -299,7 +304,7 @@ fun BookList(
             }
         }
     }
-    if(localBookListState.isOpenBottomSheet){
+    if (localBookListState.isOpenBottomSheet) {
         BookMenuBottomSheet(
             sheetState = sheetState,
             state = localBookListState,

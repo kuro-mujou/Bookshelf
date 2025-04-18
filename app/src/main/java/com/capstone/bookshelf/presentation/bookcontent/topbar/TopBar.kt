@@ -50,12 +50,12 @@ fun TopBar(
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .then(
-                    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         Modifier.hazeEffect(
                             state = hazeState,
                             style = style
                         )
-                    }else{
+                    } else {
                         Modifier.background(colorPaletteState.containerColor)
                     }
                 ),
@@ -96,7 +96,7 @@ fun TopBar(
             ) {
                 Icon(
                     imageVector = ImageVector.vectorResource(
-                        if(drawerContainerState.tableOfContents[contentState.currentChapterIndex].isFavorite)
+                        if (drawerContainerState.tableOfContents[contentState.currentChapterIndex].isFavorite)
                             R.drawable.ic_bookmark_filled
                         else
                             R.drawable.ic_bookmark

@@ -1,6 +1,6 @@
 package com.capstone.bookshelf.domain.wrapper
 
-data class TableOfContent (
+data class TableOfContent(
     val tocId: Int? = null,
     val bookId: String,
     val title: String,

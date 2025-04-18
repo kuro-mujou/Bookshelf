@@ -15,8 +15,8 @@ class ImagePathRepositoryImpl(
         imageDao.deleteByBookId(bookId)
     }
 
-    override suspend fun saveImagePath(bookID: String, coverImagePath: List<String>){
-        val imagePathEntity = coverImagePath.map{
+    override suspend fun saveImagePath(bookID: String, coverImagePath: List<String>) {
+        val imagePathEntity = coverImagePath.map {
             ImagePathEntity(bookId = bookID, imagePath = it)
         }
         imageDao.saveImagePath(imagePathEntity)

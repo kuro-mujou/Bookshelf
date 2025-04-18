@@ -39,26 +39,34 @@ class DrawerContainerViewModel(
             SharingStarted.WhileSubscribed(5000L),
             _state.value
         )
+
     fun onAction(action: DrawerContainerAction) {
         when (action) {
             is DrawerContainerAction.UpdateDrawerState -> {
-                _state.update { it.copy(
-                    drawerState = action.drawerState
-                ) }
+                _state.update {
+                    it.copy(
+                        drawerState = action.drawerState
+                    )
+                }
             }
 
             is DrawerContainerAction.UpdateCurrentTOC -> {
                 val tocList = _state.value.tableOfContents
                 if (action.toc in tocList.indices) {
-                    _state.update { it.copy(
-                        currentTOC = tocList[action.toc]
-                    ) }
+                    _state.update {
+                        it.copy(
+                            currentTOC = tocList[action.toc]
+                        )
+                    }
                 } else {
                     viewModelScope.launch {
-                        val currentTOC = tableOfContentRepository.getTableOfContent(bookId, action.toc)
-                        _state.update { it.copy(
-                            currentTOC = currentTOC
-                        ) }
+                        val currentTOC =
+                            tableOfContentRepository.getTableOfContent(bookId, action.toc)
+                        _state.update {
+                            it.copy(
+                                currentTOC = currentTOC
+                            )
+                        }
                     }
                 }
             }
@@ -89,7 +97,11 @@ class DrawerContainerViewModel(
 
             is DrawerContainerAction.UpdateIsFavorite -> {
                 viewModelScope.launch {
-                    tableOfContentRepository.updateTableOfContent(bookId, _state.value.currentTOC!!.index, action.isFavorite)
+                    tableOfContentRepository.updateTableOfContent(
+                        bookId,
+                        _state.value.currentTOC!!.index,
+                        action.isFavorite
+                    )
                 }
             }
 
@@ -98,25 +110,33 @@ class DrawerContainerViewModel(
                     tableOfContentRepository.updateTableOfContent(bookId, action.tocId, false)
                 }
                 _state.value.undoBookmarkList += action.tocId
-                _state.update { it.copy(
-                    enableUndoDeleteBookmark = true
-                ) }
+                _state.update {
+                    it.copy(
+                        enableUndoDeleteBookmark = true
+                    )
+                }
             }
+
             is DrawerContainerAction.UndoDeleteBookmark -> {
                 viewModelScope.launch {
                     _state.value.undoBookmarkList.forEach {
                         tableOfContentRepository.updateTableOfContent(bookId, it, true)
                     }
-                    _state.update { it.copy(
-                        enableUndoDeleteBookmark = false
-                    ) }
+                    _state.update {
+                        it.copy(
+                            enableUndoDeleteBookmark = false
+                        )
+                    }
                     _state.value.undoBookmarkList = emptyList()
                 }
             }
+
             is DrawerContainerAction.DisableUndoDeleteBookmark -> {
-                _state.update { it.copy(
-                    enableUndoDeleteBookmark = false
-                ) }
+                _state.update {
+                    it.copy(
+                        enableUndoDeleteBookmark = false
+                    )
+                }
                 _state.value.undoBookmarkList = emptyList()
             }
 
@@ -134,6 +154,7 @@ class DrawerContainerViewModel(
                     )
                 }
             }
+
             is DrawerContainerAction.EditNote -> {
                 viewModelScope.launch {
                     noteRepository.upsertNote(
@@ -149,56 +170,73 @@ class DrawerContainerViewModel(
                     )
                 }
             }
+
             is DrawerContainerAction.DeleteNote -> {
                 viewModelScope.launch {
                     noteRepository.deleteNote(action.note.noteId)
                 }
                 _state.value.undoNoteList += action.note
-                _state.update { it.copy(
-                    enableUndoDeleteNote = true,
-                    currentSelectedNote = -1
-                ) }
+                _state.update {
+                    it.copy(
+                        enableUndoDeleteNote = true,
+                        currentSelectedNote = -1
+                    )
+                }
             }
+
             is DrawerContainerAction.UpdateSelectedNote -> {
-                _state.update { it.copy(
-                    currentSelectedNote = action.index
-                ) }
+                _state.update {
+                    it.copy(
+                        currentSelectedNote = action.index
+                    )
+                }
             }
+
             is DrawerContainerAction.UndoDeleteNote -> {
                 viewModelScope.launch {
                     _state.value.undoNoteList.forEach {
                         noteRepository.upsertNote(it)
                     }
-                    _state.update { it.copy(
-                        enableUndoDeleteNote = false
-                    ) }
+                    _state.update {
+                        it.copy(
+                            enableUndoDeleteNote = false
+                        )
+                    }
                 }
             }
+
             is DrawerContainerAction.DisableUndoDeleteNote -> {
-                _state.update { it.copy(
-                    enableUndoDeleteNote = false
-                ) }
+                _state.update {
+                    it.copy(
+                        enableUndoDeleteNote = false
+                    )
+                }
                 _state.value.undoNoteList = emptyList()
             }
         }
     }
+
     init {
         viewModelScope.launch {
             tableOfContentRepository
                 .getTableOfContents(bookId)
-                .collectLatest{ tableOfContents ->
-                    _state.update { it.copy(
-                        tableOfContents = tableOfContents
-                    ) }
+                .collectLatest { tableOfContents ->
+                    _state.update {
+                        it.copy(
+                            tableOfContents = tableOfContents
+                        )
+                    }
                 }
         }
         viewModelScope.launch {
             noteRepository
                 .getNotes(bookId)
                 .collectLatest { notes ->
-                    _state.update { it.copy(
-                        notes = notes
-                    ) }
+                    _state.update {
+                        it.copy(
+                            notes = notes
+                        )
+                    }
                 }
         }
     }

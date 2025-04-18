@@ -2,6 +2,7 @@ package com.capstone.bookshelf.app
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -17,9 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.compose.rememberNavController
 import com.capstone.bookshelf.theme.BookShelfTheme
+import com.capstone.bookshelf.util.ImportBook
 
 @UnstableApi
 class MainActivity : ComponentActivity() {
@@ -36,11 +39,13 @@ class MainActivity : ComponentActivity() {
                 android.graphics.Color.TRANSPARENT
             )
         )
+        handleIncomingFile(intent)
         setContent {
             BookShelfTheme {
                 Surface {
                     val navController = rememberNavController()
-                    val requestNotificationPermission = rememberNotificationPermissionLauncher(this) {}
+                    val requestNotificationPermission =
+                        rememberNotificationPermissionLauncher(this) {}
                     LaunchedEffect(Unit) {
                         requestNotificationPermission()
                     }
@@ -51,6 +56,23 @@ class MainActivity : ComponentActivity() {
             }
         }
         volumeControlStream = android.media.AudioManager.STREAM_MUSIC
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIncomingFile(intent)
+    }
+
+    private fun handleIncomingFile(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_VIEW) {
+            val uri = intent.data
+            if (uri != null) {
+                ImportBook(
+                    context = this,
+                    scope = this.lifecycleScope
+                ).importBook(uri)
+            }
+        }
     }
 }
 

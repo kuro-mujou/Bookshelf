@@ -12,6 +12,7 @@ fun TableOfContentEntity.toDataClass(): TableOfContent {
         isFavorite = isFavorite
     )
 }
+
 fun TableOfContent.toEntity(): TableOfContentEntity {
     return TableOfContentEntity(
         bookId = bookId,

@@ -44,11 +44,11 @@ fun SetupNavGraph(
     ) {
         navigation<Route.BookGraph>(
             startDestination = Route.Home,
-        ){
+        ) {
             composable<Route.Home>(
                 exitTransition = { slideOutHorizontally() },
                 popEnterTransition = { slideInHorizontally() },
-            ){nav ->
+            ) { nav ->
                 val bookListViewModel = koinViewModel<BookListViewModel>()
                 val selectedBookViewModel =
                     nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
@@ -60,30 +60,34 @@ fun SetupNavGraph(
                     bookListViewModel = bookListViewModel,
                     importBookViewModel = importBookViewModel,
                     dataStoreManager = dataStoreManager,
-                    onAction = { action->
-                        when(action){
+                    onAction = { action ->
+                        when (action) {
                             is BookListAction.OnBookClick -> {
                                 selectedBookViewModel.onSelectBook(action.book)
                                 navController.navigate(
                                     Route.BookContent(action.book.id)
                                 )
                             }
+
                             is BookListAction.OnViewBookDetailClick -> {
                                 selectedBookViewModel.onSelectBook(action.book)
                                 navController.navigate(
                                     Route.BookDetail(action.book.id)
                                 )
                             }
+
                             is BookListAction.OnWritingNewBook -> {
                                 navController.navigate(
                                     Route.WriteBook
                                 )
                             }
+
                             is BookListAction.UpdateBookListType -> {
                                 bookListViewModel.onAction(
                                     BookListAction.UpdateBookListType(action.type)
                                 )
                             }
+
                             else -> Unit
                         }
                     }
@@ -93,7 +97,8 @@ fun SetupNavGraph(
                 exitTransition = { slideOutHorizontally() },
                 popEnterTransition = { slideInHorizontally() },
             ) { nav ->
-                val selectedBookViewModel = nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
+                val selectedBookViewModel =
+                    nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
                 val viewModel = koinViewModel<BookDetailViewModel>()
                 val selectedBook by selectedBookViewModel.selectedBook.collectAsStateWithLifecycle()
 
@@ -112,15 +117,15 @@ fun SetupNavGraph(
                     },
                     onDrawerItemClick = {
                         viewModel.onAction(BookDetailAction.OnDrawerItemClick(it))
-                        navController.navigate(Route.BookContent(selectedBook?.id!!)){
-                            popUpTo(Route.BookDetail(selectedBook?.id!!)){
+                        navController.navigate(Route.BookContent(selectedBook?.id!!)) {
+                            popUpTo(Route.BookDetail(selectedBook?.id!!)) {
                                 inclusive = true
                             }
                         }
                     },
                     onReadBookClick = {
-                        navController.navigate(Route.BookContent(selectedBook?.id!!)){
-                            popUpTo(Route.BookDetail(selectedBook?.id!!)){
+                        navController.navigate(Route.BookContent(selectedBook?.id!!)) {
+                            popUpTo(Route.BookDetail(selectedBook?.id!!)) {
                                 inclusive = true
                             }
                         }
@@ -130,7 +135,7 @@ fun SetupNavGraph(
             composable<Route.BookContent>(
                 exitTransition = { slideOutHorizontally() },
                 popEnterTransition = { slideInHorizontally() },
-            ){ nav ->
+            ) { nav ->
                 val colorPaletteViewModel = koinViewModel<ColorPaletteViewModel>()
                 val viewModel = koinViewModel<ContentViewModel>()
                 val dataStoreManager = DataStoreManager(LocalContext.current)
@@ -138,10 +143,10 @@ fun SetupNavGraph(
                     viewModel = viewModel,
                     colorPaletteViewModel = colorPaletteViewModel,
                     dataStoreManager = dataStoreManager,
-                    onBackClick = { back->
-                        if(back){
-                            navController.navigate(Route.Home){
-                                popUpTo(Route.Home){
+                    onBackClick = { back ->
+                        if (back) {
+                            navController.navigate(Route.Home) {
+                                popUpTo(Route.Home) {
                                     inclusive = true
                                 }
                                 launchSingleTop = true
@@ -155,13 +160,13 @@ fun SetupNavGraph(
             composable<Route.WriteBook>(
                 exitTransition = { slideOutHorizontally() },
                 popEnterTransition = { slideInHorizontally() },
-            ){nav ->
+            ) { nav ->
                 val bookWriterViewModel = koinViewModel<BookWriterViewModel>()
                 val selectedBookViewModel =
                     nav.sharedKoinViewModel<SelectedBookViewModel>(navController)
                 BookWriterCreate(
                     viewModel = bookWriterViewModel,
-                    onNavigateToBookContent = { bookId,book ->
+                    onNavigateToBookContent = { bookId, book ->
                         selectedBookViewModel.onSelectBook(book)
                         navController.navigate(
                             Route.Home
@@ -174,7 +179,7 @@ fun SetupNavGraph(
 }
 
 @Composable
-private inline fun <reified T: ViewModel> NavBackStackEntry.sharedKoinViewModel(
+private inline fun <reified T : ViewModel> NavBackStackEntry.sharedKoinViewModel(
     navController: NavController
 ): T {
     val navGraphRoute = destination.parent?.route ?: return koinViewModel<T>()

@@ -70,9 +70,9 @@ import kotlin.math.roundToInt
 @Composable
 @UnstableApi
 fun BottomBarTheme(
-    viewModel : ContentViewModel,
+    viewModel: ContentViewModel,
     colorPaletteViewModel: ColorPaletteViewModel,
-    contentState : ContentState,
+    contentState: ContentState,
     colorPaletteState: ColorPalette,
     hazeState: HazeState,
     style: HazeStyle,
@@ -121,18 +121,20 @@ fun BottomBarTheme(
             .fillMaxWidth()
             .wrapContentHeight()
             .then(
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
-                }else{
+                } else {
                     Modifier.background(colorPaletteState.containerColor)
                 }
             ),
     ) {
         Column(
-            modifier = Modifier.padding(8.dp).navigationBarsPadding(),
+            modifier = Modifier
+                .padding(8.dp)
+                .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -192,12 +194,17 @@ fun BottomBarTheme(
                 }
             }
             Row(
-                modifier = Modifier.padding(top = 2.dp, bottom = 2.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(top = 2.dp, bottom = 2.dp)
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 LazyRow(
-                    modifier = Modifier.padding(end = 8.dp).weight(1f).wrapContentHeight()
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .weight(1f)
+                        .wrapContentHeight()
                 ) {
                     itemsIndexed(
                         items = colorPaletteState.colorSamples,
@@ -238,12 +245,17 @@ fun BottomBarTheme(
                 }
             }
             Row(
-                modifier = Modifier.padding(top = 2.dp, bottom = 2.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(top = 2.dp, bottom = 2.dp)
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 LazyRow(
-                    modifier = Modifier.padding(end = 8.dp).weight(1f).wrapContentHeight(),
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .weight(1f)
+                        .wrapContentHeight(),
                 ) {
                     itemsIndexed(
                         items = contentState.fontFamilies,
@@ -291,7 +303,7 @@ fun BottomBarTheme(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        modifier = Modifier.width(with(density) {textWidth.toDp()}),
+                        modifier = Modifier.width(with(density) { textWidth.toDp() }),
                         text = "Font Size",
                         style = TextStyle(
                             color = colorPaletteState.textColor,
@@ -299,7 +311,9 @@ fun BottomBarTheme(
                         )
                     )
                     Slider(
-                        modifier = Modifier.padding(end = 8.dp).weight(1f),
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .weight(1f),
                         value = contentState.fontSize.toFloat(),
                         onValueChange = { value ->
                             viewModel.onContentAction(ContentAction.UpdateFontSize(value.roundToInt()))
@@ -375,7 +389,9 @@ fun BottomBarTheme(
                         )
                     )
                     Slider(
-                        modifier = Modifier.padding(end = 8.dp).weight(1f),
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .weight(1f),
                         value = contentState.lineSpacing.toFloat(),
                         onValueChange = { value ->
                             viewModel.onContentAction(ContentAction.UpdateLineSpacing(value.roundToInt()))
@@ -434,6 +450,7 @@ fun BottomBarTheme(
         }
     }
 }
+
 @Composable
 @UnstableApi
 fun SampleColorItem(
@@ -442,7 +459,7 @@ fun SampleColorItem(
     selected: Boolean,
     contentState: ContentState,
     onClick: () -> Unit
-){
+) {
     Box(
         modifier = Modifier
             .then(
@@ -483,7 +500,7 @@ fun SampleFontItem(
     colorPaletteState: ColorPalette,
     selected: Boolean,
     onClick: () -> Unit
-){
+) {
     Box(
         modifier = Modifier
             .then(

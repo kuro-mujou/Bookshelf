@@ -49,7 +49,7 @@ import dev.chrisbanes.haze.hazeEffect
 @Composable
 @UnstableApi
 fun BottomBarSetting(
-    viewModel : ContentViewModel,
+    viewModel: ContentViewModel,
     bottomBarViewModel: BottomBarViewModel,
     autoScrollViewModel: AutoScrollViewModel,
     contentState: ContentState,
@@ -59,12 +59,12 @@ fun BottomBarSetting(
     autoScrollState: AutoScrollState,
     style: HazeStyle,
     dataStoreManager: DataStoreManager,
-    tts : TextToSpeech,
+    tts: TextToSpeech,
     onKeepScreenOnChange: (Boolean) -> Unit,
     onBackgroundMusicSetting: () -> Unit,
     onBookmarkThemeSetting: () -> Unit,
 ) {
-    if(bottomBarState.openTTSVoiceMenu){
+    if (bottomBarState.openTTSVoiceMenu) {
         VoiceMenuDialog(
             viewModel = viewModel,
             bottomBarState = bottomBarState,
@@ -85,7 +85,7 @@ fun BottomBarSetting(
             }
         )
     }
-    if(bottomBarState.openAutoScrollMenu){
+    if (bottomBarState.openAutoScrollMenu) {
         AutoScrollMenuDialog(
             contentState = contentState,
             autoScrollState = autoScrollState,
@@ -102,12 +102,12 @@ fun BottomBarSetting(
             .fillMaxWidth()
             .wrapContentHeight()
             .then(
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
-                }else{
+                } else {
                     Modifier.background(colorPaletteState.containerColor)
                 }
             ),
@@ -245,7 +245,7 @@ fun BottomBarSetting(
                     contentDescription = "Bookmark theme"
                 )
             }
-            if(contentState.book?.fileType != "cbz") {
+            if (contentState.book?.fileType != "cbz") {
                 HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
                 Row(
                     modifier = Modifier

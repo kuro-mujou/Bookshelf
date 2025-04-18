@@ -48,18 +48,18 @@ fun BottomBarDefault(
     onTTSIconClick: () -> Unit,
     onAutoScrollIconClick: () -> Unit,
     onSettingIconClick: () -> Unit
-){
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
             .then(
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
-                }else{
+                } else {
                     Modifier.background(colorPaletteState.containerColor)
                 }
             ),
@@ -106,7 +106,7 @@ fun BottomBarDefault(
                     contentDescription = "theme"
                 )
             }
-            if(contentState.book?.fileType != "cbz") {
+            if (contentState.book?.fileType != "cbz") {
                 IconButton(
                     modifier = Modifier.size(50.dp),
                     onClick = {

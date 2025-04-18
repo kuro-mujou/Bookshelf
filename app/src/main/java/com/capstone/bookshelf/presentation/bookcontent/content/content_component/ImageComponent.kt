@@ -21,7 +21,7 @@ fun ImageComponent(
     Card(
         modifier = Modifier
             .then(
-                if(content.contentState.imagePaddingState)
+                if (content.contentState.imagePaddingState)
                     Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)
                 else
                     Modifier

@@ -155,72 +155,77 @@ class PDFImportWorker(
                 return kotlin.Result.failure(IOException("Failed to open InputStream for PDF"))
             }
             onProgress(null, "Loading PDF document...")
-            PDDocument.load(tempPdfFile, "", MemoryUsageSetting.setupTempFileOnly()).use { document ->
-                if (document.numberOfPages == 0) {
-                    throw IOException("PDF document has no pages.")
-                }
-                val info: PDDocumentInformation = document.documentInformation
-                finalBookTitle = info.title?.takeIf { it.isNotBlank() } ?: bookTitle
-                bookId = BigInteger(1, md.digest(originalFileName.toByteArray()))
-                    .toString(16).padStart(32, '0')
-                if (bookRepository.isBookExist(finalBookTitle)) {
-                    return kotlin.Result.failure(IOException("Book already imported"))
-                }
-                onProgress(null, "Generating cover image...")
-                val coverImagePath = generateAndSaveCoverImage(context, tempPdfFile, bookId)
-                val finalCoverPathForDb = if (coverImagePath == null || coverImagePath.startsWith("error_")) {
-                    null
-                } else {
-                    coverImagePath
-                }
-                onProgress(null, "Analyzing table of contents...")
-                val tocList = extractToc(document)
-                val authors = listOf(info.author?.takeIf { it.isNotBlank() } ?: "Unknown Author")
-                val processingMode = if (tocList.isNotEmpty()) ProcessingMode.TOC_BASED else ProcessingMode.IMAGE_ONLY
-                val totalChaptersOrPages = when (processingMode) {
-                    ProcessingMode.TOC_BASED -> tocList.size
-                    ProcessingMode.IMAGE_ONLY -> document.numberOfPages
-                }
-                if (totalChaptersOrPages == 0) {
-                    return kotlin.Result.failure(IOException("No chapters or pages found to process."))
-                }
-                onProgress(null, "Saving book information...")
-                saveBookInfo(
-                    bookID = bookId,
-                    title = finalBookTitle,
-                    authors = authors,
-                    coverImagePath = finalCoverPathForDb,
-                    totalChapters = totalChaptersOrPages,
-                    storagePath = tempPdfFile.absolutePath
-                )
-                if (finalCoverPathForDb != null) {
-                    imagePathRepository.saveImagePath(bookId, listOf(finalCoverPathForDb))
-                }
-                when (processingMode) {
-                    ProcessingMode.TOC_BASED -> {
-                        processChaptersWithToc(
-                            document = document,
-                            bookId = bookId,
-                            tocList = tocList,
-                            originalFileName = originalFileName,
-                            context = context,
-                            onProgress = onProgress
-                        )
+            PDDocument.load(tempPdfFile, "", MemoryUsageSetting.setupTempFileOnly())
+                .use { document ->
+                    if (document.numberOfPages == 0) {
+                        throw IOException("PDF document has no pages.")
                     }
-                    ProcessingMode.IMAGE_ONLY -> {
-                        processPagesAsImages(
-                            tempPdfFile = tempPdfFile,
-                            bookId = bookId,
-                            totalPages = totalChaptersOrPages,
-                            originalFileName = originalFileName,
-                            context = context,
-                            onProgress = onProgress
-                        )
+                    val info: PDDocumentInformation = document.documentInformation
+                    finalBookTitle = info.title?.takeIf { it.isNotBlank() } ?: bookTitle
+                    bookId = BigInteger(1, md.digest(originalFileName.toByteArray()))
+                        .toString(16).padStart(32, '0')
+                    if (bookRepository.isBookExist(finalBookTitle)) {
+                        return kotlin.Result.failure(IOException("Book already imported"))
                     }
-                }
+                    onProgress(null, "Generating cover image...")
+                    val coverImagePath = generateAndSaveCoverImage(context, tempPdfFile, bookId)
+                    val finalCoverPathForDb =
+                        if (coverImagePath == null || coverImagePath.startsWith("error_")) {
+                            null
+                        } else {
+                            coverImagePath
+                        }
+                    onProgress(null, "Analyzing table of contents...")
+                    val tocList = extractToc(document)
+                    val authors =
+                        listOf(info.author?.takeIf { it.isNotBlank() } ?: "Unknown Author")
+                    val processingMode =
+                        if (tocList.isNotEmpty()) ProcessingMode.TOC_BASED else ProcessingMode.IMAGE_ONLY
+                    val totalChaptersOrPages = when (processingMode) {
+                        ProcessingMode.TOC_BASED -> tocList.size
+                        ProcessingMode.IMAGE_ONLY -> document.numberOfPages
+                    }
+                    if (totalChaptersOrPages == 0) {
+                        return kotlin.Result.failure(IOException("No chapters or pages found to process."))
+                    }
+                    onProgress(null, "Saving book information...")
+                    saveBookInfo(
+                        bookID = bookId,
+                        title = finalBookTitle,
+                        authors = authors,
+                        coverImagePath = finalCoverPathForDb,
+                        totalChapters = totalChaptersOrPages,
+                        storagePath = tempPdfFile.absolutePath
+                    )
+                    if (finalCoverPathForDb != null) {
+                        imagePathRepository.saveImagePath(bookId, listOf(finalCoverPathForDb))
+                    }
+                    when (processingMode) {
+                        ProcessingMode.TOC_BASED -> {
+                            processChaptersWithToc(
+                                document = document,
+                                bookId = bookId,
+                                tocList = tocList,
+                                originalFileName = originalFileName,
+                                context = context,
+                                onProgress = onProgress
+                            )
+                        }
 
-                return@use kotlin.Result.success(finalBookTitle)
-            }
+                        ProcessingMode.IMAGE_ONLY -> {
+                            processPagesAsImages(
+                                tempPdfFile = tempPdfFile,
+                                bookId = bookId,
+                                totalPages = totalChaptersOrPages,
+                                originalFileName = originalFileName,
+                                context = context,
+                                onProgress = onProgress
+                            )
+                        }
+                    }
+
+                    return@use kotlin.Result.success(finalBookTitle)
+                }
         } catch (e: Exception) {
             return kotlin.Result.failure(e)
         } finally {
@@ -230,8 +235,13 @@ class PDFImportWorker(
         }
         return kotlin.Result.success(finalBookTitle)
     }
+
     /** Generates cover using PdfRenderer from the cached file */
-    private fun generateAndSaveCoverImage(context: Context, tempPdfFile: File, bookId: String): String? {
+    private fun generateAndSaveCoverImage(
+        context: Context,
+        tempPdfFile: File,
+        bookId: String
+    ): String? {
         var pfd: ParcelFileDescriptor? = null
         try {
             pfd = ParcelFileDescriptor.open(tempPdfFile, ParcelFileDescriptor.MODE_READ_ONLY)
@@ -246,7 +256,12 @@ class PDFImportWorker(
                         val canvas = Canvas(bitmap)
                         canvas.drawColor(Color.WHITE)
                         try {
-                            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            page.render(
+                                bitmap,
+                                null,
+                                null,
+                                PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                            )
                         } catch (oom: OutOfMemoryError) {
                             bitmap.recycle()
                             return@use "error_oom_rendering_cover"
@@ -263,7 +278,10 @@ class PDFImportWorker(
         } catch (e: Exception) {
             return "error_generating_cover"
         } finally {
-            try { pfd?.close() } catch (e: IOException) {}
+            try {
+                pfd?.close()
+            } catch (e: IOException) {
+            }
         }
     }
 
@@ -274,7 +292,8 @@ class PDFImportWorker(
             val outline: PDDocumentOutline? = document.documentCatalog?.documentOutline
             var currentOutlineItem: PDOutlineItem? = outline?.firstChild
             while (currentOutlineItem != null) {
-                val title = currentOutlineItem.title?.trim()?.takeIf { it.isNotEmpty() } ?: "Untitled Chapter"
+                val title = currentOutlineItem.title?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: "Untitled Chapter"
                 val pageNumber = resolveBookmarkPageNumber(document, currentOutlineItem)
                 if (pageNumber != -1) {
                     tocList.add(title to (pageNumber + 1))
@@ -297,19 +316,25 @@ class PDFImportWorker(
                 is PDNamedDestination -> {
                     val nameTree = doc.documentCatalog?.names?.dests
                     val pageDest = nameTree?.getValue(destination.namedDestination)
-                    pageDest?.page ?: if(pageDest != null) doc.getPage(pageDest.pageNumber) else null
+                    pageDest?.page
+                        ?: if (pageDest != null) doc.getPage(pageDest.pageNumber) else null
                 }
+
                 else -> {
                     val action = bookmark.action
                     if (action is PDActionGoTo) {
                         val actionDest = action.destination
-                        when(actionDest) {
-                            is PDPageDestination -> actionDest.page ?: doc.getPage(actionDest.pageNumber)
+                        when (actionDest) {
+                            is PDPageDestination -> actionDest.page
+                                ?: doc.getPage(actionDest.pageNumber)
+
                             is PDNamedDestination -> {
                                 val nameTree = doc.documentCatalog?.names?.dests
                                 val pageDest = nameTree?.getValue(actionDest.namedDestination)
-                                pageDest?.page ?: if(pageDest != null) doc.getPage(pageDest.pageNumber) else null
+                                pageDest?.page
+                                    ?: if (pageDest != null) doc.getPage(pageDest.pageNumber) else null
                             }
+
                             else -> null
                         }
                     } else null
@@ -366,7 +391,12 @@ class PDFImportWorker(
                 orderedStripper.getText(document)
                 orderedStripper.getOrderedContent()
             } catch (e: Exception) {
-                saveErrorChapterContent(bookId, chapterTitle, index, "[Error processing chapter content]")
+                saveErrorChapterContent(
+                    bookId,
+                    chapterTitle,
+                    index,
+                    "[Error processing chapter content]"
+                )
                 return@forEachIndexed
             }
             val chapterContentList = orderedPageElements.mapNotNull {
@@ -378,7 +408,9 @@ class PDFImportWorker(
 
             if (chapterContentList.isNotEmpty()) {
                 saveChapterContent(bookId, chapterTitle, index, chapterContentList)
-                val imagePathsInChapter = chapterContentList.filter { it.contains("${bookId}_chapter${index}") && it.endsWith(".webp") }
+                val imagePathsInChapter = chapterContentList.filter {
+                    it.contains("${bookId}_chapter${index}") && it.endsWith(".webp")
+                }
                 if (imagePathsInChapter.isNotEmpty()) {
                     imagePathRepository.saveImagePath(bookId, imagePathsInChapter)
                 }
@@ -419,32 +451,55 @@ class PDFImportWorker(
                             val canvas = Canvas(bitmap)
                             canvas.drawColor(Color.WHITE)
                             try {
-                                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                                page.render(
+                                    bitmap,
+                                    null,
+                                    null,
+                                    PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+                                )
                             } catch (oom: OutOfMemoryError) {
                                 bitmap.recycle()
                                 throw oom
                             }
-                            pageImagePath = saveBitmapToPrivateStorage(context, bitmap, "${bookId}_page_${pageNumber}")
+                            pageImagePath = saveBitmapToPrivateStorage(
+                                context,
+                                bitmap,
+                                "${bookId}_page_${pageNumber}"
+                            )
                                 .also { bitmap.recycle() }
                         }
                     } catch (e: Exception) {
-                        saveErrorChapterContent(bookId, tocTitle, pageIndex, "[Error processing page image]")
+                        saveErrorChapterContent(
+                            bookId,
+                            tocTitle,
+                            pageIndex,
+                            "[Error processing page image]"
+                        )
                         continue
                     }
                     if (pageImagePath != null && !pageImagePath!!.startsWith("error_")) {
                         saveChapterContent(bookId, tocTitle, pageIndex, listOf(pageImagePath!!))
                         imagePathRepository.saveImagePath(bookId, listOf(pageImagePath!!))
                     } else {
-                        saveErrorChapterContent(bookId, tocTitle, pageIndex, "[Failed to save page image]")
+                        saveErrorChapterContent(
+                            bookId,
+                            tocTitle,
+                            pageIndex,
+                            "[Failed to save page image]"
+                        )
                     }
                 }
             }
         } catch (e: Exception) {
             throw e
         } finally {
-            try { pfd?.close() } catch (e: IOException) {}
+            try {
+                pfd?.close()
+            } catch (e: IOException) {
+            }
         }
     }
+
     private suspend fun saveBookInfo(
         bookID: String,
         title: String,
@@ -501,12 +556,19 @@ class PDFImportWorker(
         saveChapterContent(bookId, title, index, emptyList())
     }
 
-    private suspend fun saveErrorChapterContent(bookId: String, title: String, index: Int, errorMessage: String) {
+    private suspend fun saveErrorChapterContent(
+        bookId: String,
+        title: String,
+        index: Int,
+        errorMessage: String
+    ) {
         saveChapterContent(bookId, title, index, listOf(errorMessage))
     }
+
     private fun createNotificationChannelIfNeeded(channelId: String, channelName: String) {
         if (notificationManager.getNotificationChannel(channelId) == null) {
-            val importance = if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
+            val importance =
+                if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(channelId, channelName, importance).apply {
                 description = "Notifications for book import process"
                 if (channelId == PROGRESS_CHANNEL_ID) setSound(null, null)
@@ -515,7 +577,10 @@ class PDFImportWorker(
         }
     }
 
-    private fun createProgressNotificationBuilder(fileName: String, message: String): NotificationCompat.Builder {
+    private fun createProgressNotificationBuilder(
+        fileName: String,
+        message: String
+    ): NotificationCompat.Builder {
         val displayFileName = fileName.substringBeforeLast(".")
         return NotificationCompat.Builder(appContext, PROGRESS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -526,7 +591,11 @@ class PDFImportWorker(
             .setOnlyAlertOnce(true)
     }
 
-    private suspend fun updateProgressNotification(fileName: String, message: String, progress: Int?) {
+    private suspend fun updateProgressNotification(
+        fileName: String,
+        message: String,
+        progress: Int?
+    ) {
         val builder = createProgressNotificationBuilder(fileName, message)
         if (progress != null) {
             builder.setProgress(100, progress.coerceIn(0, 100), false)
@@ -570,12 +639,19 @@ class PDFImportWorker(
         notificationManager.notify(completionNotificationId, builder.build())
         notificationManager.cancel(notificationId)
     }
+
     /** Gets display name from content URI. */
     private fun getDisplayNameFromUri(context: Context, uri: Uri?): String? {
         if (uri == null) return null
         var displayName: String? = null
         try {
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            context.contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     if (nameIndex != -1) {
@@ -596,6 +672,7 @@ class PDFImportWorker(
             ForegroundInfo(notificationId, notification)
         }
     }
+
     private inner class OrderedContentStripper(
         private val context: Context,
         private val bookId: String,
@@ -612,20 +689,24 @@ class PDFImportWorker(
             lineSeparator = " "
             sortByPosition = true
         }
+
         /** Returns the collected content, ensuring final text is flushed. */
         fun getOrderedContent(): List<PageContentElement> {
             flushTextBuffer()
             return pageContentList.toList()
         }
+
         override fun startPage(page: PDPage?) {
             super.startPage(page)
             flushTextBuffer()
             currentPageNumberForImages = currentPageNo
             imageCounterOnPage = 0
         }
+
         override fun writeString(text: String?, textPositions: MutableList<TextPosition>?) {
             currentTextParagraph.append(text ?: "")
         }
+
         @Throws(IOException::class)
         override fun processOperator(operator: Operator, operands: List<COSBase>) {
             val operation: String = operator.name
@@ -640,7 +721,9 @@ class PDFImportWorker(
                     if (xObject is PDImageXObject) {
                         flushTextBuffer()
                         try {
-                            val bitmap = try { xObject.image } catch (oom: OutOfMemoryError) {
+                            val bitmap = try {
+                                xObject.image
+                            } catch (oom: OutOfMemoryError) {
                                 null
                             }
 
@@ -661,25 +744,31 @@ class PDFImportWorker(
             }
             super.processOperator(operator, operands)
         }
+
         override fun writeLineSeparator() {
             currentTextParagraph.append(" ")
         }
+
         override fun writeParagraphSeparator() {
             flushTextBuffer()
         }
+
         override fun endPage(page: PDPage?) {
             flushTextBuffer()
             super.endPage(page)
         }
+
         /** Saves the image using the provided function and handles potential errors. */
         private fun saveImageInternal(bitmap: Bitmap, baseFileName: String): String {
-            val uniqueFileName = "${baseFileName}_p${currentPageNumberForImages}_img${imageCounterOnPage}"
+            val uniqueFileName =
+                "${baseFileName}_p${currentPageNumberForImages}_img${imageCounterOnPage}"
             return try {
                 saveImageFunc(bitmap, uniqueFileName)
             } catch (e: Exception) {
                 "error_saving_image_${UUID.randomUUID()}"
             }
         }
+
         /** Adds the buffered text (if any) to the content list as a Text element. */
         private fun flushTextBuffer() {
             if (currentTextParagraph.isNotEmpty()) {

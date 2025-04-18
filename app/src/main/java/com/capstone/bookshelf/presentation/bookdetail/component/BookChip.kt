@@ -28,7 +28,7 @@ fun BookChip(
     Box(
         modifier = modifier
             .widthIn(
-                min = when(size) {
+                min = when (size) {
                     ChipSize.SMALL -> 50.dp
                     ChipSize.REGULAR -> 80.dp
                 }

@@ -18,7 +18,7 @@ import java.io.InputStream
 
 class MusicViewModel(
     private val musicRepository: MusicPathRepository
-): ViewModel() {
+) : ViewModel() {
     private val _state = MutableStateFlow(MusicState())
     val state = _state
         .stateIn(
@@ -31,55 +31,83 @@ class MusicViewModel(
         viewModelScope.launch {
             musicRepository.getMusicPaths()
                 .collectLatest { sortedMusicItems ->
-                    _state.update { it.copy(
-                        musicList = sortedMusicItems
-                    ) }
+                    _state.update {
+                        it.copy(
+                            musicList = sortedMusicItems
+                        )
+                    }
                 }
         }
     }
-    fun onEvent(event: MusicListAction){
-        when(event){
+
+    fun onEvent(event: MusicListAction) {
+        when (event) {
             is MusicListAction.OnAddPerform -> {
                 val fileName = getFileName(event.context, event.uri)
                 val filePath = saveMusicToPrivateStorage(event.context, event.uri, fileName)
                 viewModelScope.launch {
-                    musicRepository.saveMusicPaths(listOf(MusicItem(name = fileName, uri = filePath)))
+                    musicRepository.saveMusicPaths(
+                        listOf(
+                            MusicItem(
+                                name = fileName,
+                                uri = filePath
+                            )
+                        )
+                    )
                 }
             }
+
             is MusicListAction.OnFavoriteClick -> {
                 viewModelScope.launch {
-                    musicRepository.setMusicAsFavorite(event.musicItem.id!!, !event.musicItem.isFavorite)
+                    musicRepository.setMusicAsFavorite(
+                        event.musicItem.id!!,
+                        !event.musicItem.isFavorite
+                    )
                 }
             }
+
             is MusicListAction.OnItemClick -> {
                 viewModelScope.launch {
-                    musicRepository.setMusicAsSelected(event.musicItem.id!!, !event.musicItem.isSelected)
+                    musicRepository.setMusicAsSelected(
+                        event.musicItem.id!!,
+                        !event.musicItem.isSelected
+                    )
                 }
             }
+
             is MusicListAction.OnDelete -> {
                 viewModelScope.launch {
-                    _state.update { it.copy(
-                        musicList = _state.value.musicList - event.musicItem
-                    ) }
+                    _state.update {
+                        it.copy(
+                            musicList = _state.value.musicList - event.musicItem
+                        )
+                    }
                     processDeleteMusic(event.musicItem)
                 }
             }
+
             is MusicListAction.OnVolumeChange -> {
                 viewModelScope.launch {
-                    _state.update { it.copy(
-                        playerVolume = event.volume
-                    ) }
+                    _state.update {
+                        it.copy(
+                            playerVolume = event.volume
+                        )
+                    }
                 }
             }
         }
     }
-    fun updateState(volume: Float){
+
+    fun updateState(volume: Float) {
         viewModelScope.launch {
-            _state.update { it.copy(
-                playerVolume = volume
-            ) }
+            _state.update {
+                it.copy(
+                    playerVolume = volume
+                )
+            }
         }
     }
+
     private fun saveMusicToPrivateStorage(context: Context, uri: Uri, fileName: String): String {
         return try {
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
@@ -90,11 +118,12 @@ class MusicViewModel(
                 }
             }
             file.absolutePath
-        } catch (e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             "error"
         }
     }
+
     private fun getFileName(context: Context, uri: android.net.Uri): String {
         var fileName = "unknown"
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -110,6 +139,7 @@ class MusicViewModel(
         }
         return fileName
     }
+
     private fun processDeleteMusic(musicItem: MusicItem) {
         viewModelScope.launch {
             val file = File(musicItem.uri!!)

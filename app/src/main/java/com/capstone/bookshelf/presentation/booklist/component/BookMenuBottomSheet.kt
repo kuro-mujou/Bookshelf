@@ -33,7 +33,7 @@ fun BookMenuBottomSheet(
     onDismiss: () -> Unit,
     onViewBookDetails: () -> Unit,
     onDeleteBook: () -> Unit,
-){
+) {
     ModalBottomSheet(
         onDismissRequest = {
             onDismiss()

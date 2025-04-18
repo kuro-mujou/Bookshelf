@@ -12,13 +12,13 @@ class MusicPathRepositoryImpl(
     private val musicDao: MusicPathDao,
 ) : MusicPathRepository {
     override suspend fun getMusicPaths(): Flow<List<MusicItem>> {
-        return musicDao.getMusicPaths().map { musicEntity->
-            musicEntity.map{it.toDataClass()}
+        return musicDao.getMusicPaths().map { musicEntity ->
+            musicEntity.map { it.toDataClass() }
         }
     }
 
     override suspend fun getSelectedMusicPaths(): List<MusicItem> {
-        return musicDao.getSelectedMusicPaths().map { musicEntity->
+        return musicDao.getSelectedMusicPaths().map { musicEntity ->
             musicEntity.toDataClass()
         }
     }
@@ -29,7 +29,7 @@ class MusicPathRepositoryImpl(
 
     override suspend fun saveMusicPaths(musicPathEntity: List<MusicItem>) {
         musicDao.saveMusicPaths(
-            musicPathEntity.map { musicItem->
+            musicPathEntity.map { musicItem ->
                 musicItem.toEntity()
             }
         )

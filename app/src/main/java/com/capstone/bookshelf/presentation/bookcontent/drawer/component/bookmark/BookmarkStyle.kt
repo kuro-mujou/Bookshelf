@@ -1,6 +1,6 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark
 
-enum class BookmarkStyle{
+enum class BookmarkStyle {
     WAVE_WITH_BIRDS,
     CLOUD_WITH_BIRDS,
     STARRY_NIGHT,

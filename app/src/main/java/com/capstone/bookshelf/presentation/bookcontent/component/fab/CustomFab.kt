@@ -17,9 +17,9 @@ import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.Col
 
 @Composable
 fun CustomFab(
-    colorPaletteState : ColorPalette,
+    colorPaletteState: ColorPalette,
     onFabClick: () -> Unit,
-){
+) {
     FilledIconButton(
         modifier = Modifier
             .padding(bottom = 12.dp)

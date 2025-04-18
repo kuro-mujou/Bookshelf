@@ -53,7 +53,7 @@ fun AutoScrollMenuDialog(
     colorPaletteState: ColorPalette,
     dataStoreManager: DataStoreManager,
     onDismissRequest: () -> Unit,
-){
+) {
     Dialog(
         onDismissRequest = {
             onDismissRequest()
@@ -92,7 +92,7 @@ fun AutoScrollMenuDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
-                ){
+                ) {
                     Text(
                         text = "Faster",
                         style = TextStyle(
@@ -117,12 +117,16 @@ fun AutoScrollMenuDialog(
                 }
                 Slider(
                     modifier = Modifier.fillMaxWidth(),
-                    value = speedSliderValue/10000f,
+                    value = speedSliderValue / 10000f,
                     onValueChange = { value ->
                         speedSliderValue = (value * 10000).roundToInt()
                     },
                     onValueChangeFinished = {
-                        autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoScrollSpeed(speedSliderValue))
+                        autoScrollViewModel.onAction(
+                            AutoScrollAction.UpdateAutoScrollSpeed(
+                                speedSliderValue
+                            )
+                        )
                         scope.launch {
                             dataStoreManager.setAutoScrollSpeed(speedSliderValue)
                         }
@@ -150,7 +154,7 @@ fun AutoScrollMenuDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
-                ){
+                ) {
                     Text(
                         text = "Delay at start",
                         style = TextStyle(
@@ -159,7 +163,7 @@ fun AutoScrollMenuDialog(
                         )
                     )
                     Text(
-                        text = "%.2fs".format(delayAtStart/1000f),
+                        text = "%.2fs".format(delayAtStart / 1000f),
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
@@ -168,12 +172,16 @@ fun AutoScrollMenuDialog(
                 }
                 Slider(
                     modifier = Modifier.fillMaxWidth(),
-                    value = delayAtStart/1000f,
+                    value = delayAtStart / 1000f,
                     onValueChange = { value ->
                         delayAtStart = (value * 1000).roundToInt()
                     },
                     onValueChangeFinished = {
-                        autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayAtStart(delayAtStart))
+                        autoScrollViewModel.onAction(
+                            AutoScrollAction.UpdateDelayAtStart(
+                                delayAtStart
+                            )
+                        )
                         scope.launch {
                             dataStoreManager.setDelayTimeAtStart(delayAtStart)
                         }
@@ -201,7 +209,7 @@ fun AutoScrollMenuDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
-                ){
+                ) {
                     Text(
                         text = "Delay at end",
                         style = TextStyle(
@@ -210,7 +218,7 @@ fun AutoScrollMenuDialog(
                         )
                     )
                     Text(
-                        text = "%.2fs".format(delayAtEnd/1000f),
+                        text = "%.2fs".format(delayAtEnd / 1000f),
                         style = TextStyle(
                             color = colorPaletteState.textColor,
                             fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
@@ -219,7 +227,7 @@ fun AutoScrollMenuDialog(
                 }
                 Slider(
                     modifier = Modifier.fillMaxWidth(),
-                    value = delayAtEnd/1000f,
+                    value = delayAtEnd / 1000f,
                     onValueChange = { value ->
                         delayAtEnd = (value * 1000).roundToInt()
                     },
@@ -264,7 +272,11 @@ fun AutoScrollMenuDialog(
                     Switch(
                         checked = autoScrollState.isAutoResumeScrollMode,
                         onCheckedChange = {
-                            autoScrollViewModel.onAction(AutoScrollAction.UpdateAutoResumeScrollMode(it))
+                            autoScrollViewModel.onAction(
+                                AutoScrollAction.UpdateAutoResumeScrollMode(
+                                    it
+                                )
+                            )
                             scope.launch {
                                 dataStoreManager.setAutoScrollResumeMode(it)
                             }
@@ -279,12 +291,12 @@ fun AutoScrollMenuDialog(
                         )
                     )
                 }
-                if(autoScrollState.isAutoResumeScrollMode){
+                if (autoScrollState.isAutoResumeScrollMode) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
-                    ){
+                    ) {
                         Text(
                             text = "Delay time",
                             style = TextStyle(
@@ -293,7 +305,7 @@ fun AutoScrollMenuDialog(
                             )
                         )
                         Text(
-                            text = "%.2fs".format(delayResumeMode/1000f),
+                            text = "%.2fs".format(delayResumeMode / 1000f),
                             style = TextStyle(
                                 color = colorPaletteState.textColor,
                                 fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
@@ -302,12 +314,16 @@ fun AutoScrollMenuDialog(
                     }
                     Slider(
                         modifier = Modifier.fillMaxWidth(),
-                        value = delayResumeMode/1000f,
+                        value = delayResumeMode / 1000f,
                         onValueChange = { value ->
                             delayResumeMode = (value * 1000).roundToInt()
                         },
                         onValueChangeFinished = {
-                            autoScrollViewModel.onAction(AutoScrollAction.UpdateDelayResume(delayResumeMode))
+                            autoScrollViewModel.onAction(
+                                AutoScrollAction.UpdateDelayResume(
+                                    delayResumeMode
+                                )
+                            )
                             scope.launch {
                                 dataStoreManager.setAutoScrollResumeDelayTime(delayResumeMode)
                             }

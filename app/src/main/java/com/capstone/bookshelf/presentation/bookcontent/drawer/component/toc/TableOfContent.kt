@@ -61,12 +61,12 @@ import kotlinx.coroutines.launch
 @Composable
 @UnstableApi
 fun TableOfContents(
-    drawerContainerState : DrawerContainerState,
-    contentState : ContentState,
+    drawerContainerState: DrawerContainerState,
+    contentState: ContentState,
     drawerLazyColumnState: LazyListState,
     colorPaletteState: ColorPalette,
     onDrawerItemClick: (Int) -> Unit,
-    onAddingChapter: (String,String) -> Unit,
+    onAddingChapter: (String, String) -> Unit,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -80,7 +80,7 @@ fun TableOfContents(
     var showAddDialog by remember { mutableStateOf(false) }
     var flag by remember { mutableStateOf(false) }
     LaunchedEffect(flag) {
-        if(flag){
+        if (flag) {
             drawerLazyColumnState.scrollToItem(targetSearchIndex)
             flag = false
         }
@@ -94,13 +94,13 @@ fun TableOfContents(
             focusManager.clearFocus()
         }
     }
-    if(showAddDialog){
+    if (showAddDialog) {
         AddTOCDialog(
             onDismissRequest = {
                 showAddDialog = false
             },
-            onConfirm = {chapterTitle, headerSize ->
-                onAddingChapter(chapterTitle,headerSize)
+            onConfirm = { chapterTitle, headerSize ->
+                onAddingChapter(chapterTitle, headerSize)
                 showAddDialog = false
             }
         )
@@ -109,7 +109,7 @@ fun TableOfContents(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent,
         floatingActionButton = {
-            if(contentState.book?.isEditable == true){
+            if (contentState.book?.isEditable == true) {
                 IconButton(
                     onClick = {
                         scope.launch {
@@ -127,7 +127,7 @@ fun TableOfContents(
                     )
                 }
             }
-            if(showButton){
+            if (showButton) {
                 IconButton(
                     onClick = {
                         scope.launch {
@@ -135,21 +135,21 @@ fun TableOfContents(
                         }
                     },
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = if(contentState.book?.isEditable == true){
+                        containerColor = if (contentState.book?.isEditable == true) {
                             MaterialTheme.colorScheme.onBackground
-                        } else{
+                        } else {
                             colorPaletteState.textColor
                         },
                     )
                 ) {
-                    if(contentState.currentChapterIndex < firstItemIndex)
+                    if (contentState.currentChapterIndex < firstItemIndex)
                         Icon(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_up),
                             modifier = Modifier.size(16.dp),
                             contentDescription = null,
-                            tint = if(contentState.book?.isEditable == true){
+                            tint = if (contentState.book?.isEditable == true) {
                                 MaterialTheme.colorScheme.background
-                            } else{
+                            } else {
                                 colorPaletteState.backgroundColor
                             },
                         )
@@ -158,9 +158,9 @@ fun TableOfContents(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_down),
                             modifier = Modifier.size(16.dp),
                             contentDescription = null,
-                            tint = if(contentState.book?.isEditable == true){
+                            tint = if (contentState.book?.isEditable == true) {
                                 MaterialTheme.colorScheme.background
-                            } else{
+                            } else {
                                 colorPaletteState.backgroundColor
                             },
                         )
@@ -223,7 +223,9 @@ fun TableOfContents(
                         }
                     }
                 ),
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = if (contentState.book?.isEditable == true) {
                         MaterialTheme.colorScheme.onBackground
@@ -306,7 +308,9 @@ fun TableOfContents(
                         onClick = {
                             onDrawerItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
                         },
-                        modifier = Modifier.padding(4.dp, 2.dp, 4.dp, 2.dp).wrapContentHeight(),
+                        modifier = Modifier
+                            .padding(4.dp, 2.dp, 4.dp, 2.dp)
+                            .wrapContentHeight(),
                         colors = NavigationDrawerItemDefaults.colors(
                             selectedContainerColor = if (drawerContainerState.tableOfContents.indexOf(
                                     tocItem
@@ -385,6 +389,7 @@ fun TableOfContents(
             }
     }
     LaunchedEffect(firstItemIndex, lastItemIndex) {
-        showButton = contentState.currentChapterIndex < firstItemIndex || contentState.currentChapterIndex > lastItemIndex
+        showButton =
+            contentState.currentChapterIndex < firstItemIndex || contentState.currentChapterIndex > lastItemIndex
     }
 }

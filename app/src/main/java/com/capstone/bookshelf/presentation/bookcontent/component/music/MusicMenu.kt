@@ -79,16 +79,16 @@ fun MusicMenu(
     dataStoreManager: DataStoreManager,
     colorPalette: ColorPalette,
     contentState: ContentState
-){
+) {
     val musicViewModel = koinViewModel<MusicViewModel>()
     val state by musicViewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
-    ) {uri: Uri? ->
-        uri?.let{
-            musicViewModel.onEvent(MusicListAction.OnAddPerform(it,context))
+    ) { uri: Uri? ->
+        uri?.let {
+            musicViewModel.onEvent(MusicListAction.OnAddPerform(it, context))
         }
     }
     val scope = rememberCoroutineScope()
@@ -100,7 +100,7 @@ fun MusicMenu(
     }
     Surface(
         color = colorPalette.backgroundColor
-    ){
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -131,7 +131,7 @@ fun MusicMenu(
                 }
             }
             Row(
-                modifier = Modifier.padding(start = 16.dp,end = 16.dp)
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp)
             ) {
                 Text(
                     text = "Enable background music",
@@ -148,7 +148,11 @@ fun MusicMenu(
                         scope.launch {
                             dataStoreManager.setEnableBackgroundMusic(it)
                         }
-                        contentViewModel.onContentAction(ContentAction.UpdateEnableBackgroundMusic(it))
+                        contentViewModel.onContentAction(
+                            ContentAction.UpdateEnableBackgroundMusic(
+                                it
+                            )
+                        )
                     },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = colorPalette.textColor,
@@ -161,10 +165,12 @@ fun MusicMenu(
                 )
             }
             Row(
-                modifier = Modifier.padding(start = 16.dp,end = 16.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp)
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
-            ){
+            ) {
                 Text(
                     text = "Volume",
                     style = TextStyle(
@@ -183,13 +189,19 @@ fun MusicMenu(
                 )
             }
             Slider(
-                modifier = Modifier.padding(start = 16.dp,end = 16.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp)
+                    .fillMaxWidth(),
                 value = volumeSliderValue,
                 onValueChange = { value ->
                     volumeSliderValue = (value * 100).roundToInt() / 100f
                 },
                 onValueChangeFinished = {
-                    contentViewModel.onContentAction(ContentAction.UpdatePlayerVolume(volumeSliderValue))
+                    contentViewModel.onContentAction(
+                        ContentAction.UpdatePlayerVolume(
+                            volumeSliderValue
+                        )
+                    )
                     musicViewModel.onEvent(MusicListAction.OnVolumeChange(volumeSliderValue))
                     scope.launch {
                         dataStoreManager.setPlayerVolume(volumeSliderValue)
@@ -220,7 +232,7 @@ fun MusicMenu(
                     items(
                         items = state.musicList,
                         key = { it.id!! }
-                    ) { listItem->
+                    ) { listItem ->
                         MusicItemView(
                             music = listItem,
                             colorPalette = colorPalette,
@@ -231,7 +243,7 @@ fun MusicMenu(
                             onItemClick = { musicItem ->
                                 musicViewModel.onEvent(MusicListAction.OnItemClick(musicItem))
                             },
-                            onDelete ={ musicItem ->
+                            onDelete = { musicItem ->
                                 musicViewModel.onEvent(MusicListAction.OnDelete(musicItem))
                             }
                         )
@@ -251,7 +263,7 @@ fun MusicItemView(
     onFavoriteClick: (MusicItem) -> Unit,
     onItemClick: (MusicItem) -> Unit,
     onDelete: (MusicItem) -> Unit
-){
+) {
     val isSelected by rememberUpdatedState(music.isSelected)
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { newValue ->
@@ -318,14 +330,14 @@ fun MusicItemView(
                             .padding(12.dp)
                             .size(40.dp)
                             .then(
-                                if(music.isSelected)
+                                if (music.isSelected)
                                     Modifier.graphicsLayer(rotationZ = rotation)
                                 else
                                     Modifier
                             ),
                         imageVector = ImageVector.vectorResource(R.drawable.ic_music_disk),
                         contentDescription = null,
-                        tint = if(music.isSelected) Color.Red else colorPalette.textColor
+                        tint = if (music.isSelected) Color.Red else colorPalette.textColor
                     )
                     music.name?.let {
                         Text(
@@ -352,7 +364,7 @@ fun MusicItemView(
                         Icon(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_favourite_music),
                             contentDescription = null,
-                            tint = if(music.isFavorite) Color.Red else
+                            tint = if (music.isFavorite) Color.Red else
                                 colorPalette.textColor
                         )
                     }

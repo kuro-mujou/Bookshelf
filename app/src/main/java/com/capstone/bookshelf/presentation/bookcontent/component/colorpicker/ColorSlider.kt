@@ -33,7 +33,7 @@ fun ColorSlider(
     title: String,
     titleColor: Color,
     gradientColorsReversed: List<Color>,
-    valueRange:  ClosedFloatingPointRange<Float> = 0f..255f,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..255f,
     rgb: Float,
     onColorChanged: (Float) -> Unit
 ) {
@@ -41,7 +41,7 @@ fun ColorSlider(
         modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title.substring(0,1), color = titleColor, fontWeight = FontWeight.Bold)
+        Text(text = title.substring(0, 1), color = titleColor, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.width(8.dp))
         Slider(
             modifier = Modifier.weight(1f),
@@ -60,8 +60,8 @@ fun ColorSlider(
                     val canvasHeight = size.height
                     drawLine(
                         Brush.linearGradient(gradientColorsReversed),
-                        start = Offset(0f + canvasHeight/2, center.y),
-                        end = Offset(canvasWidth - canvasHeight/2, center.y),
+                        start = Offset(0f + canvasHeight / 2, center.y),
+                        end = Offset(canvasWidth - canvasHeight / 2, center.y),
                         strokeWidth = canvasHeight,
                         cap = StrokeCap.Round
                     )

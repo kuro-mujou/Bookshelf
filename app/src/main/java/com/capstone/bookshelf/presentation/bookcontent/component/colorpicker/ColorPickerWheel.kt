@@ -28,7 +28,7 @@ import kotlin.math.sqrt
 fun ColorPickerWheel(
     modifier: Modifier = Modifier,
     selectionRadius: Dp = (-1).dp,
-    hue : Int,
+    hue: Int,
     onChange: (Int) -> Unit,
 ) {
     val gradientColors = listOf(
@@ -108,11 +108,13 @@ fun ColorPickerWheel(
         }
     }
 }
+
 private fun calculateDistanceFromCenter(center: Offset, position: Offset): Float {
     val dy = center.y - position.y
     val dx = position.x - center.x
     return sqrt(dx * dx + dy * dy)
 }
+
 private fun calculateAngleFomLocalCoordinates(center: Offset, position: Offset): Int {
     if (center == Offset.Unspecified || position == Offset.Unspecified) return -1
     val dy = center.y - position.y

@@ -35,7 +35,10 @@ class ColorPaletteViewModel : ViewModel() {
         _colorPalette.value = _colorPalette.value.copy(
             textColor = it,
             tocTextColor = generateTOCTextColor(_colorPalette.value.backgroundColor),
-            textBackgroundColor = generateTextSelectionColor(_colorPalette.value.backgroundColor,it),
+            textBackgroundColor = generateTextSelectionColor(
+                _colorPalette.value.backgroundColor,
+                it
+            ),
         )
     }
 
@@ -48,7 +51,7 @@ class ColorPaletteViewModel : ViewModel() {
     private fun generateContainerColor(backgroundColor: Color): Color {
         return if (backgroundColor.isDark()) {
             backgroundColor.lighten(0.05f)
-        }else{
+        } else {
             backgroundColor.darken(0.05f)
         }
     }

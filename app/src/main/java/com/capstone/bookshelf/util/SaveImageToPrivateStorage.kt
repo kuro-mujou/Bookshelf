@@ -17,7 +17,7 @@ fun saveImageToPrivateStorage(
 ): String {
     return try {
         val file = File(context.filesDir, "$filename.webp")
-        if(Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q){
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
             FileOutputStream(file).use { outputStream ->
                 bitmap?.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
             }

@@ -32,11 +32,12 @@ class AsyncImportBookViewModel(
                 .setInputData(inputData)
                 .build()
             WorkManager.getInstance(context).enqueue(workRequest)
-        }catch (e: Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, "Can't open ebook file", Toast.LENGTH_SHORT).show()
         }
     }
+
     fun processAndSavePdf(
         context: Context,
         filePath: String,

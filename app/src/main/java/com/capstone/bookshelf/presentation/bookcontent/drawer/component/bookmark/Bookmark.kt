@@ -33,16 +33,16 @@ import com.capstone.bookshelf.util.DataStoreManager
 @UnstableApi
 @Composable
 fun BookmarkList(
-    drawerContainerState : DrawerContainerState,
-    contentState : ContentState,
+    drawerContainerState: DrawerContainerState,
+    contentState: ContentState,
     viewModel: ContentViewModel,
     dataStoreManager: DataStoreManager,
     colorPaletteState: ColorPalette,
     onCardClicked: (Int) -> Unit,
     onDeleted: (Int) -> Unit,
     onUndo: () -> Unit
-){
-    var openBookmarkThemeMenu by remember {mutableStateOf(false)}
+) {
+    var openBookmarkThemeMenu by remember { mutableStateOf(false) }
     val bookmarkMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     Column(
         modifier = Modifier
@@ -104,7 +104,7 @@ fun BookmarkList(
             }
         }
     }
-    if(openBookmarkThemeMenu){
+    if (openBookmarkThemeMenu) {
         ModalBottomSheet(
             modifier = Modifier.fillMaxSize(),
             sheetState = bookmarkMenuSheetState,

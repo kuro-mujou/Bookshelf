@@ -36,7 +36,7 @@ import androidx.compose.ui.window.Dialog
 fun AddTOCDialog(
     onDismissRequest: () -> Unit,
     onConfirm: (String, String) -> Unit
-){
+) {
     Dialog(
         onDismissRequest = {
             onDismissRequest()
@@ -60,7 +60,7 @@ fun AddTOCDialog(
         }
         Surface(
             modifier = Modifier.clip(RoundedCornerShape(15.dp))
-        ){
+        ) {
             Column(
                 modifier = Modifier.padding(15.dp)
             ) {
@@ -115,7 +115,9 @@ fun AddTOCDialog(
                     }
                 }
                 Button(
-                    modifier = Modifier.align(Alignment.End).padding(top = 15.dp),
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 15.dp),
                     onClick = {
                         onDismissRequest()
                         onConfirm(text, selectedHeaderSize)

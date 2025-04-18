@@ -8,8 +8,8 @@ sealed interface DrawerContainerAction {
     data class UpdateIsFavorite(val isFavorite: Boolean) : DrawerContainerAction
     data class DeleteBookmark(val tocId: Int) : DrawerContainerAction
     data class AddChapter(val chapter: String, val headerSize: String) : DrawerContainerAction
-    data class AddNote(val noteBody: String,val noteInput: String,val tocId: Int,val contentId: Int) : DrawerContainerAction
-    data class EditNote(val note: Note,val newInput: String) : DrawerContainerAction
+    data class AddNote(val noteBody: String, val noteInput: String, val tocId: Int, val contentId: Int) : DrawerContainerAction
+    data class EditNote(val note: Note, val newInput: String) : DrawerContainerAction
     data class UpdateSelectedNote(val index: Int) : DrawerContainerAction
     data class DeleteNote(val note: Note) : DrawerContainerAction
     data object UndoDeleteNote : DrawerContainerAction

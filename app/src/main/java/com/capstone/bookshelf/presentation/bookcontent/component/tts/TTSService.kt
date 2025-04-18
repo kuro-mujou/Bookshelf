@@ -22,7 +22,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import org.koin.android.ext.android.inject
 
 @UnstableApi
-class TTSService: MediaSessionService() {
+class TTSService : MediaSessionService() {
     private val serviceHandler by inject<TTSServiceHandler>()
     private val customCommandStop = SessionCommand(ACTION_STOP, Bundle.EMPTY)
     private val customCommandNext = SessionCommand(ACTION_NEXT, Bundle.EMPTY)
@@ -34,17 +34,21 @@ class TTSService: MediaSessionService() {
                 AudioManager.AUDIOFOCUS_GAIN -> {
                     serviceHandler.resumeReading()
                 }
+
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                     serviceHandler.pauseReading()
                 }
+
                 AudioManager.AUDIOFOCUS_LOSS -> {
                     serviceHandler.pauseReading()
                 }
+
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                     serviceHandler.pauseReading()
                 }
             }
         }
+
     override fun onCreate() {
         super.onCreate()
         val stopButton =
@@ -70,7 +74,7 @@ class TTSService: MediaSessionService() {
             .setUsage(C.USAGE_MEDIA)
             .build()
         val player = ExoPlayer.Builder(this)
-            .setAudioAttributes(audioAttributes,false)
+            .setAudioAttributes(audioAttributes, false)
             .setHandleAudioBecomingNoisy(true)
             .setPauseAtEndOfMediaItems(false)
             .build()
@@ -95,7 +99,7 @@ class TTSService: MediaSessionService() {
                 .setCallback(MyCallback())
                 .setCustomLayout(
                     ImmutableList.of(
-                        previousButton,nextButton,stopButton
+                        previousButton, nextButton, stopButton
                     )
                 )
                 .build()
@@ -104,11 +108,12 @@ class TTSService: MediaSessionService() {
             .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
-        val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
-            .setAudioAttributes(playbackAttributes!!)
-            .setAcceptsDelayedFocusGain(true)
-            .setOnAudioFocusChangeListener(audioFocusChangeListener)
-            .build()
+        val focusRequest =
+            AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                .setAudioAttributes(playbackAttributes!!)
+                .setAcceptsDelayedFocusGain(true)
+                .setOnAudioFocusChangeListener(audioFocusChangeListener)
+                .build()
         serviceHandler.initializeTts()
         serviceHandler.initSystem(
             mediaSession?.player,
@@ -116,6 +121,7 @@ class TTSService: MediaSessionService() {
             focusRequest
         )
     }
+
     override fun onDestroy() {
         serviceHandler.shutdown()
         stopSelf()
@@ -126,15 +132,18 @@ class TTSService: MediaSessionService() {
         }
         super.onDestroy()
     }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
         return mediaSession
     }
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         val player = mediaSession?.player
         if (!player?.playWhenReady!! || player.mediaItemCount == 0) {
             stopSelf()
         }
     }
+
     private inner class MyCallback : MediaSession.Callback {
         override fun onConnect(
             session: MediaSession,
@@ -166,26 +175,30 @@ class TTSService: MediaSessionService() {
             customCommand: SessionCommand,
             args: Bundle
         ): ListenableFuture<SessionResult> {
-            return when(customCommand.customAction) {
+            return when (customCommand.customAction) {
                 ACTION_STOP -> {
                     serviceHandler.stopReading()
                     return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
+
                 ACTION_NEXT -> {
                     serviceHandler.moveToNextChapterOrStop()
                     return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
+
                 ACTION_PREVIOUS -> {
                     serviceHandler.moveToPreviousChapterOrStop()
                     return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
+
                 else -> {
                     super.onCustomCommand(session, controller, customCommand, args)
                 }
             }
         }
     }
-    companion object{
+
+    companion object {
         const val ACTION_STOP = "ACTION_STOP"
         const val ACTION_NEXT = "ACTION_NEXT"
         const val ACTION_PREVIOUS = "ACTION_PREVIOUS"

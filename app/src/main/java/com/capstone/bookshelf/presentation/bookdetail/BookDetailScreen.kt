@@ -95,8 +95,9 @@ fun BookDetailScreenRoot(
     var flag by remember { mutableStateOf(false) }
     var enableSearch by remember { mutableStateOf(false) }
     val isImeVisible = WindowInsets.isImeVisible
+    val htmlTagPattern = Regex(pattern = """<[^>]+>""")
     LaunchedEffect(flag) {
-        if(flag){
+        if (flag) {
             tocLazyColumnState.scrollToItem(targetSearchIndex)
             searchInput = ""
             flag = false
@@ -114,14 +115,15 @@ fun BookDetailScreenRoot(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-        ){
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .height(with(LocalDensity.current) { canvasHeight.toDp() })
-                .clip(RoundedCornerShape(bottomEnd = 30.dp, bottomStart = 30.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(with(LocalDensity.current) { canvasHeight.toDp() })
+                    .clip(RoundedCornerShape(bottomEnd = 30.dp, bottomStart = 30.dp))
             ) {
                 AsyncImage(
-                    model = if(state.book?.coverImagePath == "error")
+                    model = if (state.book?.coverImagePath == "error")
                         R.mipmap.book_cover_not_available
                     else
                         state.book?.coverImagePath,
@@ -133,8 +135,7 @@ fun BookDetailScreenRoot(
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                 Modifier
                                     .hazeSource(state = hazeState)
-                            }
-                            else
+                            } else
                                 Modifier
                         )
                 )
@@ -183,7 +184,7 @@ fun BookDetailScreenRoot(
                                 imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
                                 contentDescription = null,
                                 tint = if (state.isSortedByFavorite)
-                                    if(isSystemInDarkTheme())
+                                    if (isSystemInDarkTheme())
                                         Color(155, 212, 161)
                                     else
                                         Color(52, 105, 63)
@@ -200,11 +201,18 @@ fun BookDetailScreenRoot(
                         Box(
                             modifier = Modifier
                                 .width(125.dp)
-                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 30.dp, bottomEnd = 8.dp))
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 8.dp,
+                                        topEnd = 8.dp,
+                                        bottomStart = 30.dp,
+                                        bottomEnd = 8.dp
+                                    )
+                                )
                                 .background(MaterialTheme.colorScheme.primaryContainer.copy(0.5f))
                         ) {
                             AsyncImage(
-                                model = if(state.book?.coverImagePath == "error")
+                                model = if (state.book?.coverImagePath == "error")
                                     R.mipmap.book_cover_not_available
                                 else
                                     state.book?.coverImagePath,
@@ -214,14 +222,28 @@ fun BookDetailScreenRoot(
                                     .padding(2.dp)
                                     .fillMaxWidth()
                                     .wrapContentHeight()
-                                    .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 30.dp, bottomEnd = 8.dp))
+                                    .clip(
+                                        RoundedCornerShape(
+                                            topStart = 8.dp,
+                                            topEnd = 8.dp,
+                                            bottomStart = 30.dp,
+                                            bottomEnd = 8.dp
+                                        )
+                                    )
                             )
                         }
                         Column(
                             modifier = Modifier
                                 .padding(start = 8.dp)
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 8.dp, bottomEnd = 30.dp))
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 8.dp,
+                                        topEnd = 8.dp,
+                                        bottomStart = 8.dp,
+                                        bottomEnd = 30.dp
+                                    )
+                                )
                                 .then(
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                         Modifier
@@ -267,10 +289,11 @@ fun BookDetailScreenRoot(
                 .fillMaxSize(),
             state = tocLazyColumnState,
         ) {
-            item{
+            item {
                 Text(
                     text = "Category",
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
                     style = TextStyle(
                         textAlign = TextAlign.Center,
@@ -282,7 +305,7 @@ fun BookDetailScreenRoot(
                     modifier = Modifier
                         .fillMaxWidth()
                 ) {
-                    if(state.book?.categories?.isNotEmpty() == true){
+                    if (state.book?.categories?.isNotEmpty() == true) {
                         state.book?.categories?.forEach {
                             BookChip {
                                 Text(text = it)
@@ -291,7 +314,12 @@ fun BookDetailScreenRoot(
                     } else {
                         Text(
                             text = "no category available",
-                            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
+                            modifier = Modifier.padding(
+                                top = 4.dp,
+                                bottom = 4.dp,
+                                start = 8.dp,
+                                end = 8.dp
+                            ),
                             style = TextStyle(
                                 textIndent = TextIndent(firstLine = 20.sp),
                                 textAlign = TextAlign.Justify,
@@ -302,7 +330,8 @@ fun BookDetailScreenRoot(
                 }
                 Text(
                     text = "Description",
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
                     style = TextStyle(
                         textAlign = TextAlign.Center,
@@ -311,8 +340,15 @@ fun BookDetailScreenRoot(
                     )
                 )
                 Text(
-                    text = state.book?.description ?: "no description available",
-                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
+                    text = state.book?.description?.let {
+                        htmlTagPattern.replace(it, replacement = "")
+                    } ?: "no description available",
+                    modifier = Modifier.padding(
+                        top = 4.dp,
+                        bottom = 4.dp,
+                        start = 8.dp,
+                        end = 8.dp
+                    ),
                     style = TextStyle(
                         textIndent = TextIndent(firstLine = 20.sp),
                         textAlign = TextAlign.Justify,
@@ -337,9 +373,9 @@ fun BookDetailScreenRoot(
                                 enableSearch = !enableSearch
                             },
                             modifier = Modifier.align(Alignment.CenterEnd)
-                        ){
+                        ) {
                             Icon(
-                                imageVector = if(enableSearch)
+                                imageVector = if (enableSearch)
                                     ImageVector.vectorResource(R.drawable.ic_up)
                                 else
                                     ImageVector.vectorResource(R.drawable.ic_down),
@@ -389,7 +425,9 @@ fun BookDetailScreenRoot(
                                     }
                                 }
                             ),
-                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
                         )
                     }
                 }
@@ -397,7 +435,7 @@ fun BookDetailScreenRoot(
             itemsIndexed(
                 items = state.tableOfContents,
                 key = { _, tocItem -> tocItem.index }
-            ) {index, tocItem ->
+            ) { index, tocItem ->
                 NavigationDrawerItem(
                     label = {
                         Text(
@@ -405,7 +443,7 @@ fun BookDetailScreenRoot(
                             style =
                                 if (state.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
                                     TextStyle(
-                                        color =  MaterialTheme.colorScheme.onSecondaryContainer,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,
@@ -422,9 +460,11 @@ fun BookDetailScreenRoot(
                     onClick = {
                         onDrawerItemClick(index)
                     },
-                    modifier = Modifier.padding(4.dp,2.dp,4.dp,2.dp).wrapContentHeight(),
+                    modifier = Modifier
+                        .padding(4.dp, 2.dp, 4.dp, 2.dp)
+                        .wrapContentHeight(),
                     colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor =  if (state.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
+                        selectedContainerColor = if (state.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
                             MaterialTheme.colorScheme.secondaryContainer
                         } else {
                             Color.Transparent

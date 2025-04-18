@@ -32,12 +32,12 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 @UnstableApi
-class TTSServiceHandler (
+class TTSServiceHandler(
     private val context: Context,
 ) : Player.Listener {
-    private val _currentParagraphIndex = MutableStateFlow(0)
+    private val _currentParagraphIndex = MutableStateFlow(-1)
     val currentParagraphIndex = _currentParagraphIndex.asStateFlow()
-    private val _currentChapterIndex = MutableStateFlow(0)
+    private val _currentChapterIndex = MutableStateFlow(-1)
     val currentChapterIndex = _currentChapterIndex.asStateFlow()
     private val _isSpeaking = MutableStateFlow(false)
     val isSpeaking = _isSpeaking.asStateFlow()
@@ -51,7 +51,7 @@ class TTSServiceHandler (
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
     private var audioFocusRequestResult: Int = AudioManager.AUDIOFOCUS_NONE
-    private var textToSpeech : TextToSpeech? = null
+    private var textToSpeech: TextToSpeech? = null
     private var isTtsInitialized by mutableStateOf(false)
     private var oldPos by mutableIntStateOf(0)
     private var sumLength by mutableIntStateOf(0)
@@ -71,14 +71,16 @@ class TTSServiceHandler (
     var textAlignTTS by mutableStateOf(false)
     var enableBackgroundMusic by mutableStateOf(false)
     var isTracksNull by mutableStateOf(false)
-    fun onTtsPlayerEvent(event: TtsPlayerEvent){
-        when(event){
+    fun onTtsPlayerEvent(event: TtsPlayerEvent) {
+        when (event) {
             is TtsPlayerEvent.Backward -> {
                 playPreviousParagraphOrChapter()
             }
+
             is TtsPlayerEvent.Forward -> {
                 playNextParagraphOrChapter()
             }
+
             is TtsPlayerEvent.PlayPause -> {
                 if (event.isPaused) {
                     pauseReading()
@@ -86,29 +88,35 @@ class TTSServiceHandler (
                     resumeReading()
                 }
             }
+
             is TtsPlayerEvent.Stop -> {
                 stopReading()
             }
+
             is TtsPlayerEvent.SkipToBack -> {
                 moveToPreviousChapterOrStop()
             }
+
             is TtsPlayerEvent.SkipToNext -> {
                 moveToNextChapterOrStop()
             }
+
             is TtsPlayerEvent.JumpToRandomChapter -> {
                 jumpToRandomChapter()
             }
         }
     }
+
     fun initSystem(
         player: Player?,
         audioManager: AudioManager,
         focusRequest: AudioFocusRequest
-    ){
+    ) {
         this.player = player
         this.audioManager = audioManager
         this.focusRequest = focusRequest
     }
+
     fun initializeTts() {
         textToSpeech = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
@@ -123,16 +131,20 @@ class TTSServiceHandler (
             override fun onStart(utteranceId: String?) {
                 _flagTriggerScroll.value = false
             }
+
             override fun onDone(utteranceId: String?) {
                 playNextParagraphOrChapter()
                 _flagTriggerScroll.value = false
                 currentReadingPositionInParagraph = 0
             }
+
             @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {}
+            override fun onError(utteranceId: String?) {
+            }
+
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                 super.onRangeStart(utteranceId, start, end, frame)
-                if(_isSpeaking.value) {
+                if (_isSpeaking.value) {
                     val currentPos = textToSpeakNow.substring(0, end).length
                     _flagTriggerScroll.value = false
                     currentReadingPositionInParagraph = oldPos + currentPos
@@ -148,18 +160,20 @@ class TTSServiceHandler (
             }
         })
     }
+
     override fun onIsPlayingChanged(isPlaying: Boolean) {
-        if(_isSpeaking.value){
-            if(isPlaying){
+        if (_isSpeaking.value) {
+            if (isPlaying) {
                 _isPaused.value = false
                 resumeReading()
-            }else{
+            } else {
                 _isPaused.value = true
                 pauseReading()
             }
         }
     }
-    fun startReading(paragraphIndex:Int){
+
+    fun startReading(paragraphIndex: Int, chapterIndex: Int) {
         if (!isTtsInitialized) {
             return
         }
@@ -171,13 +185,15 @@ class TTSServiceHandler (
         _isPaused.value = false
         currentReadingPositionInParagraph = 0
         _currentParagraphIndex.value = paragraphIndex
-        if(audioFocusRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED){
+        _currentChapterIndex.value = chapterIndex
+        if (audioFocusRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             startSpeakCurrentParagraph()
         }
     }
-    fun pauseReading(){
+
+    fun pauseReading() {
         if (textToSpeech?.isSpeaking == true) {
-            if(!enableBackgroundMusic){
+            if (!enableBackgroundMusic) {
                 player?.pause()
             } else {
                 player?.volume = 1f
@@ -185,16 +201,18 @@ class TTSServiceHandler (
             textToSpeech?.stop()
         }
     }
-    fun resumeReading(){
-        if(!enableBackgroundMusic) {
+
+    fun resumeReading() {
+        if (!enableBackgroundMusic) {
             player?.play()
         } else {
             player?.volume = 0.3f
         }
         startSpeakCurrentParagraph()
     }
+
     fun stopReading() {
-        if(!enableBackgroundMusic || isTracksNull){
+        if (!enableBackgroundMusic || isTracksNull) {
             player?.stop()
         } else {
             player?.volume = 1f
@@ -202,15 +220,17 @@ class TTSServiceHandler (
         _isSpeaking.value = false
         _isPaused.value = false
         textToSpeech?.stop()
-        _currentParagraphIndex.value = 0
+        _currentParagraphIndex.value = -1
         currentReadingPositionInParagraph = 0
         audioFocusRequestResult = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
     }
-    fun shutdown(){
+
+    fun shutdown() {
         stopReading()
         textToSpeech?.shutdown()
         textToSpeech = null
     }
+
     private fun startSpeakCurrentParagraph() {
         if (_currentChapterIndex.value != -1) {
             if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size) {
@@ -224,11 +244,11 @@ class TTSServiceHandler (
                     maxWidth = screenWidth,
                     maxHeight = screenHeight,
                     textStyle = TextStyle(
-                        textIndent = if(textIndentTTS)
+                        textIndent = if (textIndentTTS)
                             TextIndent(firstLine = (fontSizeTTS * 2).sp)
                         else
                             TextIndent.None,
-                        textAlign = if(textAlignTTS) TextAlign.Justify else TextAlign.Left,
+                        textAlign = if (textAlignTTS) TextAlign.Justify else TextAlign.Left,
                         fontSize = fontSizeTTS.sp,
                         fontFamily = fontFamilyTTS,
                         lineBreak = LineBreak.Paragraph,
@@ -237,38 +257,46 @@ class TTSServiceHandler (
                     textMeasurer = textMeasurer!!
                 )
                 sumLength = flowTextLength[_scrollTimes.value]
-                textToSpeech?.speak(textToSpeakNow, TextToSpeech.QUEUE_FLUSH, null, "paragraph_${_currentChapterIndex.value}_${_currentParagraphIndex.value}")
+                textToSpeech?.speak(
+                    textToSpeakNow,
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "paragraph_${_currentChapterIndex.value}_${_currentParagraphIndex.value}"
+                )
             } else {
                 moveToNextChapterOrStop()
             }
         }
     }
-    private fun playNextParagraphOrChapter(){
+
+    private fun playNextParagraphOrChapter() {
         if (_currentChapterIndex.value != -1) {
             if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size - 1) {
                 _currentParagraphIndex.value += 1
                 currentReadingPositionInParagraph = 0
-                if(_isSpeaking.value && !_isPaused.value)
+                if (_isSpeaking.value && !_isPaused.value)
                     startSpeakCurrentParagraph()
             } else {
                 moveToNextChapterOrStop()
             }
         }
     }
-    private fun playPreviousParagraphOrChapter(){
+
+    private fun playPreviousParagraphOrChapter() {
         if (_currentChapterIndex.value != -1) {
             if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value - 1 >= 0) {
                 _currentParagraphIndex.value -= 1
                 currentReadingPositionInParagraph = 0
-                if(_isSpeaking.value && !_isPaused.value)
+                if (_isSpeaking.value && !_isPaused.value)
                     startSpeakCurrentParagraph()
             } else {
                 moveToPreviousChapterOrStop()
             }
         }
     }
-    fun moveToNextChapterOrStop(){
-        if(_isSpeaking.value) {
+
+    fun moveToNextChapterOrStop() {
+        if (_isSpeaking.value) {
             if (_currentChapterIndex.value + 1 <= totalChapter) {
                 CoroutineScope(Dispatchers.Default).launch {
                     textToSpeech?.stop()
@@ -284,8 +312,9 @@ class TTSServiceHandler (
             }
         }
     }
-    fun moveToPreviousChapterOrStop(){
-        if(_isSpeaking.value) {
+
+    fun moveToPreviousChapterOrStop() {
+        if (_isSpeaking.value) {
             if (_currentChapterIndex.value - 1 >= 0) {
                 CoroutineScope(Dispatchers.Default).launch {
                     textToSpeech?.stop()
@@ -301,16 +330,18 @@ class TTSServiceHandler (
             }
         }
     }
-    private fun jumpToRandomChapter(){
+
+    private fun jumpToRandomChapter() {
         CoroutineScope(Dispatchers.Default).launch {
             textToSpeech?.stop()
             currentReadingPositionInParagraph = 0
             _currentParagraphIndex.value = 0
             delay(1000L)
-            if(_isSpeaking.value && !_isPaused.value)
+            if (_isSpeaking.value && !_isPaused.value)
                 startSpeakCurrentParagraph()
         }
     }
+
     private fun processTextLength(
         text: String,
         maxWidth: Int,
@@ -346,19 +377,24 @@ class TTSServiceHandler (
         }
         return subStringLength
     }
-    fun updateTTSLanguage(language: Locale?){
-        textToSpeech?.language = language?:Locale.getDefault()
+
+    fun updateTTSLanguage(language: Locale?) {
+        textToSpeech?.language = language ?: Locale.getDefault()
     }
-    fun updateTTSVoice(voice: Voice?){
-        textToSpeech?.voice = voice?:textToSpeech?.defaultVoice
+
+    fun updateTTSVoice(voice: Voice?) {
+        textToSpeech?.voice = voice ?: textToSpeech?.defaultVoice
     }
-    fun updateTTSSpeed(speed: Float?){
-        textToSpeech?.setSpeechRate(speed?:1f)
+
+    fun updateTTSSpeed(speed: Float?) {
+        textToSpeech?.setSpeechRate(speed ?: 1f)
     }
+
     fun updateTTSPitch(pitch: Float?) {
-        textToSpeech?.setPitch(pitch?:1f)
+        textToSpeech?.setPitch(pitch ?: 1f)
     }
-    fun updateCurrentChapterIndex(index: Int){
+
+    fun updateCurrentChapterIndex(index: Int) {
         _currentChapterIndex.value = index
     }
 }

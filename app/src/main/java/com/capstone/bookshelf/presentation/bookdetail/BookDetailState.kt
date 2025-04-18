@@ -7,6 +7,6 @@ data class BookDetailState(
     val isLoading: Boolean = true,
     val isFavorite: Boolean = false,
     val book: Book? = null,
-    val tableOfContents : List<TableOfContent> = emptyList(),
+    val tableOfContents: List<TableOfContent> = emptyList(),
     val isSortedByFavorite: Boolean = false,
 )

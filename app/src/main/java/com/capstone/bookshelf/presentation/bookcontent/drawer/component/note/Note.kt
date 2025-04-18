@@ -23,15 +23,15 @@ import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerSta
 @UnstableApi
 @Composable
 fun NoteList(
-    drawerContainerState : DrawerContainerState,
+    drawerContainerState: DrawerContainerState,
     contentState: ContentState,
     colorPaletteState: ColorPalette,
     onUndo: () -> Unit,
-    onCardClicked: (Int,Int) -> Unit,
+    onCardClicked: (Int, Int) -> Unit,
     onCardSelected: (Int) -> Unit,
     onCardDeleted: (Note) -> Unit,
     onEditNote: (Note, String) -> Unit
-){
+) {
 
     Column(
         modifier = Modifier
@@ -66,8 +66,8 @@ fun NoteList(
                     colorPaletteState = colorPaletteState,
                     index = index,
                     note = note,
-                    onCardClicked = {tocId,contentId->
-                        onCardClicked(tocId,contentId)
+                    onCardClicked = { tocId, contentId ->
+                        onCardClicked(tocId, contentId)
                     },
                     onCardSelected = {
                         onCardSelected(it)
@@ -75,8 +75,8 @@ fun NoteList(
                     onCardDeleted = {
                         onCardDeleted(it)
                     },
-                    onEditNote = {note,newInput->
-                        onEditNote(note,newInput)
+                    onEditNote = { note, newInput ->
+                        onEditNote(note, newInput)
                     }
                 )
             }

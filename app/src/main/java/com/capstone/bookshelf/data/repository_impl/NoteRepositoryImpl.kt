@@ -18,10 +18,12 @@ class NoteRepositoryImpl(
             }
         }
     }
+
     override suspend fun upsertNote(note: Note) {
         noteDao.upsertBasedOnIds(note.toEntity())
     }
-    override suspend fun deleteNote(noteId : Int) {
+
+    override suspend fun deleteNote(noteId: Int) {
         noteDao.deleteNote(noteId)
     }
 }

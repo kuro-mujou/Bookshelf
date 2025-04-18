@@ -46,7 +46,7 @@ class ContentViewModel(
     private val bookRepository: BookRepository,
     private val chapterRepository: ChapterRepository,
     private val musicPathRepository: MusicPathRepository,
-    private val ttsServiceHandler : TTSServiceHandler,
+    private val ttsServiceHandler: TTSServiceHandler,
     private val dataStoreManager: DataStoreManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -62,6 +62,7 @@ class ContentViewModel(
             SharingStarted.WhileSubscribed(5000L),
             _state.value
         )
+
     init {
         viewModelScope.launch {
             musicPathRepository.getMusicPaths()
@@ -80,7 +81,7 @@ class ContentViewModel(
                             )
                             .build()
                     })
-                    if(mediaItemList.isNotEmpty()) {
+                    if (mediaItemList.isNotEmpty()) {
                         ttsServiceHandler.isTracksNull = false
                         mediaController?.apply {
                             setMediaItems(mediaItemList)
@@ -95,53 +96,77 @@ class ContentViewModel(
                 }
         }
     }
+
     fun onContentAction(action: ContentAction) {
-        when(action){
+        when (action) {
             is ContentAction.LoadBook -> {
                 viewModelScope.launch {
-                    _state.update { it.copy(
-                        book = bookRepository.getBook(bookId)
-                    ) }
+                    _state.update {
+                        it.copy(
+                            book = bookRepository.getBook(bookId)
+                        )
+                    }
                 }
             }
+
             is ContentAction.UpdateFlagTriggerAdjustScroll -> {
-                _state.update { it.copy(
-                    flagTriggerAdjustScroll = action.value
-                ) }
+                _state.update {
+                    it.copy(
+                        flagTriggerAdjustScroll = action.value
+                    )
+                }
             }
+
             is ContentAction.UpdateFlagStartScrolling -> {
-                _state.update { it.copy(
-                    flagStartScrolling = action.value
-                ) }
+                _state.update {
+                    it.copy(
+                        flagStartScrolling = action.value
+                    )
+                }
             }
+
             is ContentAction.UpdateFlagScrollAdjusted -> {
-                _state.update { it.copy(
-                    flagScrollAdjusted = action.value
-                ) }
+                _state.update {
+                    it.copy(
+                        flagScrollAdjusted = action.value
+                    )
+                }
             }
+
             is ContentAction.UpdateFlagStartAdjustScroll -> {
-                _state.update { it.copy(
-                    flagStartAdjustScroll = action.value
-                ) }
+                _state.update {
+                    it.copy(
+                        flagStartAdjustScroll = action.value
+                    )
+                }
             }
+
             is ContentAction.UpdateFirstVisibleItemIndex -> {
-                _state.update { it.copy(
-                    firstVisibleItemIndex = action.index
-                ) }
+                _state.update {
+                    it.copy(
+                        firstVisibleItemIndex = action.index
+                    )
+                }
             }
+
             is ContentAction.UpdateLastVisibleItemIndex -> {
-                _state.update { it.copy(
-                    lastVisibleItemIndex = action.index
-                ) }
+                _state.update {
+                    it.copy(
+                        lastVisibleItemIndex = action.index
+                    )
+                }
             }
+
             is ContentAction.UpdateCurrentChapterIndex -> {
                 viewModelScope.launch {
-                    _state.update { it.copy(
-                        currentChapterIndex = action.index
-                    ) }
-                    if(mediaController?.isPlaying == true){
+                    _state.update {
+                        it.copy(
+                            currentChapterIndex = action.index
+                        )
+                    }
+                    if (mediaController?.isPlaying == true) {
                         mediaController?.apply {
-                            val chapter = chapterRepository.getChapterContent(bookId,action.index)
+                            val chapter = chapterRepository.getChapterContent(bookId, action.index)
                             val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
                                 ?.setArtist(chapter?.chapterTitle)?.build()!!
                             val updatedMediaItem =
@@ -155,146 +180,209 @@ class ContentViewModel(
                     ttsServiceHandler.updateCurrentChapterIndex(action.index)
                 }
             }
+
             is ContentAction.UpdateScreenHeight -> {
-                _state.update { it.copy(
-                    screenHeight = action.value
-                ) }
+                _state.update {
+                    it.copy(
+                        screenHeight = action.value
+                    )
+                }
             }
+
             is ContentAction.UpdateScreenWidth -> {
-                _state.update { it.copy(
-                    screenWidth = action.value
-                ) }
+                _state.update {
+                    it.copy(
+                        screenWidth = action.value
+                    )
+                }
             }
+
             is ContentAction.UpdatePreviousChapterIndex -> {
-                _state.update { it.copy(
-                    previousChapterIndex = action.index
-                ) }
+                _state.update {
+                    it.copy(
+                        previousChapterIndex = action.index
+                    )
+                }
             }
+
             is ContentAction.UpdateBookInfoCurrentChapterIndex -> {
                 viewModelScope.launch {
                     bookRepository.saveBookInfoChapterIndex(bookId, action.index)
                 }
             }
+
             is ContentAction.UpdateBookInfoFirstParagraphIndex -> {
                 viewModelScope.launch {
                     bookRepository.saveBookInfoParagraphIndex(bookId, action.index)
                 }
             }
+
             is ContentAction.UpdateChapterHeader -> {
-                _state.update { it.copy(
-                    chapterHeader = action.header
-                ) }
+                _state.update {
+                    it.copy(
+                        chapterHeader = action.header
+                    )
+                }
             }
+
             is ContentAction.UpdateIsSpeaking -> {
-                _state.update { it.copy(
-                    isSpeaking = action.isSpeaking
-                ) }
+                _state.update {
+                    it.copy(
+                        isSpeaking = action.isSpeaking
+                    )
+                }
             }
+
             is ContentAction.UpdateIsFocused -> {
-                _state.update { it.copy(
-                    isFocused = action.isFocused
-                ) }
+                _state.update {
+                    it.copy(
+                        isFocused = action.isFocused
+                    )
+                }
             }
+
             is ContentAction.UpdateIsPaused -> {
-                _state.update { it.copy(
-                    isPaused = action.isPaused
-                ) }
+                _state.update {
+                    it.copy(
+                        isPaused = action.isPaused
+                    )
+                }
                 onTtsUiEvent(TtsUiEvent.PlayPause(action.isPaused))
             }
+
             is ContentAction.UpdateTTSLanguage -> {
-                _state.update { it.copy(
-                    currentLanguage = action.currentLanguage
-                ) }
+                _state.update {
+                    it.copy(
+                        currentLanguage = action.currentLanguage
+                    )
+                }
                 viewModelScope.launch {
                     dataStoreManager.setTTSLocale(action.currentLanguage.displayName)
                 }
                 ttsServiceHandler.updateTTSLanguage(action.currentLanguage)
             }
+
             is ContentAction.UpdateTTSPitch -> {
-                _state.update { it.copy(
-                    currentPitch = action.currentPitch
-                ) }
+                _state.update {
+                    it.copy(
+                        currentPitch = action.currentPitch
+                    )
+                }
                 viewModelScope.launch {
                     dataStoreManager.setTTSPitch(action.currentPitch)
                 }
                 ttsServiceHandler.updateTTSPitch(action.currentPitch)
             }
+
             is ContentAction.UpdateTTSSpeed -> {
-                _state.update { it.copy(
-                    currentSpeed = action.currentSpeed
-                ) }
+                _state.update {
+                    it.copy(
+                        currentSpeed = action.currentSpeed
+                    )
+                }
                 viewModelScope.launch {
                     dataStoreManager.setTTSSpeed(action.currentSpeed)
                 }
                 ttsServiceHandler.updateTTSSpeed(action.currentSpeed)
             }
+
             is ContentAction.UpdateTTSVoice -> {
-                _state.update { it.copy(
-                    currentVoice = action.currentVoice
-                ) }
-                if(action.currentVoice != null) {
+                _state.update {
+                    it.copy(
+                        currentVoice = action.currentVoice
+                    )
+                }
+                if (action.currentVoice != null) {
                     viewModelScope.launch {
                         dataStoreManager.setTTSVoice(action.currentVoice.name)
                     }
                 }
                 ttsServiceHandler.updateTTSVoice(action.currentVoice)
             }
+
             is ContentAction.UpdateCurrentReadingParagraph -> {
-                _state.update { it.copy(
-                    currentReadingParagraph = action.pos
-                ) }
+                _state.update {
+                    it.copy(
+                        currentReadingParagraph = action.pos
+                    )
+                }
             }
+
             is ContentAction.UpdateFontSize -> {
-                _state.update { it.copy(
-                    fontSize = action.fontSize
-                ) }
+                _state.update {
+                    it.copy(
+                        fontSize = action.fontSize
+                    )
+                }
                 ttsServiceHandler.fontSizeTTS = action.fontSize
             }
+
             is ContentAction.UpdateLineSpacing -> {
-                _state.update { it.copy(
-                    lineSpacing = action.lineSpacing
-                ) }
+                _state.update {
+                    it.copy(
+                        lineSpacing = action.lineSpacing
+                    )
+                }
                 ttsServiceHandler.lineSpacingTTS = action.lineSpacing
             }
+
             is ContentAction.UpdateSelectedFontFamilyIndex -> {
-                _state.update { it.copy(
-                    selectedFontFamilyIndex = action.index
-                ) }
+                _state.update {
+                    it.copy(
+                        selectedFontFamilyIndex = action.index
+                    )
+                }
                 ttsServiceHandler.fontFamilyTTS = _state.value.fontFamilies[action.index]
             }
+
             is ContentAction.UpdateTextAlign -> {
-                _state.update { it.copy(
-                    textAlign = action.textAlign
-                ) }
+                _state.update {
+                    it.copy(
+                        textAlign = action.textAlign
+                    )
+                }
                 viewModelScope.launch {
                     dataStoreManager.setTextAlign(action.textAlign)
                 }
                 ttsServiceHandler.textAlignTTS = action.textAlign
             }
+
             is ContentAction.UpdateTextIndent -> {
-                _state.update { it.copy(
-                    textIndent = action.textIndent
-                ) }
+                _state.update {
+                    it.copy(
+                        textIndent = action.textIndent
+                    )
+                }
                 viewModelScope.launch {
                     dataStoreManager.setTextIndent(action.textIndent)
                 }
                 ttsServiceHandler.textIndentTTS = action.textIndent
             }
+
             is ContentAction.SelectedBook -> {
-                _state.update { it.copy(
-                    book = action.book
-                )}
+                _state.update {
+                    it.copy(
+                        book = action.book
+                    )
+                }
             }
+
             is ContentAction.UpdateKeepScreenOn -> {
-                _state.update { it.copy(
-                    keepScreenOn = action.keepScreenOn
-                ) }
+                _state.update {
+                    it.copy(
+                        keepScreenOn = action.keepScreenOn
+                    )
+                }
             }
+
             is ContentAction.UpdateEnablePagerScroll -> {
-                _state.update { it.copy(
-                    enablePagerScroll = action.enable
-                ) }
+                _state.update {
+                    it.copy(
+                        enablePagerScroll = action.enable
+                    )
+                }
             }
+
             is ContentAction.UpdateEnableBackgroundMusic -> {
                 viewModelScope.launch {
                     val selectedTrack = musicPathRepository.getSelectedMusicPaths()
@@ -308,12 +396,14 @@ class ContentViewModel(
                                 .build()
                         )
                         .build()
-                    _state.update { it.copy(
-                        enableBackgroundMusic = action.enable
-                    ) }
+                    _state.update {
+                        it.copy(
+                            enableBackgroundMusic = action.enable
+                        )
+                    }
                     ttsServiceHandler.enableBackgroundMusic = action.enable
                     mediaItemList.clear()
-                    if(action.enable) {
+                    if (action.enable) {
                         if (selectedTrack.isNotEmpty()) {
                             ttsServiceHandler.isTracksNull = false
                             selectedTrack.forEach { track ->
@@ -330,10 +420,10 @@ class ContentViewModel(
                                 mediaItemList.add(mediaItem)
                             }
                             mediaController?.apply {
-                                if(_state.value.isSpeaking) {
+                                if (_state.value.isSpeaking) {
                                     volume = 0.3f
                                 }
-                                setMediaItems(mediaItemList,true)
+                                setMediaItems(mediaItemList, true)
                                 prepare()
                                 play()
                             }
@@ -341,7 +431,7 @@ class ContentViewModel(
                             ttsServiceHandler.isTracksNull = true
                         }
                     } else {
-                        if(_state.value.isSpeaking) {
+                        if (_state.value.isSpeaking) {
                             mediaController?.apply {
                                 setMediaItems(listOf(silentMediaItem))
                                 prepare()
@@ -356,13 +446,15 @@ class ContentViewModel(
                     }
                 }
             }
+
             is ContentAction.UpdatePlayerVolume -> {
-                if(!_state.value.isSpeaking){
+                if (!_state.value.isSpeaking) {
                     mediaController?.apply {
                         volume = action.volume
                     }
                 }
             }
+
             is ContentAction.GetChapterContent -> {
                 viewModelScope.launch {
                     getChapter(action.index)
@@ -370,60 +462,77 @@ class ContentViewModel(
             }
 
             is ContentAction.UpdateEnableUndoButton -> {
-                _state.update { it.copy(
-                    enableUndoButton = action.enable
-                ) }
+                _state.update {
+                    it.copy(
+                        enableUndoButton = action.enable
+                    )
+                }
             }
 
             is ContentAction.UpdateImagePaddingState -> {
-                _state.update { it.copy(
-                    imagePaddingState = action.imagePaddingState
-                ) }
+                _state.update {
+                    it.copy(
+                        imagePaddingState = action.imagePaddingState
+                    )
+                }
                 viewModelScope.launch {
                     dataStoreManager.setImagePaddingState(action.imagePaddingState)
                 }
             }
 
             is ContentAction.UpdateSelectedBookmarkStyle -> {
-                _state.update { it.copy(
-                    selectedBookmarkStyle = action.style
-                ) }
+                _state.update {
+                    it.copy(
+                        selectedBookmarkStyle = action.style
+                    )
+                }
                 viewModelScope.launch {
                     dataStoreManager.setBookmarkStyle(action.style)
                 }
             }
+
             is ContentAction.UpdateFlagTriggerScrollForNote -> {
-                _state.update { it.copy(
-                    flagTriggerScrollForNote = action.value
-                ) }
+                _state.update {
+                    it.copy(
+                        flagTriggerScrollForNote = action.value
+                    )
+                }
             }
         }
     }
-    fun onTtsUiEvent(event: TtsUiEvent){
-        when(event){
+
+    fun onTtsUiEvent(event: TtsUiEvent) {
+        when (event) {
             is TtsUiEvent.Backward -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Backward)
             }
+
             is TtsUiEvent.Forward -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Forward)
             }
+
             is TtsUiEvent.PlayPause -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.PlayPause(isPaused = event.isPaused))
             }
+
             is TtsUiEvent.SkipToBack -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.SkipToBack)
             }
+
             is TtsUiEvent.SkipToNext -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.SkipToNext)
             }
+
             is TtsUiEvent.Stop -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Stop)
             }
+
             is TtsUiEvent.JumpToRandomChapter -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.JumpToRandomChapter)
             }
         }
     }
+
     suspend fun getChapter(page: Int) {
         _chapterContent.value = chapterRepository.getChapterContent(bookId, page)
     }
@@ -446,7 +555,8 @@ class ContentViewModel(
             onContentAction(ContentAction.UpdateTTSVoice(selectedVoice))
         }
     }
-    fun fixNullVoice(dataStoreManager: DataStoreManager, textToSpeech: TextToSpeech){
+
+    fun fixNullVoice(dataStoreManager: DataStoreManager, textToSpeech: TextToSpeech) {
         viewModelScope.launch {
             var selectedVoice = textToSpeech.voices?.find {
                 it.locale == _state.value.currentLanguage
@@ -459,6 +569,7 @@ class ContentViewModel(
             onContentAction(ContentAction.UpdateTTSVoice(selectedVoice!!))
         }
     }
+
     fun stopTTSService(context: Context) {
         mediaController?.pause()
         mediaController?.stop()
@@ -471,20 +582,25 @@ class ContentViewModel(
         }
         controllerFuture = null
     }
-    fun setupTTS(context : Context){
+
+    fun setupTTS(context: Context) {
         viewModelScope.launch {
-            val tts = TextToSpeech(context,null)
-            _state.update { it.copy(
-                tts = tts
-            ) }
+            val tts = TextToSpeech(context, null)
+            _state.update {
+                it.copy(
+                    tts = tts
+                )
+            }
         }
     }
-    fun stopTTS(){
+
+    fun stopTTS() {
         _state.value.tts?.stop()
         _state.value.tts?.shutdown()
         serviceJob.forEach { it.cancel() }
         serviceJob.clear()
     }
+
     private var mediaController: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
     fun initialize(
@@ -523,18 +639,27 @@ class ContentViewModel(
             ttsServiceHandler.textAlignTTS = _state.value.textAlign
             ttsServiceHandler.fontSizeTTS = _state.value.fontSize
             ttsServiceHandler.lineSpacingTTS = _state.value.lineSpacing
-            ttsServiceHandler.fontFamilyTTS = _state.value.fontFamilies[_state.value.selectedFontFamilyIndex]
+            ttsServiceHandler.fontFamilyTTS =
+                _state.value.fontFamilies[_state.value.selectedFontFamilyIndex]
             ttsServiceHandler.textIndentTTS = _state.value.textIndent
             coroutineScope {
                 serviceJob += launch {
                     ttsServiceHandler.currentParagraphIndex.collectLatest { currentReadingParagraph ->
-                        _state.update { it.copy(currentReadingParagraph = currentReadingParagraph) }
+                        if (currentReadingParagraph != -1) {
+                            _state.update { it.copy(currentReadingParagraph = currentReadingParagraph) }
+                            bookRepository.saveBookInfoParagraphIndex(
+                                bookId,
+                                currentReadingParagraph
+                            )
+                        }
                     }
                 }
                 serviceJob += launch {
                     ttsServiceHandler.currentChapterIndex.collectLatest { currentChapterIndex ->
                         _state.update { it.copy(currentChapterIndex = currentChapterIndex) }
-                        val chapter = chapterRepository.getChapterContent(bookId, currentChapterIndex)
+                        bookRepository.saveBookInfoChapterIndex(bookId, currentChapterIndex)
+                        val chapter =
+                            chapterRepository.getChapterContent(bookId, currentChapterIndex)
                         val htmlTagPattern = Regex(pattern = """<[^>]+>""")
                         val linkPattern = Regex("""\.capstone\.bookshelf/files/[^ ]*""")
                         ttsServiceHandler.currentChapterParagraphs = chapter?.content?.map { raw ->
@@ -544,9 +669,9 @@ class ContentViewModel(
                             } else {
                                 cleaned.trim()
                             }
-                        }?:emptyList()
+                        } ?: emptyList()
                         mediaController?.apply {
-                            if(_state.value.isSpeaking) {
+                            if (_state.value.isSpeaking) {
                                 val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
                                     ?.setArtist(chapter?.chapterTitle)?.build()!!
                                 val updatedMediaItem =
@@ -562,9 +687,15 @@ class ContentViewModel(
                 serviceJob += launch {
                     ttsServiceHandler.isSpeaking.collectLatest { isSpeaking ->
                         _state.update { it.copy(isSpeaking = isSpeaking) }
-                        if(!isSpeaking){
-                            bookRepository.saveBookInfoChapterIndex(bookId, _state.value.currentChapterIndex)
-                            bookRepository.saveBookInfoParagraphIndex(bookId, _state.value.currentReadingParagraph)
+                        if (!isSpeaking) {
+                            bookRepository.saveBookInfoChapterIndex(
+                                bookId,
+                                _state.value.currentChapterIndex
+                            )
+                            bookRepository.saveBookInfoParagraphIndex(
+                                bookId,
+                                _state.value.currentReadingParagraph
+                            )
                         }
                     }
                 }
@@ -586,6 +717,7 @@ class ContentViewModel(
             }
         }
     }
+
     fun play() {
         val mediaItem = MediaItem.Builder()
             .setUri("asset:///silent.mp3".toUri())
@@ -594,22 +726,30 @@ class ContentViewModel(
                     .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
                     .setTitle(_state.value.book?.title)
                     .setArtist(_state.value.chapterHeader)
-                    .build())
+                    .build()
+            )
             .build()
-        if(mediaController?.isPlaying!!){
+        if (mediaController?.isPlaying!!) {
             mediaController?.apply {
                 volume = 0.3f
             }
-            ttsServiceHandler.startReading(_state.value.firstVisibleItemIndex)
+            ttsServiceHandler.startReading(
+                paragraphIndex = _state.value.firstVisibleItemIndex,
+                chapterIndex = _state.value.currentChapterIndex
+            )
         } else {
             mediaController?.apply {
                 setMediaItems(listOf(mediaItem))
                 prepare()
                 play()
-                ttsServiceHandler.startReading(_state.value.firstVisibleItemIndex)
+                ttsServiceHandler.startReading(
+                    paragraphIndex = _state.value.firstVisibleItemIndex,
+                    chapterIndex = _state.value.currentChapterIndex
+                )
             }
         }
     }
+
     fun removeMediaItemByUri(uri: Uri) {
         mediaController?.let { controller ->
             val index = mediaItemList.indexOfFirst { it.localConfiguration?.uri == uri }

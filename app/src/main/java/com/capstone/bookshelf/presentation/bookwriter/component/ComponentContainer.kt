@@ -98,11 +98,11 @@ fun ComponentContainer(
         state.setText(paragraph.text)
     }
     LaunchedEffect(bookWriterState.selectedItem) {
-        if(bookWriterState.selectedItem != index)
+        if (bookWriterState.selectedItem != index)
             state.clearSpanStyles()
     }
     LaunchedEffect(bookWriterState.toggleBold) {
-        if(bookWriterState.selectedItem == index) {
+        if (bookWriterState.selectedItem == index) {
             if (bookWriterState.toggleBold)
                 state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
             else
@@ -110,7 +110,7 @@ fun ComponentContainer(
         }
     }
     LaunchedEffect(bookWriterState.toggleItalic) {
-        if(bookWriterState.selectedItem == index) {
+        if (bookWriterState.selectedItem == index) {
             if (bookWriterState.toggleItalic)
                 state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
             else
@@ -118,25 +118,25 @@ fun ComponentContainer(
         }
     }
     LaunchedEffect(bookWriterState.toggleUnderline) {
-        if(bookWriterState.selectedItem == index) {
+        if (bookWriterState.selectedItem == index) {
             if (bookWriterState.toggleUnderline) {
                 state.removeSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
                 state.addSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
-            } else if(!bookWriterState.toggleStrikethrough)
+            } else if (!bookWriterState.toggleStrikethrough)
                 state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.None))
         }
     }
     LaunchedEffect(bookWriterState.toggleStrikethrough) {
-        if(bookWriterState.selectedItem == index) {
+        if (bookWriterState.selectedItem == index) {
             if (bookWriterState.toggleStrikethrough) {
                 state.removeSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
                 state.addSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
-            } else if(!bookWriterState.toggleUnderline)
+            } else if (!bookWriterState.toggleUnderline)
                 state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.None))
         }
     }
     LaunchedEffect(bookWriterState.toggleAlign) {
-        if(bookWriterState.selectedItem == index) {
+        if (bookWriterState.selectedItem == index) {
             when (bookWriterState.toggleAlign) {
                 1 -> {
                     state.toggleParagraphStyle(
@@ -146,6 +146,7 @@ fun ComponentContainer(
                         )
                     )
                 }
+
                 2 -> {
                     state.toggleParagraphStyle(
                         ParagraphStyle(
@@ -154,6 +155,7 @@ fun ComponentContainer(
                         )
                     )
                 }
+
                 3 -> {
                     state.toggleParagraphStyle(
                         ParagraphStyle(
@@ -172,38 +174,43 @@ fun ComponentContainer(
     ) {
         Column(
             modifier = Modifier
-                .padding(top = 4.dp, bottom = 4.dp,start = 8.dp, end = 8.dp)
+                .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp)
                 .fillMaxWidth()
-                .background(color = MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(15.dp)),
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    RoundedCornerShape(15.dp)
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             AnimatedVisibility(
                 visible = paragraph.isControllerVisible,
             ) {
-                when (paragraph.type){
+                when (paragraph.type) {
                     ParagraphType.TITLE -> {
 
                     }
-                    ParagraphType.SUBTITLE,ParagraphType.PARAGRAPH, ParagraphType.IMAGE -> {
+
+                    ParagraphType.SUBTITLE, ParagraphType.PARAGRAPH, ParagraphType.IMAGE -> {
                         TopIndicator(
                             onAddParagraph = {
                                 onVisibilityChange(index, false)
-                                onAdd(index, index - 1,ParagraphType.PARAGRAPH)
+                                onAdd(index, index - 1, ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAdd(index, index - 1,ParagraphType.IMAGE)
+                                onAdd(index, index - 1, ParagraphType.IMAGE)
                             },
                             onAddSubTitle = {
                                 onVisibilityChange(index, false)
-                                onAdd(index, index - 1,ParagraphType.SUBTITLE)
+                                onAdd(index, index - 1, ParagraphType.SUBTITLE)
                             },
                         )
                     }
+
                     else -> {}
                 }
             }
-            when (paragraph.type){
+            when (paragraph.type) {
                 ParagraphType.TITLE -> {
                     TextField(
                         modifier = Modifier
@@ -219,7 +226,7 @@ fun ComponentContainer(
                                     onVisibilityChange(index, false)
                                 }
                             }
-                            .onSizeChanged{
+                            .onSizeChanged {
                                 onSizeChange(index)
                             },
                         value = bookWriterState.htmlTagPattern.replace(text, replacement = ""),
@@ -243,7 +250,7 @@ fun ComponentContainer(
                         keyboardActions = KeyboardActions(
                             onNext = {
                                 onVisibilityChange(index, false)
-                                onAdd(index, index + 1,ParagraphType.PARAGRAPH)
+                                onAdd(index, index + 1, ParagraphType.PARAGRAPH)
                             }
                         ),
                         textStyle = TextStyle(
@@ -253,6 +260,7 @@ fun ComponentContainer(
                         )
                     )
                 }
+
                 ParagraphType.SUBTITLE -> {
                     TextField(
                         modifier = Modifier
@@ -268,7 +276,7 @@ fun ComponentContainer(
                                     onVisibilityChange(index, false)
                                 }
                             }
-                            .onSizeChanged{
+                            .onSizeChanged {
                                 onSizeChange(index)
                             },
                         value = text,
@@ -303,6 +311,7 @@ fun ComponentContainer(
                         )
                     )
                 }
+
                 ParagraphType.PARAGRAPH -> {
                     RichTextEditor(
                         state = state,
@@ -319,7 +328,7 @@ fun ComponentContainer(
                                     onVisibilityChange(index, false)
                                 }
                             }
-                            .onSizeChanged{
+                            .onSizeChanged {
                                 onSizeChange(index)
                             },
                         keyboardOptions = KeyboardOptions(
@@ -330,7 +339,7 @@ fun ComponentContainer(
                         keyboardActions = KeyboardActions(
                             onNext = {
                                 onVisibilityChange(index, false)
-                                onAdd(index, index + 1,ParagraphType.PARAGRAPH)
+                                onAdd(index, index + 1, ParagraphType.PARAGRAPH)
                             }
                         ),
                         colors = RichTextEditorDefaults.richTextEditorColors(
@@ -351,8 +360,9 @@ fun ComponentContainer(
                         },
                     )
                 }
+
                 ParagraphType.IMAGE -> {
-                    if(text == "") {
+                    if (text == "") {
                         IconButton(
                             modifier = Modifier.size(70.dp),
                             onClick = {
@@ -379,39 +389,41 @@ fun ComponentContainer(
                         )
                     }
                 }
+
                 else -> {}
             }
             AnimatedVisibility(
                 visible = paragraph.isControllerVisible,
             ) {
-                when (paragraph.type){
+                when (paragraph.type) {
                     ParagraphType.TITLE -> {
                         ChapterTitleIndicator(
                             onAddParagraph = {
                                 onVisibilityChange(index, false)
-                                onAdd(index, index + 1,ParagraphType.PARAGRAPH)
+                                onAdd(index, index + 1, ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAdd(index, index + 1,ParagraphType.IMAGE)
+                                onAdd(index, index + 1, ParagraphType.IMAGE)
                             },
                             onAddSubTitle = {
                                 onVisibilityChange(index, false)
-                                onAdd(index, index + 1,ParagraphType.SUBTITLE)
+                                onAdd(index, index + 1, ParagraphType.SUBTITLE)
                             }
                         )
                     }
-                    ParagraphType.PARAGRAPH,ParagraphType.SUBTITLE,ParagraphType.IMAGE -> {
+
+                    ParagraphType.PARAGRAPH, ParagraphType.SUBTITLE, ParagraphType.IMAGE -> {
                         BottomIndicator(
                             onAddParagraph = {
                                 onVisibilityChange(index, false)
-                                onAdd(index, index + 1,ParagraphType.PARAGRAPH)
+                                onAdd(index, index + 1, ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAdd(index, index + 1,ParagraphType.IMAGE)
+                                onAdd(index, index + 1, ParagraphType.IMAGE)
                             },
                             onAddSubTitle = {
                                 onVisibilityChange(index, false)
-                                onAdd(index, index + 1,ParagraphType.SUBTITLE)
+                                onAdd(index, index + 1, ParagraphType.SUBTITLE)
                             },
                             onDelete = {
                                 onDelete(index)
@@ -424,6 +436,7 @@ fun ComponentContainer(
                             }
                         )
                     }
+
                     else -> {}
                 }
             }
@@ -434,7 +447,9 @@ fun ComponentContainer(
             }
         ) {
             Icon(
-                imageVector = ImageVector.vectorResource(R.drawable.ic_dot_menu), contentDescription = "Menu")
+                imageVector = ImageVector.vectorResource(R.drawable.ic_dot_menu),
+                contentDescription = "Menu"
+            )
         }
     }
 }

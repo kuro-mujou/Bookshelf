@@ -72,9 +72,13 @@ class CBZImportWorker(
             "Book Import Completion"
         )
     }
+
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val cbzUriString = inputData.getString(INPUT_URI_KEY)
-        val originalFileName = inputData.getString(ORIGINAL_FILENAME_KEY) ?: getDisplayNameFromUri(appContext, cbzUriString?.toUri()) ?: "Unknown CBZ"
+        val originalFileName = inputData.getString(ORIGINAL_FILENAME_KEY) ?: getDisplayNameFromUri(
+            appContext,
+            cbzUriString?.toUri()
+        ) ?: "Unknown CBZ"
 
         if (cbzUriString == null) {
             return@withContext Result.failure()
@@ -93,7 +97,8 @@ class CBZImportWorker(
             cbzUri,
             originalFileName,
             onProgress = { currentChapter, totalChapters, chapterName ->
-                val progressPercent = ((currentChapter.toFloat() / totalChapters.toFloat()) * 100).toInt()
+                val progressPercent =
+                    ((currentChapter.toFloat() / totalChapters.toFloat()) * 100).toInt()
                 updateProgressNotification(
                     originalFileName,
                     "Processing: $chapterName ($currentChapter/$totalChapters)",
@@ -125,7 +130,8 @@ class CBZImportWorker(
         var bookId: String? = null
 
         try {
-            bookId = BigInteger(1, md.digest(actualFileName.toByteArray())).toString(16).padStart(32, '0')
+            bookId = BigInteger(1, md.digest(actualFileName.toByteArray())).toString(16)
+                .padStart(32, '0')
             if (bookRepository.isBookExist(bookTitle)) {
                 return kotlin.Result.failure(IOException("Book already imported"))
             }
@@ -148,7 +154,10 @@ class CBZImportWorker(
                 while (entries.hasMoreElements()) {
                     val entry = entries.nextElement()
                     val entryName = entry.name
-                    if (entry.isDirectory || entryName.startsWith("__MACOSX/") || entryName.contains("/.DS_Store")) continue
+                    if (entry.isDirectory || entryName.startsWith("__MACOSX/") || entryName.contains(
+                            "/.DS_Store"
+                        )
+                    ) continue
                     val pathSegments = entryName.split('/').filter { it.isNotEmpty() }
                     if (pathSegments.size >= 2) {
                         val secondLevelName = pathSegments[1]
@@ -157,7 +166,8 @@ class CBZImportWorker(
                         val fileName = pathSegments.last()
                         val extension = fileName.substringAfterLast('.', "").lowercase()
                         if (extension in IMAGE_EXTENSIONS) {
-                            val imageList = groupedImageEntries.getOrPut(secondLevelName) { mutableListOf() }
+                            val imageList =
+                                groupedImageEntries.getOrPut(secondLevelName) { mutableListOf() }
                             imageList.add(entryName)
                         }
                     }
@@ -185,8 +195,9 @@ class CBZImportWorker(
                             coverZipFile.getInputStream(coverEntry).use { imageStream ->
                                 val bitmap = decodeSampledBitmapFromStream(imageStream)
                                 if (bitmap != null) {
-                                    val coverFilename ="${bookId}_cover"
-                                    coverImagePath = saveBitmapToPrivateStorage(context, bitmap, coverFilename)
+                                    val coverFilename = "${bookId}_cover"
+                                    coverImagePath =
+                                        saveBitmapToPrivateStorage(context, bitmap, coverFilename)
                                     bitmap.recycle()
                                 } else {
                                     coverImagePath = "decode_error"
@@ -202,12 +213,19 @@ class CBZImportWorker(
             } else {
                 coverImagePath = "no_images_in_first_chapter"
             }
-            val finalCoverPathForDb = if (coverImagePath.startsWith("error_") || coverImagePath.startsWith("no_")) {
-                null
-            } else {
-                coverImagePath
-            }
-            saveBookInfo(bookId, bookTitle, finalCoverPathForDb!!, totalChapters, tempZipFile.absolutePath)
+            val finalCoverPathForDb =
+                if (coverImagePath.startsWith("error_") || coverImagePath.startsWith("no_")) {
+                    null
+                } else {
+                    coverImagePath
+                }
+            saveBookInfo(
+                bookId,
+                bookTitle,
+                finalCoverPathForDb!!,
+                totalChapters,
+                tempZipFile.absolutePath
+            )
             var chapterIndex = 0
             ZipFile(tempZipFile).use { chapterZipFile ->
                 for (chapterName in sortedDirNames) {
@@ -226,10 +244,17 @@ class CBZImportWorker(
                             chapterZipFile.getInputStream(entry).use { imageStream ->
                                 val bitmap = decodeSampledBitmapFromStream(imageStream)
                                 if (bitmap != null) {
-                                    val safeChapterName = chapterName.replace(Regex("[^A-Za-z0-9_-]"), "_")
-                                    val safeImageName = originalImageName.substringBeforeLast('.').replace(Regex("[^A-Za-z0-9_-]"), "_")
-                                    val chapterImageFilename = "${bookId}_${safeChapterName}_${safeImageName}"
-                                    val savedPath = saveBitmapToPrivateStorage(context, bitmap, chapterImageFilename)
+                                    val safeChapterName =
+                                        chapterName.replace(Regex("[^A-Za-z0-9_-]"), "_")
+                                    val safeImageName = originalImageName.substringBeforeLast('.')
+                                        .replace(Regex("[^A-Za-z0-9_-]"), "_")
+                                    val chapterImageFilename =
+                                        "${bookId}_${safeChapterName}_${safeImageName}"
+                                    val savedPath = saveBitmapToPrivateStorage(
+                                        context,
+                                        bitmap,
+                                        chapterImageFilename
+                                    )
                                     if (!savedPath.startsWith("error")) {
                                         savedImagePathsInChapter.add(savedPath)
                                     }
@@ -241,7 +266,12 @@ class CBZImportWorker(
                         }
                     }
                     if (savedImagePathsInChapter.isNotEmpty()) {
-                        saveChapterInfo(bookId, chapterName, chapterIndex - 1, savedImagePathsInChapter)
+                        saveChapterInfo(
+                            bookId,
+                            chapterName,
+                            chapterIndex - 1,
+                            savedImagePathsInChapter
+                        )
                     }
                 }
             }
@@ -255,6 +285,7 @@ class CBZImportWorker(
             }
         }
     }
+
     private suspend fun saveBookInfo(
         bookID: String,
         title: String,
@@ -302,7 +333,8 @@ class CBZImportWorker(
 
     private fun createNotificationChannelIfNeeded(channelId: String, channelName: String) {
         if (notificationManager.getNotificationChannel(channelId) == null) {
-            val importance = if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
+            val importance =
+                if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
             val channel = NotificationChannel(channelId, channelName, importance).apply {
                 if (channelId == PROGRESS_CHANNEL_ID) {
                     setSound(null, null)
@@ -313,7 +345,10 @@ class CBZImportWorker(
     }
 
     /** Creates the base builder for progress notifications. */
-    private fun createProgressNotificationBuilder(fileName: String, message: String): NotificationCompat.Builder {
+    private fun createProgressNotificationBuilder(
+        fileName: String,
+        message: String
+    ): NotificationCompat.Builder {
         val displayFileName = fileName.substringBeforeLast(".")
         return NotificationCompat.Builder(appContext, PROGRESS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -325,7 +360,11 @@ class CBZImportWorker(
     }
 
     /** Updates the ongoing progress notification. */
-    private suspend fun updateProgressNotification(fileName: String, message: String, progress: Int?) {
+    private suspend fun updateProgressNotification(
+        fileName: String,
+        message: String,
+        progress: Int?
+    ) {
         val builder = createProgressNotificationBuilder(fileName, message)
         if (progress != null) {
             builder.setProgress(100, progress.coerceIn(0, 100), false) // Determinate
@@ -334,7 +373,7 @@ class CBZImportWorker(
         }
         try {
             setForeground(getForegroundInfoCompat(builder.build()))
-        } catch (e: Exception){
+        } catch (e: Exception) {
             notificationManager.notify(notificationId, builder.build())
         }
     }
@@ -372,6 +411,7 @@ class CBZImportWorker(
         notificationManager.notify(completionNotificationId, builder.build())
         notificationManager.cancel(notificationId)
     }
+
     /** Decodes bitmap with sampling to prevent OOM errors. */
     private fun decodeSampledBitmapFromStream(
         stream: java.io.InputStream,
@@ -393,9 +433,9 @@ class CBZImportWorker(
             return BitmapFactory.decodeStream(stream, null, options)
         } catch (e: IOException) {
             return null
-        } catch(oom: OutOfMemoryError){
+        } catch (oom: OutOfMemoryError) {
             return null
-        } catch (e: Exception){
+        } catch (e: Exception) {
             return null
         }
     }
@@ -405,7 +445,13 @@ class CBZImportWorker(
         if (uri == null) return null
         var displayName: String? = null
         try {
-            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            context.contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     if (nameIndex != -1) {

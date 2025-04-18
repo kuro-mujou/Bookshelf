@@ -18,7 +18,7 @@ class BookDetailViewModel(
     private val bookRepository: BookRepository,
     private val tableOfContentRepository: TableOfContentRepository,
     savedStateHandle: SavedStateHandle
-): ViewModel() {
+) : ViewModel() {
     private val bookId = savedStateHandle.toRoute<Route.BookDetail>().bookId
     private val _state = MutableStateFlow(BookDetailState())
     val state = _state
@@ -32,35 +32,41 @@ class BookDetailViewModel(
         viewModelScope.launch {
             tableOfContentRepository
                 .getTableOfContents(bookId)
-                .collectLatest{ tableOfContents ->
-                    _state.update { it.copy(
-                        tableOfContents = tableOfContents
-                    ) }
+                .collectLatest { tableOfContents ->
+                    _state.update {
+                        it.copy(
+                            tableOfContents = tableOfContents
+                        )
+                    }
                 }
         }
         viewModelScope.launch {
             bookRepository
                 .getBookAsFlow(bookId)
-                .collectLatest {book->
-                    _state.update { it.copy(
-                        isSortedByFavorite = book.isFavorite
-                    ) }
+                .collectLatest { book ->
+                    _state.update {
+                        it.copy(
+                            isSortedByFavorite = book.isFavorite
+                        )
+                    }
                 }
         }
     }
 
     fun onAction(action: BookDetailAction) {
-        when(action) {
+        when (action) {
             is BookDetailAction.OnSelectedBookChange -> {
-                _state.update { it.copy(
-                    book = action.book
-                ) }
+                _state.update {
+                    it.copy(
+                        book = action.book
+                    )
+                }
             }
 
             is BookDetailAction.OnDrawerItemClick -> {
                 viewModelScope.launch {
                     bookRepository.saveBookInfoChapterIndex(bookId, action.index)
-                    bookRepository.saveBookInfoParagraphIndex(bookId,0)
+                    bookRepository.saveBookInfoParagraphIndex(bookId, 0)
                 }
             }
 

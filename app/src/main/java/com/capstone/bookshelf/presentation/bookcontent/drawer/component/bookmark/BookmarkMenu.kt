@@ -45,7 +45,7 @@ fun BookmarkMenu(
     dataStoreManager: DataStoreManager,
     colorPalette: ColorPalette,
     contentState: ContentState
-){
+) {
     val listState = rememberLazyListState()
     LaunchedEffect(Unit) {
         contentViewModel.onContentAction(ContentAction.UpdateSelectedBookmarkStyle(dataStoreManager.bookmarkStyle.first()))
@@ -63,7 +63,7 @@ fun BookmarkMenu(
     }
     Surface(
         color = colorPalette.backgroundColor
-    ){
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -90,13 +90,17 @@ fun BookmarkMenu(
                     items(
                         items = items,
                         key = { it.id }
-                    ) { listItem->
+                    ) { listItem ->
                         BookmarkItemView(
                             listItem = listItem,
                             contentState = contentState,
                             colorPaletteState = colorPalette,
                             onSelected = {
-                                contentViewModel.onContentAction(ContentAction.UpdateSelectedBookmarkStyle(it))
+                                contentViewModel.onContentAction(
+                                    ContentAction.UpdateSelectedBookmarkStyle(
+                                        it
+                                    )
+                                )
                             }
                         )
                     }
@@ -113,7 +117,7 @@ fun BookmarkItemView(
     contentState: ContentState,
     colorPaletteState: ColorPalette,
     onSelected: (BookmarkStyle) -> Unit
-){
+) {
     val checked = contentState.selectedBookmarkStyle == listItem.bookmarkStyle
     Row(
         modifier = Modifier

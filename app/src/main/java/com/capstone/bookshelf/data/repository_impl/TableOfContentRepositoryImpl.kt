@@ -11,25 +11,28 @@ import kotlinx.coroutines.flow.map
 
 class TableOfContentRepositoryImpl(
     private val tableOfContentDao: TableOfContentDao
-): TableOfContentRepository {
+) : TableOfContentRepository {
     override suspend fun saveTableOfContent(tocEntity: TableOfContentEntity): Long {
         return tableOfContentDao.insertTableOfContent(tocEntity)
     }
+
     override suspend fun getTableOfContents(bookId: String): Flow<List<TableOfContent>> {
         return tableOfContentDao
             .getTableOfContents(bookId)
-            .map { entity->
-                entity.map{it.toDataClass()}
+            .map { entity ->
+                entity.map { it.toDataClass() }
             }
     }
-    override suspend fun getTableOfContent(bookId: String,tocId: Int): TableOfContent? {
-        return tableOfContentDao.getTableOfContent(bookId,tocId)?.toDataClass()
+
+    override suspend fun getTableOfContent(bookId: String, tocId: Int): TableOfContent? {
+        return tableOfContentDao.getTableOfContent(bookId, tocId)?.toDataClass()
     }
 
     override suspend fun addChapter(bookId: String, chapter: TableOfContent) {
         tableOfContentDao.insertTableOfContent(chapter.toEntity())
     }
+
     override suspend fun updateTableOfContent(bookId: String, index: Int, isFavorite: Boolean) {
-        tableOfContentDao.updateTableOfContent(bookId,index,isFavorite)
+        tableOfContentDao.updateTableOfContent(bookId, index, isFavorite)
     }
 }

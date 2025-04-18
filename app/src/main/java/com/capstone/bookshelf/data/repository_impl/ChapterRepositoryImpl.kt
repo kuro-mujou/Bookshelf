@@ -8,12 +8,13 @@ import com.capstone.bookshelf.domain.wrapper.Chapter
 
 class ChapterRepositoryImpl(
     private val chapterDao: ChapterDao
-): ChapterRepository {
+) : ChapterRepository {
     override suspend fun getChapterContent(bookId: String, tocId: Int): Chapter? {
         return chapterDao
             .getChapterContent(bookId, tocId)
             ?.toDataClass()
     }
+
     override suspend fun saveChapterContent(chapterContentEntity: ChapterContentEntity) {
         chapterDao.insertChapterContent(chapterContentEntity)
     }

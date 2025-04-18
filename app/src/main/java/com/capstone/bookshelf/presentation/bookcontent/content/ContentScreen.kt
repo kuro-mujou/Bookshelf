@@ -84,18 +84,20 @@ fun ContentScreen(
     autoScrollViewModel: AutoScrollViewModel,
     drawerContainerViewModel: DrawerContainerViewModel,
     hazeState: HazeState,
-    pagerState : PagerState,
+    pagerState: PagerState,
     drawerContainerState: DrawerContainerState,
-    contentState : ContentState,
+    contentState: ContentState,
     colorPaletteState: ColorPalette,
     autoScrollState: AutoScrollState,
     dataStoreManager: DataStoreManager,
     updateSystemBar: () -> Unit,
-    currentChapter : (Int,Int,Boolean) -> Unit,
-){
+    currentChapter: (Int, Int, Boolean) -> Unit,
+) {
     val lazyListStates = rememberSaveable(
         saver = mapSaver(
-            save = { map -> map.mapKeys { it.key.toString() }.mapValues { it.value.firstVisibleItemIndex } },
+            save = { map ->
+                map.mapKeys { it.key.toString() }.mapValues { it.value.firstVisibleItemIndex }
+            },
             restore = { savedMap ->
                 savedMap.mapKeys { it.key.toInt() }
                     .mapValues { LazyListState(firstVisibleItemIndex = it.value as Int) }
@@ -112,7 +114,7 @@ fun ContentScreen(
         modifier = Modifier
             .fillMaxSize()
             .then(
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                     Modifier.hazeSource(hazeState)
                 else
                     Modifier
@@ -139,10 +141,14 @@ fun ContentScreen(
             }
         }
         LaunchedEffect(contentState.currentChapterIndex) {
-            viewModel.onContentAction(ContentAction.UpdateChapterHeader(drawerContainerState.currentTOC?.title?:""))
+            viewModel.onContentAction(
+                ContentAction.UpdateChapterHeader(
+                    drawerContainerState.currentTOC?.title ?: ""
+                )
+            )
         }
         LaunchedEffect(contentState.currentChapterIndex) {
-            if(autoScrollState.isStart && autoScrollState.isPaused){
+            if (autoScrollState.isStart && autoScrollState.isPaused) {
                 delay(autoScrollState.delayAtStart.toLong())
                 autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
             }
@@ -150,9 +156,11 @@ fun ContentScreen(
         LaunchedEffect(contentState.flagTriggerScrollForNote) {
             snapshotFlow { pagerState.settledPage }
                 .collect { page ->
-                    if(contentState.flagTriggerScrollForNote != -1){
+                    if (contentState.flagTriggerScrollForNote != -1) {
                         delay(500)
-                        lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(contentState.flagTriggerScrollForNote)
+                        lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(
+                            contentState.flagTriggerScrollForNote
+                        )
                         viewModel.onContentAction(ContentAction.UpdateFlagTriggerScrollForNote(-1))
                     }
                 }
@@ -160,7 +168,7 @@ fun ContentScreen(
         LaunchedEffect(autoScrollState.isPaused) {
             snapshotFlow { pagerState.settledPage }
                 .collect { page ->
-                    if(autoScrollState.isStart && autoScrollState.isPaused && autoScrollState.isAutoResumeScrollMode && contentState.currentChapterIndex == page) {
+                    if (autoScrollState.isStart && autoScrollState.isPaused && autoScrollState.isAutoResumeScrollMode && contentState.currentChapterIndex == page) {
                         delay(autoScrollState.delayResumeMode.toLong())
                         autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
                     }
@@ -187,7 +195,7 @@ fun ContentScreen(
             }.also {
                 isInitial = false
             }
-            var header by remember{ mutableStateOf("") }
+            var header by remember { mutableStateOf("") }
             var hasPrintedAtEnd by remember { mutableStateOf(false) }
             var isAnimationRunning by remember { mutableStateOf(false) }
             var animationJob by remember { mutableStateOf<Job?>(null) }
@@ -196,7 +204,7 @@ fun ContentScreen(
             var originalZoom by remember { mutableFloatStateOf(1f) }
             val density = LocalDensity.current
 
-            if(data == null && contentState.currentChapterIndex == page){
+            if (data == null && contentState.currentChapterIndex == page) {
                 LoadingAnimation(
                     contentState = contentState,
                     colorPaletteState = colorPaletteState
@@ -234,12 +242,14 @@ fun ContentScreen(
 
             LaunchedEffect(pagerState.targetPage) {
                 viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
-                currentChapter(pagerState.targetPage,0,autoScrollState.isStart)
+                currentChapter(pagerState.targetPage, 0, autoScrollState.isStart)
             }
 
             LaunchedEffect(contentState.isSpeaking) {
-                if(contentState.isSpeaking){
-                    lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(contentState.currentReadingParagraph)
+                if (contentState.isSpeaking) {
+                    lazyListStates[contentState.currentChapterIndex]?.animateScrollToItem(
+                        contentState.currentReadingParagraph
+                    )
                 }
             }
 
@@ -248,7 +258,11 @@ fun ContentScreen(
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
-                                viewModel.onContentAction(ContentAction.UpdateLastVisibleItemIndex(index))
+                                viewModel.onContentAction(
+                                    ContentAction.UpdateLastVisibleItemIndex(
+                                        index
+                                    )
+                                )
                             }
                         }
                 }
@@ -259,17 +273,25 @@ fun ContentScreen(
                     snapshotFlow { it.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
                         .collect { index ->
                             if (index != null) {
-                                viewModel.onContentAction(ContentAction.UpdateFirstVisibleItemIndex(index))
+                                viewModel.onContentAction(
+                                    ContentAction.UpdateFirstVisibleItemIndex(
+                                        index
+                                    )
+                                )
                             }
                         }
                 }
             }
 
-            LaunchedEffect(lazyListStates[contentState.currentChapterIndex]){
+            LaunchedEffect(lazyListStates[contentState.currentChapterIndex]) {
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     snapshotFlow { it.isScrollInProgress && !pagerState.isScrollInProgress }.collect { scrolling ->
                         if (scrolling && (contentState.isSpeaking || contentState.isPaused) && contentState.currentReadingParagraph == contentState.firstVisibleItemIndex) {
-                            viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(true))
+                            viewModel.onContentAction(
+                                ContentAction.UpdateFlagTriggerAdjustScroll(
+                                    true
+                                )
+                            )
                         }
                     }
                 }
@@ -283,27 +305,39 @@ fun ContentScreen(
                     ) {
                         if (contentState.isSpeaking) {
                             it.animateScrollToItem(contentState.currentReadingParagraph)
-                            viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                            viewModel.onContentAction(
+                                ContentAction.UpdateFlagTriggerAdjustScroll(
+                                    false
+                                )
+                            )
                         }
                     }
                 }
             }
 
-            LaunchedEffect(contentState.flagTriggerScrolling){
-                if(contentState.flagTriggerScrolling)
+            LaunchedEffect(contentState.flagTriggerScrolling) {
+                if (contentState.flagTriggerScrolling)
                     viewModel.onContentAction(ContentAction.UpdateFlagStartScrolling(true))
             }
 
-            LaunchedEffect(contentState.flagStartScrolling){
+            LaunchedEffect(contentState.flagStartScrolling) {
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     if (contentState.flagStartScrolling) {
                         if (contentState.currentReadingParagraph != contentState.firstVisibleItemIndex) {
                             it.animateScrollToItem(contentState.currentReadingParagraph)
-                            viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                            viewModel.onContentAction(
+                                ContentAction.UpdateFlagTriggerAdjustScroll(
+                                    false
+                                )
+                            )
                             viewModel.onContentAction(ContentAction.UpdateFlagScrollAdjusted(true))
                         } else if (!contentState.flagTriggerAdjustScroll) {
                             it.animateScrollBy(value = contentState.screenHeight.toFloat())
-                            viewModel.onContentAction(ContentAction.UpdateFlagTriggerAdjustScroll(false))
+                            viewModel.onContentAction(
+                                ContentAction.UpdateFlagTriggerAdjustScroll(
+                                    false
+                                )
+                            )
                             viewModel.onContentAction(ContentAction.UpdateFlagStartScrolling(false))
                         } else {
                             viewModel.onContentAction(ContentAction.UpdateFlagStartScrolling(true))
@@ -312,7 +346,7 @@ fun ContentScreen(
                 }
             }
 
-            LaunchedEffect(contentState.flagStartAdjustScroll){
+            LaunchedEffect(contentState.flagStartAdjustScroll) {
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     if (contentState.flagStartAdjustScroll) {
                         it.animateScrollToItem(contentState.currentReadingParagraph)
@@ -323,7 +357,7 @@ fun ContentScreen(
                 }
             }
 
-            LaunchedEffect(contentState.flagScrollAdjusted){
+            LaunchedEffect(contentState.flagScrollAdjusted) {
                 lazyListStates[contentState.currentChapterIndex]?.let {
                     if (contentState.flagScrollAdjusted) {
                         it.animateScrollBy(value = contentState.screenHeight.toFloat() * contentState.scrollTime)
@@ -334,7 +368,12 @@ fun ContentScreen(
                 }
             }
 
-            LaunchedEffect(autoScrollState.currentSpeed, autoScrollState.isStart, autoScrollState.isPaused, autoScrollState.stopAutoScroll) {
+            LaunchedEffect(
+                autoScrollState.currentSpeed,
+                autoScrollState.isStart,
+                autoScrollState.isPaused,
+                autoScrollState.stopAutoScroll
+            ) {
                 if (autoScrollState.stopAutoScroll || autoScrollState.isPaused) {
                     animationJob?.cancel()
                     animationJob = null
@@ -384,8 +423,11 @@ fun ContentScreen(
                 }
             }
 
-            LaunchedEffect(lazyListStates[contentState.currentChapterIndex]?.isScrollInProgress,autoScrollState.isPaused){
-                if(autoScrollState.isStart && !autoScrollState.isPaused) {
+            LaunchedEffect(
+                lazyListStates[contentState.currentChapterIndex]?.isScrollInProgress,
+                autoScrollState.isPaused
+            ) {
+                if (autoScrollState.isStart && !autoScrollState.isPaused) {
                     lazyListStates[contentState.currentChapterIndex]?.let {
                         snapshotFlow { it.layoutInfo }.collect { layoutInfo ->
                             if (layoutInfo.visibleItemsInfo.isNotEmpty()) {
@@ -395,13 +437,33 @@ fun ContentScreen(
                                 ) {
                                     if (!isAnimationRunning && !hasPrintedAtEnd && contentState.previousChapterIndex <= contentState.currentChapterIndex) {
                                         delay(autoScrollState.delayAtEnd.toLong())
-                                        autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(true))
-                                        if(contentState.currentChapterIndex + 1 < contentState.book?.totalChapter!!){
-                                            currentChapter(contentState.currentChapterIndex + 1,0,true)
-                                        } else if (contentState.currentChapterIndex + 1 == contentState.book.totalChapter){
-                                            autoScrollViewModel.onAction(AutoScrollAction.UpdateIsStart(false))
-                                            autoScrollViewModel.onAction(AutoScrollAction.UpdateIsPaused(false))
-                                            autoScrollViewModel.onAction(AutoScrollAction.UpdateStopAutoScroll(true))
+                                        autoScrollViewModel.onAction(
+                                            AutoScrollAction.UpdateIsPaused(
+                                                true
+                                            )
+                                        )
+                                        if (contentState.currentChapterIndex + 1 < contentState.book?.totalChapter!!) {
+                                            currentChapter(
+                                                contentState.currentChapterIndex + 1,
+                                                0,
+                                                true
+                                            )
+                                        } else if (contentState.currentChapterIndex + 1 == contentState.book.totalChapter) {
+                                            autoScrollViewModel.onAction(
+                                                AutoScrollAction.UpdateIsStart(
+                                                    false
+                                                )
+                                            )
+                                            autoScrollViewModel.onAction(
+                                                AutoScrollAction.UpdateIsPaused(
+                                                    false
+                                                )
+                                            )
+                                            autoScrollViewModel.onAction(
+                                                AutoScrollAction.UpdateStopAutoScroll(
+                                                    true
+                                                )
+                                            )
                                         }
                                         hasPrintedAtEnd = true
                                     }
@@ -435,12 +497,12 @@ fun ContentScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .then(
-                        if(!autoScrollState.isStart){
+                        if (!autoScrollState.isStart) {
                             Modifier.clickable(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() },
                                 onClick = {
-                                    if(!contentState.enableUndoButton) {
+                                    if (!contentState.enableUndoButton) {
                                         updateSystemBar()
                                     }
                                 },
@@ -450,7 +512,7 @@ fun ContentScreen(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() },
                                 onClick = {
-                                    if(!contentState.enableUndoButton) {
+                                    if (!contentState.enableUndoButton) {
                                         updateSystemBar()
                                     }
                                 },
@@ -536,7 +598,13 @@ fun ContentScreen(
                             size = it
                         }
                         .onGloballyPositioned { coordinates ->
-                            viewModel.onContentAction(ContentAction.UpdateScreenWidth(coordinates.size.width - (with(density) { 32.dp.toPx() }.toInt())))
+                            viewModel.onContentAction(
+                                ContentAction.UpdateScreenWidth(
+                                    coordinates.size.width - (with(
+                                        density
+                                    ) { 32.dp.toPx() }.toInt())
+                                )
+                            )
                             viewModel.onContentAction(ContentAction.UpdateScreenHeight(coordinates.size.height))
                         },
                     state = listState,
@@ -544,8 +612,8 @@ fun ContentScreen(
                     chapterContents[page]?.let {
                         itemsIndexed(
                             items = it,
-                            key = { index:Int, _:String -> index }
-                        ) {  index, content ->
+                            key = { index: Int, _: String -> index }
+                        ) { index, content ->
                             Content(
                                 drawerContainerViewModel = drawerContainerViewModel,
                                 content = content,

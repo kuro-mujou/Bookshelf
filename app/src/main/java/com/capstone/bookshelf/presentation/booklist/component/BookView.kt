@@ -56,7 +56,7 @@ fun GridBookView(
     onItemDoubleClick: () -> Unit,
     onItemStarClick: () -> Unit,
     onItemCheckBoxClick: (Boolean, Book) -> Unit
-){
+) {
     var checkBoxState by rememberSaveable { mutableStateOf(false) }
     Box(
         modifier = Modifier
@@ -74,19 +74,19 @@ fun GridBookView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
-        ){
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight(),
                 contentAlignment = Alignment.BottomEnd
-            ){
+            ) {
                 AsyncImage(
                     model =
-                    if(book.coverImagePath=="error")
-                        R.mipmap.book_cover_not_available
-                    else
-                        book.coverImagePath,
+                        if (book.coverImagePath == "error")
+                            R.mipmap.book_cover_not_available
+                        else
+                            book.coverImagePath,
                     contentDescription = null,
                     contentScale = ContentScale.FillWidth,
                     modifier = Modifier
@@ -102,7 +102,7 @@ fun GridBookView(
                 ) {
                     Text(
                         modifier = Modifier.padding(top = 2.dp, start = 4.dp),
-                        text = "${book.currentChapter+1} / ${book.totalChapter}",
+                        text = "${book.currentChapter + 1} / ${book.totalChapter}",
                         style = TextStyle(
                             fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             background = MaterialTheme.colorScheme.surfaceContainer,
@@ -115,7 +115,7 @@ fun GridBookView(
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 progress = {
-                    (book.currentChapter+1).toFloat() / book.totalChapter.toFloat()
+                    (book.currentChapter + 1).toFloat() / book.totalChapter.toFloat()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -141,7 +141,7 @@ fun GridBookView(
                 )
             )
         }
-        if(!bookListState.isOnDeleteBooks) {
+        if (!bookListState.isOnDeleteBooks) {
             IconButton(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -155,7 +155,7 @@ fun GridBookView(
                     imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
                     contentDescription = null,
                     tint = if (book.isFavorite)
-                        if(isSystemInDarkTheme())
+                        if (isSystemInDarkTheme())
                             Color(155, 212, 161)
                         else
                             Color(52, 105, 63)
@@ -165,11 +165,11 @@ fun GridBookView(
             }
         }
         LaunchedEffect(bookListState.isOnDeleteBooks) {
-            if(!bookListState.isOnDeleteBooks){
+            if (!bookListState.isOnDeleteBooks) {
                 checkBoxState = false
             }
         }
-        if(bookListState.isOnDeleteBooks){
+        if (bookListState.isOnDeleteBooks) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -198,7 +198,7 @@ fun ListBookView(
     onItemDoubleClick: () -> Unit,
     onItemStarClick: () -> Unit,
     onItemCheckBoxClick: (Boolean, Book) -> Unit
-){
+) {
     var checkBoxState by rememberSaveable { mutableStateOf(false) }
     Box(
         modifier = Modifier
@@ -218,16 +218,16 @@ fun ListBookView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp)
-        ){
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .wrapContentWidth(),
                 contentAlignment = Alignment.BottomEnd
-            ){
+            ) {
                 AsyncImage(
                     model =
-                        if(book.coverImagePath=="error")
+                        if (book.coverImagePath == "error")
                             R.mipmap.book_cover_not_available
                         else
                             book.coverImagePath,
@@ -263,8 +263,10 @@ fun ListBookView(
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    modifier = Modifier.padding(top = 2.dp, start = 4.dp).align(Alignment.End),
-                    text = "${book.currentChapter+1} / ${book.totalChapter}",
+                    modifier = Modifier
+                        .padding(top = 2.dp, start = 4.dp)
+                        .align(Alignment.End),
+                    text = "${book.currentChapter + 1} / ${book.totalChapter}",
                     style = TextStyle(
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                         background = MaterialTheme.colorScheme.surfaceContainer,
@@ -277,13 +279,13 @@ fun ListBookView(
                         (book.currentChapter + 1).toFloat() / book.totalChapter.toFloat()
                     },
                     modifier = Modifier
-                        .size(width = 200.dp , height = 4.dp)
+                        .size(width = 200.dp, height = 4.dp)
                         .align(Alignment.End)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }
         }
-        if(!bookListState.isOnDeleteBooks) {
+        if (!bookListState.isOnDeleteBooks) {
             IconButton(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -297,7 +299,7 @@ fun ListBookView(
                     imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
                     contentDescription = null,
                     tint = if (book.isFavorite)
-                        if(isSystemInDarkTheme())
+                        if (isSystemInDarkTheme())
                             Color(155, 212, 161)
                         else
                             Color(52, 105, 63)
@@ -307,11 +309,11 @@ fun ListBookView(
             }
         }
         LaunchedEffect(bookListState.isOnDeleteBooks) {
-            if(!bookListState.isOnDeleteBooks){
+            if (!bookListState.isOnDeleteBooks) {
                 checkBoxState = false
             }
         }
-        if(bookListState.isOnDeleteBooks){
+        if (bookListState.isOnDeleteBooks) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)

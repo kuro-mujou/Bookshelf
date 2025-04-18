@@ -60,24 +60,24 @@ import dev.chrisbanes.haze.materials.HazeMaterials
 fun DrawerScreen(
     dataStoreManager: DataStoreManager,
     contentViewModel: ContentViewModel,
-    drawerContainerState : DrawerContainerState,
+    drawerContainerState: DrawerContainerState,
     contentState: ContentState,
     drawerState: DrawerState,
     drawerLazyColumnState: LazyListState,
     colorPaletteState: ColorPalette,
     hazeState: HazeState,
     onDrawerItemClick: (Int) -> Unit,
-    onAddingChapter: (String,String) -> Unit,
+    onAddingChapter: (String, String) -> Unit,
     onDeleteBookmark: (Int) -> Unit,
     onUndoDeleteBookmark: () -> Unit,
-    onNoteClicked: (Int,Int) -> Unit,
+    onNoteClicked: (Int, Int) -> Unit,
     onNoteSelected: (Int) -> Unit,
-    onEditNote: (Note,String) -> Unit,
+    onEditNote: (Note, String) -> Unit,
     onDeleteNote: (Note) -> Unit,
     onUndoDeleteNote: () -> Unit,
     onTabItemClick: () -> Unit,
     content: @Composable () -> Unit
-){
+) {
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
     val tabItems = listOf(
         TabItem(
@@ -91,18 +91,18 @@ fun DrawerScreen(
         ),
     )
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    LaunchedEffect(drawerState.isClosed){
+    LaunchedEffect(drawerState.isClosed) {
         selectedTabIndex = 0
     }
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            Column (
+            Column(
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(300.dp)
                     .then(
-                        if(contentState.book?.isEditable == true){
+                        if (contentState.book?.isEditable == true) {
                             Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
                         } else {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -115,7 +115,7 @@ fun DrawerScreen(
                             }
                         }
                     ),
-            ){
+            ) {
                 Row(
                     modifier = Modifier
                         .statusBarsPadding()
@@ -125,10 +125,10 @@ fun DrawerScreen(
                 ) {
                     AsyncImage(
                         model =
-                        if(contentState.book?.coverImagePath=="error")
-                            R.mipmap.book_cover_not_available
-                        else
-                            contentState.book?.coverImagePath,
+                            if (contentState.book?.coverImagePath == "error")
+                                R.mipmap.book_cover_not_available
+                            else
+                                contentState.book?.coverImagePath,
                         contentDescription = null,
                         contentScale = ContentScale.FillWidth,
                         modifier = Modifier
@@ -146,15 +146,15 @@ fun DrawerScreen(
                                 text = it.title,
                                 style = TextStyle(
                                     fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                                    color = if(it.isEditable){
+                                    color = if (it.isEditable) {
                                         MaterialTheme.colorScheme.onBackground
-                                    } else{
+                                    } else {
                                         colorPaletteState.textColor
                                     },
                                     fontWeight = FontWeight.Medium,
-                                    fontFamily = if(it.isEditable){
+                                    fontFamily = if (it.isEditable) {
                                         MaterialTheme.typography.bodyMedium.fontFamily
-                                    } else{
+                                    } else {
                                         contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                                     },
                                 )
@@ -164,16 +164,16 @@ fun DrawerScreen(
                             Text(
                                 text = it.authors.joinToString(","),
                                 style = TextStyle(
-                                    color = if(it.isEditable){
+                                    color = if (it.isEditable) {
                                         MaterialTheme.colorScheme.onBackground
-                                    } else{
+                                    } else {
                                         colorPaletteState.textColor
                                     },
                                     fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                                     fontWeight = FontWeight.Normal,
-                                    fontFamily = if(it.isEditable){
+                                    fontFamily = if (it.isEditable) {
                                         MaterialTheme.typography.bodyMedium.fontFamily
-                                    } else{
+                                    } else {
                                         contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                                     },
                                 ),
@@ -181,13 +181,13 @@ fun DrawerScreen(
                         }
                     }
                 }
-                if(contentState.book?.isEditable == true){
+                if (contentState.book?.isEditable == true) {
                     TableOfContents(
                         drawerContainerState = drawerContainerState,
                         contentState = contentState,
                         drawerLazyColumnState = drawerLazyColumnState,
                         colorPaletteState = colorPaletteState,
-                        onDrawerItemClick = {contentPageIndex->
+                        onDrawerItemClick = { contentPageIndex ->
                             onDrawerItemClick(contentPageIndex)
                         },
                         onAddingChapter = { chapterTitle, headerSize ->
@@ -257,6 +257,7 @@ fun DrawerScreen(
                                         }
                                     )
                                 }
+
                                 1 -> {
                                     NoteList(
                                         drawerContainerState = drawerContainerState,
@@ -265,8 +266,8 @@ fun DrawerScreen(
                                         onUndo = {
                                             onUndoDeleteNote()
                                         },
-                                        onCardClicked = {tocId,contentId->
-                                            onNoteClicked(tocId,contentId)
+                                        onCardClicked = { tocId, contentId ->
+                                            onNoteClicked(tocId, contentId)
                                         },
                                         onCardSelected = {
                                             onNoteSelected(it)
@@ -274,11 +275,12 @@ fun DrawerScreen(
                                         onCardDeleted = {
                                             onDeleteNote(it)
                                         },
-                                        onEditNote = {note,newInput->
-                                            onEditNote(note,newInput)
+                                        onEditNote = { note, newInput ->
+                                            onEditNote(note, newInput)
                                         }
                                     )
                                 }
+
                                 2 -> {
                                     BookmarkList(
                                         drawerContainerState = drawerContainerState,
@@ -304,10 +306,11 @@ fun DrawerScreen(
             }
         },
         gesturesEnabled = contentState.enablePagerScroll || drawerState.isOpen,
-    ){
+    ) {
         content()
     }
 }
+
 data class TabItem(
     val title: String,
 )

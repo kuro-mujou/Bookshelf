@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-class BottomBarViewModel : ViewModel(){
+class BottomBarViewModel : ViewModel() {
     private val _state = MutableStateFlow(BottomBarState())
     val state = _state
         .stateIn(
@@ -15,54 +15,79 @@ class BottomBarViewModel : ViewModel(){
             SharingStarted.WhileSubscribed(5000L),
             _state.value
         )
+
     fun onAction(action: BottomBarAction) {
-        when(action) {
+        when (action) {
             is BottomBarAction.UpdateVisibility -> {
-                _state.update { it.copy(
-                    visibility = action.visibility
-                ) }
+                _state.update {
+                    it.copy(
+                        visibility = action.visibility
+                    )
+                }
             }
+
             is BottomBarAction.UpdateBottomBarDefaultState -> {
-                _state.update { it.copy(
-                    bottomBarDefaultState = action.default
-                ) }
+                _state.update {
+                    it.copy(
+                        bottomBarDefaultState = action.default
+                    )
+                }
             }
+
             is BottomBarAction.UpdateBottomBarAutoScrollState -> {
-                _state.update { it.copy(
-                    bottomBarAutoScrollState = action.autoScroll
-                ) }
+                _state.update {
+                    it.copy(
+                        bottomBarAutoScrollState = action.autoScroll
+                    )
+                }
             }
+
             is BottomBarAction.UpdateBottomBarSettingState -> {
-                _state.update { it.copy(
-                    bottomBarSettingState = action.setting
-                ) }
+                _state.update {
+                    it.copy(
+                        bottomBarSettingState = action.setting
+                    )
+                }
             }
+
             is BottomBarAction.UpdateBottomBarTTSState -> {
-                _state.update { it.copy(
-                    bottomBarTTSState = action.tts
-                ) }
+                _state.update {
+                    it.copy(
+                        bottomBarTTSState = action.tts
+                    )
+                }
             }
+
             is BottomBarAction.UpdateBottomBarThemeState -> {
-                _state.update { it.copy(
-                    bottomBarThemeState = action.theme
-                ) }
+                _state.update {
+                    it.copy(
+                        bottomBarThemeState = action.theme
+                    )
+                }
             }
+
             is BottomBarAction.OpenVoiceMenuSetting -> {
-                _state.update { it.copy(
-                    openTTSVoiceMenu = action.open
-                ) }
+                _state.update {
+                    it.copy(
+                        openTTSVoiceMenu = action.open
+                    )
+                }
             }
 
             is BottomBarAction.OpenSetting -> {
-                _state.update { it.copy(
-                    openSetting = action.open
-                ) }
+                _state.update {
+                    it.copy(
+                        openSetting = action.open
+                    )
+                }
             }
 
             is BottomBarAction.OpenAutoScrollMenu -> {
-                _state.update { it.copy(
-                    openAutoScrollMenu = action.open
-                ) }
+                _state.update {
+                    it.copy(
+                        openAutoScrollMenu = action.open
+                    )
+                }
             }
         }
     }

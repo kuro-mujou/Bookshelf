@@ -46,7 +46,7 @@ fun HeaderText(
     isSpeaking: Boolean,
     openNoteDialog: () -> Unit,
 ) {
-    val color = if(isHighlighted && isSpeaking)
+    val color = if (isHighlighted && isSpeaking)
         colorPaletteState.textBackgroundColor
     else
         Color.Transparent
@@ -89,6 +89,7 @@ fun HeaderText(
         )
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @UnstableApi
@@ -101,7 +102,7 @@ fun ParagraphText(
     isSpeaking: Boolean,
     openNoteDialog: () -> Unit,
 ) {
-    val color = if(isHighlighted && isSpeaking)
+    val color = if (isHighlighted && isSpeaking)
         colorPaletteState.textBackgroundColor
     else
         Color.Transparent
@@ -133,11 +134,11 @@ fun ParagraphText(
                 .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
             text = content.text.value,
             style = TextStyle(
-                textIndent = if(content.contentState.textIndent)
-                                TextIndent(firstLine = (content.contentState.fontSize * 2).sp)
-                            else
-                                TextIndent.None,
-                textAlign = if(content.contentState.textAlign) TextAlign.Justify else TextAlign.Left,
+                textIndent = if (content.contentState.textIndent)
+                    TextIndent(firstLine = (content.contentState.fontSize * 2).sp)
+                else
+                    TextIndent.None,
+                textAlign = if (content.contentState.textAlign) TextAlign.Justify else TextAlign.Left,
                 fontSize = content.contentState.fontSize.sp,
                 fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                 color = colorPaletteState.textColor,
@@ -148,6 +149,7 @@ fun ParagraphText(
         )
     }
 }
+
 @Composable
 fun customPopupPositionProvider(): PopupPositionProvider {
     val tooltipAnchorSpacing = 0
@@ -161,8 +163,8 @@ fun customPopupPositionProvider(): PopupPositionProvider {
             ): IntOffset {
                 val x = anchorBounds.topRight.x
                 val y =
-                    if(anchorBounds.height>popupContentSize.height)
-                        anchorBounds.topRight.y + popupContentSize.height/2
+                    if (anchorBounds.height > popupContentSize.height)
+                        anchorBounds.topRight.y + popupContentSize.height / 2
                     else
                         anchorBounds.topRight.y
                 return IntOffset(x, y)

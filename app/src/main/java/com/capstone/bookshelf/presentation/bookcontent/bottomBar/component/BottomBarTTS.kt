@@ -44,14 +44,14 @@ import dev.chrisbanes.haze.hazeEffect
 @Composable
 @UnstableApi
 fun BottomBarTTS(
-    viewModel : ContentViewModel,
+    viewModel: ContentViewModel,
     bottomBarViewModel: BottomBarViewModel,
-    contentState : ContentState,
+    contentState: ContentState,
     hazeState: HazeState,
     style: HazeStyle,
     bottomBarState: BottomBarState,
     colorPaletteState: ColorPalette,
-    drawerContainerState : DrawerContainerState,
+    drawerContainerState: DrawerContainerState,
     tts: TextToSpeech,
     dataStoreManager: DataStoreManager,
     onPreviousChapterIconClick: () -> Unit,
@@ -79,12 +79,12 @@ fun BottomBarTTS(
             .fillMaxWidth()
             .wrapContentHeight()
             .then(
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     Modifier.hazeEffect(
                         state = hazeState,
                         style = style
                     )
-                }else{
+                } else {
                     Modifier.background(colorPaletteState.containerColor)
                 }
             ),
@@ -147,14 +147,14 @@ fun BottomBarTTS(
                     onPlayPauseIconClick()
                 }
             ) {
-                if(contentState.isSpeaking && !contentState.isPaused) {
+                if (contentState.isSpeaking && !contentState.isPaused) {
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[3]),
                         contentDescription = "play/pause",
                         tint = colorPaletteState.textColor
                     )
-                }else{
+                } else {
                     Icon(
                         modifier = Modifier.size(30.dp),
                         painter = painterResource(id = iconList[2]),
@@ -240,7 +240,7 @@ fun BottomBarTTS(
         Spacer(modifier = Modifier.height(5.dp))
     }
 
-    if(bottomBarState.openTTSVoiceMenu){
+    if (bottomBarState.openTTSVoiceMenu) {
         VoiceMenuDialog(
             viewModel = viewModel,
             bottomBarState = bottomBarState,
