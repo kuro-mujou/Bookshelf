@@ -32,7 +32,19 @@ class TableOfContentRepositoryImpl(
         tableOfContentDao.insertTableOfContent(chapter.toEntity())
     }
 
-    override suspend fun updateTableOfContent(bookId: String, index: Int, isFavorite: Boolean) {
-        tableOfContentDao.updateTableOfContent(bookId, index, isFavorite)
+    override suspend fun updateTableOfContentFavoriteStatus(bookId: String, index: Int, isFavorite: Boolean) {
+        tableOfContentDao.updateTableOfContentFavoriteStatus(bookId, index, isFavorite)
+    }
+
+    override suspend fun updateTableOfContentTitle(bookId: String, index: Int, title: String) {
+        tableOfContentDao.updateTableOfContentTitle(bookId, index, title)
+    }
+
+    override suspend fun deleteTableOfContent(tocId: Int) {
+        tableOfContentDao.deleteTableOfContent(tocId)
+    }
+
+    override suspend fun updateTableOfContentIndexOnDelete(bookId: String, index: Int) {
+        tableOfContentDao.updateTableOfContentIndexOnDelete(bookId, index)
     }
 }

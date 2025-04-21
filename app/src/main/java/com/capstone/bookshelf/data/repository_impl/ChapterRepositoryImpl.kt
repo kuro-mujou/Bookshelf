@@ -18,4 +18,21 @@ class ChapterRepositoryImpl(
     override suspend fun saveChapterContent(chapterContentEntity: ChapterContentEntity) {
         chapterDao.insertChapterContent(chapterContentEntity)
     }
+
+    override suspend fun updateChapterContent(
+        bookId: String,
+        tocId: Int,
+        content: List<String>
+    ) {
+        chapterDao.updateChapterContent(bookId, tocId, content)
+    }
+
+    override suspend fun deleteChapter(bookId: String, tocId: Int) {
+        chapterDao.deleteChapterContent(bookId, tocId)
+    }
+
+    override suspend fun updateChapterIndexOnDelete(bookId: String, tocId: Int) {
+        chapterDao.updateChapterIndexOnDelete(bookId, tocId)
+    }
+
 }

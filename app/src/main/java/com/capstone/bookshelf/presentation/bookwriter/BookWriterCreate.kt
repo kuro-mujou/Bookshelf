@@ -1,11 +1,9 @@
 package com.capstone.bookshelf.presentation.bookwriter
 
-// ... other imports ...
-// ... other imports ...
 import android.Manifest
 import android.net.Uri
 import android.os.Build
-import android.util.Log
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,11 +13,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -41,8 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -59,285 +58,243 @@ import com.capstone.bookshelf.util.RationaleDialog
 import com.capstone.bookshelf.util.SettingsRedirectDialog
 import com.capstone.bookshelf.util.rememberMediaPermissionsState
 
-private const val TAG = "BookWriterCreate" // Screen specific tag
-
 @Composable
 fun BookWriterCreate(
     viewModel: BookWriterViewModel,
     onNavigateToBookContent: (String, Book) -> Unit
 ) {
+    var bookTitle by remember { mutableStateOf("") }
+    var authorName by remember { mutableStateOf("") }
+    var coverImageUriString by remember { mutableStateOf<String?>(null) }
+    var isBookTitleError by remember { mutableStateOf(false) }
+    var isAuthorNameError by remember { mutableStateOf(false) }
+
+    var showPermissionRationale by remember { mutableStateOf(false) }
+    var showSettingsRedirect by remember { mutableStateOf(false) }
+
+    var rationaleLauncherInstance by remember {
+        mutableStateOf<ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>?>(null)
+    }
+
+    val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val bookId by viewModel.bookID.collectAsStateWithLifecycle()
+    val book by viewModel.book.collectAsStateWithLifecycle()
+
+    val pickMediaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            coverImageUriString = uri.toString()
+        }
+    }
+
+    val primaryPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+
+    val mediaPermissionState = rememberMediaPermissionsState(
+        permission = primaryPermission,
+        onPermissionsResult = { permissionsResult ->
+            val primaryPermissionGranted = permissionsResult[primaryPermission] == true
+            var userSelectedGranted = false
+            if (primaryPermission == Manifest.permission.READ_MEDIA_IMAGES &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            ) {
+                userSelectedGranted =
+                    permissionsResult[Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED] == true
+            }
+            if (primaryPermissionGranted || userSelectedGranted) {
+                pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
+        },
+        onShowRationale = { launcher ->
+            rationaleLauncherInstance = launcher
+            showPermissionRationale = true
+        },
+        onPermanentlyDenied = {
+            showSettingsRedirect = true
+        }
+    )
+
+    fun requestImageAccess() {
+        when {
+            mediaPermissionState.hasPermission() || mediaPermissionState.hasPartialAccess() -> {
+                pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
+
+            else -> {
+                mediaPermissionState.launchPermissionRequest()
+            }
+        }
+    }
+
+    LaunchedEffect(bookId) {
+        if (bookId.isNotEmpty()) {
+            val bookData = book.toDataClass()
+            if (true) {
+                onNavigateToBookContent(bookId, bookData)
+            }
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        var isBookTitleError by remember { mutableStateOf(false) }
-        var isAuthorNameError by remember { mutableStateOf(false) }
-        var bookTitle by remember { mutableStateOf("") }
-        var authorName by remember { mutableStateOf("") }
-        val focusRequester = remember { FocusRequester() }
-        var coverImagePath by remember { mutableStateOf("") } // Store URI as String
-        val context = LocalContext.current
-        val focusManager = LocalFocusManager.current
-
-        val bookId by viewModel.bookID.collectAsStateWithLifecycle()
-        val book by viewModel.book.collectAsStateWithLifecycle()
-
-        // --- State for Dialogs ---
-        var showPermissionRationale by remember { mutableStateOf(false) }
-        var showSettingsRedirect by remember { mutableStateOf(false) }
-
-        // --- Modern Photo Picker Launcher ---
-        val pickMediaLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickVisualMedia() // Use modern picker
-        ) { uri: Uri? ->
-            if (uri != null) {
-                Log.d(TAG, "Photo Picker Selected URI: $uri")
-                coverImagePath = uri.toString() // Store URI as string
-            } else {
-                Log.d(TAG, "Photo Picker: No media selected")
-            }
-        }
-
-        // --- Permissions State Management ---
-        val permissionsState = rememberMediaPermissionsState(
-            permission = Manifest.permission.READ_MEDIA_IMAGES, // Request image permission
-            onPermissionsResult = { permissionsResult ->
-                Log.d(TAG, "Handling permission result: $permissionsResult")
-                // Check results and launch picker if appropriate
-                val imagesGranted = permissionsResult[Manifest.permission.READ_MEDIA_IMAGES] == true
-                var userSelectedGranted = false
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    userSelectedGranted = permissionsResult[Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED] == true
-                }
-
-                if (imagesGranted) {
-                    Log.d(TAG, "READ_MEDIA_IMAGES granted (Full Access). Launching picker.")
-                    pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                } else if (userSelectedGranted) {
-                    Log.d(TAG, "READ_MEDIA_VISUAL_USER_SELECTED granted (Partial Access). Launching picker.")
-                    // Launch picker immediately after user grants partial access
-                    pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                } else {
-                    Log.w(TAG, "Media permission denied.")
-                    // The state holder will set showPermanentlyDenied if applicable
-                }
-            },
-            onShowRationale = { launcher ->
-                // Show your custom rationale dialog here
-                RationaleDialog(
-                    onConfirm = {
-                        showPermissionRationale = false
-                        Log.d(TAG, "Rationale confirmed, re-requesting permissions.")
-                        launcher.launch(getRequiredPermissions(Manifest.permission.READ_MEDIA_IMAGES)) // Re-launch request
-                    },
-                    onDismiss = {
-                        showPermissionRationale = false
-                        Log.d(TAG, "Rationale dismissed.")
-                    }
-                )
-            },
-            onPermanentlyDenied = { openSettings ->
-                // Show your custom settings redirect dialog here
-                SettingsRedirectDialog(
-                    onConfirm = {
-                        showSettingsRedirect = false
-                        Log.d(TAG, "Redirecting to App Settings.")
-                        openSettings() // Call the function to open settings
-                    },
-                    onDismiss = {
-                        showSettingsRedirect = false
-                        Log.d(TAG, "Settings redirect dismissed.")
-                    }
-                )
-            }
-        )
-
-        // Update composable dialog state based on permission state holder's flags
-        // This part seems slightly redundant with the callbacks but ensures dialogs show/hide
-        // Consider simplifying if the callbacks directly manage showing dialogs.
-        // LaunchedEffect(permissionsState.shouldShowRationale) { showPermissionRationale = permissionsState.shouldShowRationale }
-        // LaunchedEffect(permissionsState.shouldShowPermanentlyDenied) { showSettingsRedirect = permissionsState.shouldShowPermanentlyDenied }
-
-        // Helper function to request permission or launch picker
-        fun requestImage() {
-            Log.d(TAG, "Requesting image...")
-            if (permissionsState.hasPermission()) {
-                Log.d(TAG, "Permission already granted. Launching picker.")
-                pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-            } else if (permissionsState.hasPartialAccess()) {
-                Log.d(TAG, "Partial access exists. Launching picker.")
-                pickMediaLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-            } else {
-                Log.d(TAG, "Permission not granted. Launching permission request.")
-                permissionsState.launchPermissionRequest() // This handles rationale internally if needed
-            }
-        }
-
-
-        // --- Navigation Effect ---
-        LaunchedEffect(bookId) {
-            if (bookId.isNotEmpty()) {
-                onNavigateToBookContent(bookId, book.toDataClass())
-            }
-        }
-
-        // --- UI Layout ---
         Column(
-            // ... (modifier as before) ...
             modifier = Modifier
-                .padding(8.dp)
+                .systemBarsPadding()
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
                     onClick = { focusManager.clearFocus() }
-                )
-                .verticalScroll(rememberScrollState()),
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically) // Added spacing
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("ADD BOOK INFO", style = MaterialTheme.typography.titleLarge)
+            Text("ADD BOOK INFO", style = MaterialTheme.typography.headlineSmall)
 
-            // --- Text Fields (as before) ---
             OutlinedTextField(
                 value = bookTitle,
-                onValueChange = { bookTitle = it; isBookTitleError = it.isBlank() },
-                isError = isBookTitleError, /* ... other params ... */
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                label = { Text("Book title") },
+                onValueChange = {
+                    bookTitle = it
+                    isBookTitleError = it.isBlank()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Book title *") },
+                isError = isBookTitleError,
                 supportingText = { if (isBookTitleError) Text("Book title cannot be empty") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) }),
+                singleLine = true
             )
+
             OutlinedTextField(
                 value = authorName,
-                onValueChange = { authorName = it; isAuthorNameError = it.isBlank() },
-                isError = isAuthorNameError, /* ... other params ... */
+                onValueChange = {
+                    authorName = it
+                    isAuthorNameError = it.isBlank()
+                },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Author") },
+                label = { Text("Author *") },
+                isError = isAuthorNameError,
                 supportingText = { if (isAuthorNameError) Text("Author name cannot be empty") },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                singleLine = true
             )
 
-            Text("ADD COVER IMAGE", style = MaterialTheme.typography.titleLarge)
+            Text("ADD COVER IMAGE", style = MaterialTheme.typography.headlineSmall)
 
-            // --- Image Display/Selection ---
-            if (coverImagePath.isNotEmpty()) {
+            if (coverImageUriString != null) {
                 AsyncImage(
-                    model = coverImagePath, // Load directly from URI string
+                    model = coverImageUriString,
                     contentDescription = "Selected cover image",
                     modifier = Modifier
                         .padding(top = 8.dp)
-                        .height(300.dp)
-                        .clickable { requestImage() } // Allow re-selecting
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                        .clip(RoundedCornerShape(4.dp)),
-                    // Consider adding error/placeholder for Coil
+                        .wrapContentSize()
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                        .clickable { requestImageAccess() },
                 )
             } else {
-                // --- Placeholder/Button Row ---
-                Row(
+                Column(
                     modifier = Modifier
                         .padding(top = 8.dp)
                         .fillMaxWidth()
-                        .height(300.dp)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                        .clickable { requestImage() }, // Click row to select
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                        .clickable { requestImageAccess() },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            modifier = Modifier.size(50.dp),
-                            imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_image), // Use your icon
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Add book cover",
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                    // Removed the "OR" and default image for cleaner UI
-                    // If you need a default placeholder, show it via AsyncImage's placeholder
+                    Icon(
+                        modifier = Modifier.size(60.dp),
+                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_image),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Tap to add book cover",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
                 }
+                Spacer(modifier = Modifier.weight(1f))
             }
-
-            // --- Submit Button ---
             Button(
-                modifier = Modifier.align(Alignment.End),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
                 onClick = {
-                    isBookTitleError = bookTitle.isBlank() // Re-validate on click
+                    isBookTitleError = bookTitle.isBlank()
                     isAuthorNameError = authorName.isBlank()
                     if (!isBookTitleError && !isAuthorNameError) {
+                        focusManager.clearFocus()
                         viewModel.onAction(
                             BookWriterAction.AddBookInfo(
                                 context = context,
-                                bookTitle = bookTitle,
-                                authorName = authorName,
-                                coverImagePath = coverImagePath.ifEmpty { "error" } // Keep "error" marker if empty
+                                bookTitle = bookTitle.trim(),
+                                authorName = authorName.trim(),
+                                coverImagePath = coverImageUriString ?: "error"
                             )
                         )
                     }
-                }
+                },
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
                     Text("Next step")
+                    Spacer(modifier = Modifier.size(8.dp))
                     Icon(
-                        modifier = Modifier.padding(start = 8.dp).size(15.dp),
-                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_send), // Use your icon
+                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_send),
                         contentDescription = null
                     )
                 }
             }
-        } // End Column
-
-        // --- Show Permission Dialogs ---
-        if (showPermissionRationale) {
-            RationaleDialog(
-                onConfirm = {
-                    showPermissionRationale = false
-                    Log.d(TAG, "Rationale confirmed, re-requesting permissions.")
-                    permissionsState.launchPermissionRequest() // Re-launch request
-                },
-                onDismiss = {
-                    showPermissionRationale = false
-                    Log.d(TAG, "Rationale dismissed.")
-                }
-            )
         }
+
+        if (showPermissionRationale) {
+            val currentRationaleLauncher = rationaleLauncherInstance
+            if (currentRationaleLauncher != null) {
+                RationaleDialog(
+                    onConfirm = {
+                        showPermissionRationale = false
+                        rationaleLauncherInstance = null
+                        val permissionsToRequest = mediaPermissionState.getPermissionsToRequest()
+                        currentRationaleLauncher.launch(permissionsToRequest)
+                    },
+                    onDismiss = {
+                        showPermissionRationale = false
+                        rationaleLauncherInstance = null
+                    }
+                )
+            } else {
+                showPermissionRationale = false
+            }
+        }
+
         if (showSettingsRedirect) {
             SettingsRedirectDialog(
                 onConfirm = {
                     showSettingsRedirect = false
-                    Log.d(TAG, "Redirecting to App Settings.")
-                    permissionsState.openAppSettings() // Call the function to open settings
+                    mediaPermissionState.openAppSettings()
                 },
                 onDismiss = {
                     showSettingsRedirect = false
-                    Log.d(TAG, "Settings redirect dismissed.")
                 }
             )
         }
 
-    } // End Surface
-}
-
-// Helper function to get required permissions array (can be local or in util)
-private fun getRequiredPermissions(primaryPermission: String): Array<String> {
-    return when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
-                (primaryPermission == Manifest.permission.READ_MEDIA_IMAGES || primaryPermission == Manifest.permission.READ_MEDIA_VIDEO) ->
-            arrayOf(primaryPermission, Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED)
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                (primaryPermission == Manifest.permission.READ_MEDIA_IMAGES ||
-                        primaryPermission == Manifest.permission.READ_MEDIA_VIDEO ||
-                        primaryPermission == Manifest.permission.READ_MEDIA_AUDIO) ->
-            arrayOf(primaryPermission)
-        primaryPermission == Manifest.permission.READ_EXTERNAL_STORAGE ->
-            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-        else -> arrayOf(primaryPermission)
     }
 }

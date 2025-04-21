@@ -6,4 +6,6 @@ interface ImagePathRepository {
     suspend fun getImagePathsByBookId(bookId: List<String>): List<ImagePathEntity>
     suspend fun deleteByBookId(bookId: List<String>)
     suspend fun saveImagePath(bookID: String, coverImagePath: List<String>)
+    suspend fun deleteImagePathByPath(imagePath: String): Int
+    suspend fun insertImagePath(imagePathEntity: ImagePathEntity): Long
 }

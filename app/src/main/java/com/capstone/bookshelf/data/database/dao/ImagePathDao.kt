@@ -20,4 +20,10 @@ interface ImagePathDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveImagePath(imagePathEntity: List<ImagePathEntity>)
+
+    @Query("DELETE FROM image_path WHERE imagePath = :path")
+    suspend fun deleteImagePathByPath(path: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertImagePath(imagePath: ImagePathEntity): Long
 }

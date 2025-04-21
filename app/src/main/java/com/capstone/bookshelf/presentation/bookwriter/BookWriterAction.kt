@@ -1,7 +1,8 @@
 package com.capstone.bookshelf.presentation.bookwriter
 
 import android.content.Context
-import com.capstone.bookshelf.presentation.bookwriter.component.ParagraphType
+import androidx.core.uri.Uri
+import com.capstone.bookshelf.presentation.bookwriter.component.Paragraph
 
 sealed interface BookWriterAction {
     data class AddBookInfo(
@@ -9,25 +10,44 @@ sealed interface BookWriterAction {
         val bookTitle: String,
         val authorName: String,
         val coverImagePath: String
-    ): BookWriterAction
-    data class AddChapter(val chapterTitle: String): BookWriterAction
-    data class AddImage(val context: Context,val imageUri: String): BookWriterAction
+    ) : BookWriterAction
 
-    data class UpdateAddingState(val onAdding: Boolean): BookWriterAction
-    data class UpdateAddIndex(val newAddIndex: Int): BookWriterAction
-    data class UpdateAddType(val newAddType: ParagraphType): BookWriterAction
-    data class UpdateSelectedItem(val selectedItem: Int): BookWriterAction
-    data class UpdateTriggerScroll(val triggerScroll: Boolean): BookWriterAction
+    data class AddChapter(
+        val chapterTitle: String,
+        val headerSize: String,
+        val totalTocSize: Int,
+        val currentFontSize: Float
+    ) : BookWriterAction
 
-    data object ToggleBold: BookWriterAction
-    data object ToggleItalic: BookWriterAction
-    data object ToggleUnderline: BookWriterAction
-    data object ToggleStrikethrough: BookWriterAction
-    data object ToggleAlign: BookWriterAction
+    data class AddImage(
+        val context: Context,
+        val chapterIndex: Int,
+        val paragraphIndex: Int,
+        val paragraphId: String,
+        val imageUri: Uri
+    ) : BookWriterAction
 
-    data class UpdateBoldState(val boldState: Boolean): BookWriterAction
-    data class UpdateItalicState(val italicState: Boolean): BookWriterAction
-    data class UpdateUnderlineState(val underlineState: Boolean): BookWriterAction
-    data class UpdateStrikethroughState(val strikethroughState: Boolean): BookWriterAction
-    data class UpdateAlignState(val alignState: Int): BookWriterAction
+    data class AddParagraphAbove(
+        val anchorParagraphId: String,
+        val newParagraph: Paragraph
+    ) : BookWriterAction
+
+    data class AddParagraphBelow(
+        val anchorParagraphId: String,
+        val newParagraph: Paragraph
+    ) : BookWriterAction
+
+    data class UpdateItemMenuVisible(
+        val paragraphId: String,
+        val visible: Boolean
+    ) : BookWriterAction
+
+    data class SaveChapter(val currentChapterIndex: Int) : BookWriterAction
+    data class MoveParagraphUp(val paragraphId: String) : BookWriterAction
+    data class MoveParagraphDown(val paragraphId: String) : BookWriterAction
+    data class DeleteParagraph(val paragraphId: String) : BookWriterAction
+    data class UpdateTriggerLoadChapter(val triggerLoadChapter: Boolean) : BookWriterAction
+    data class UpdateSelectedItem(val selectedItem: String) : BookWriterAction
+    data class UpdateTriggerScroll(val triggerScroll: Boolean) : BookWriterAction
+    data class SetFocusTarget(val paragraphId: String) : BookWriterAction
 }

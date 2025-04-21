@@ -102,7 +102,10 @@ fun GridBookView(
                 ) {
                     Text(
                         modifier = Modifier.padding(top = 2.dp, start = 4.dp),
-                        text = "${book.currentChapter + 1} / ${book.totalChapter}",
+                        text = if (book.totalChapter == 0)
+                                "${book.currentChapter} / 0"
+                            else
+                                "${book.currentChapter + 1} / ${book.totalChapter}",
                         style = TextStyle(
                             fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             background = MaterialTheme.colorScheme.surfaceContainer,

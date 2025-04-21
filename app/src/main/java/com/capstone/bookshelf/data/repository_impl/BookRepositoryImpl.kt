@@ -62,6 +62,14 @@ class BookRepositoryImpl(
         bookDao.saveBookInfoTotalChapter(bookId, totalChapter)
     }
 
+    override suspend fun saveBookInfoTitle(bookId: String, title: String) {
+        bookDao.saveBookInfoTitle(bookId, title)
+    }
+
+    override suspend fun saveBookInfoAuthors(bookId: String, authors: List<String>) {
+        bookDao.saveBookInfoAuthors(bookId, authors)
+    }
+
     override suspend fun deleteBooks(books: List<Book>) {
         val bookEntities = books.map {
             it.toEntity()
@@ -69,5 +77,8 @@ class BookRepositoryImpl(
         bookEntities.forEach { bookEntity ->
             bookDao.deleteBooks(bookEntity)
         }
+    }
+    override suspend fun updateChaptersOnDelete(bookId: String, deleteIndex: Int) {
+        bookDao.updateChaptersOnDelete(bookId, deleteIndex)
     }
 }

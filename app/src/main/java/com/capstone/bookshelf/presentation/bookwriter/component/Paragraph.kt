@@ -1,18 +1,17 @@
 package com.capstone.bookshelf.presentation.bookwriter.component
 
+import com.mohamedrejeb.richeditor.model.RichTextState
 import java.util.UUID
 
 data class Paragraph(
     val id: String = UUID.randomUUID().toString(),
-    var text: String,
-    var isControllerVisible: Boolean = false,
     val type: ParagraphType,
-    val headerLevel: Int? = null
+    var richTextState: RichTextState,
+    var isControllerVisible: Boolean = false,
 )
 
-enum class ParagraphType{
+enum class ParagraphType {
     TITLE,
-    SUBTITLE,
     PARAGRAPH,
     IMAGE,
     NONE

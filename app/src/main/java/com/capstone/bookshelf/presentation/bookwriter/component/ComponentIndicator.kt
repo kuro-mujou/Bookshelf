@@ -15,7 +15,6 @@ import com.capstone.bookshelf.R
 fun TopIndicator(
     onAddParagraph: () -> Unit,
     onAddImage: () -> Unit,
-    onAddSubTitle: () -> Unit,
 ){
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -23,12 +22,6 @@ fun TopIndicator(
         IconButton(onClick = { onAddParagraph() }) {
             Icon(
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_paragraph),
-                contentDescription = null,
-            )
-        }
-        IconButton(onClick = { onAddSubTitle() }) {
-            Icon(
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_subtitile),
                 contentDescription = null,
             )
         }
@@ -45,7 +38,6 @@ fun TopIndicator(
 fun BottomIndicator(
     onAddParagraph: () -> Unit,
     onAddImage: () -> Unit,
-    onAddSubTitle: () -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit
@@ -56,12 +48,6 @@ fun BottomIndicator(
         IconButton(onClick = { onAddParagraph() }) {
             Icon(
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_paragraph),
-                contentDescription = null,
-            )
-        }
-        IconButton(onClick = { onAddSubTitle() }) {
-            Icon(
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_subtitile),
                 contentDescription = null,
             )
         }
@@ -96,7 +82,6 @@ fun BottomIndicator(
 fun ChapterTitleIndicator(
     onAddParagraph: () -> Unit,
     onAddImage: () -> Unit,
-    onAddSubTitle: () -> Unit,
 ){
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -108,16 +93,6 @@ fun ChapterTitleIndicator(
         ) {
             Icon(
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_paragraph),
-                contentDescription = null,
-            )
-        }
-        IconButton(
-            onClick = {
-                onAddSubTitle()
-            }
-        ) {
-            Icon(
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_subtitile),
                 contentDescription = null,
             )
         }

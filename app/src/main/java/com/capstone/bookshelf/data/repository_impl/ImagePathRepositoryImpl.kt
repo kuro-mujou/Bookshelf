@@ -21,4 +21,10 @@ class ImagePathRepositoryImpl(
         }
         imageDao.saveImagePath(imagePathEntity)
     }
+    override suspend fun deleteImagePathByPath(imagePath: String): Int {
+        return imageDao.deleteImagePathByPath(imagePath)
+    }
+    override suspend fun insertImagePath(imagePathEntity: ImagePathEntity): Long {
+        return imageDao.insertImagePath(imagePathEntity)
+    }
 }

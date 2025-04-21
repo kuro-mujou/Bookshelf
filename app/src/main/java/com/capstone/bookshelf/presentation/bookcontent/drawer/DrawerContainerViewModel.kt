@@ -5,14 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.capstone.bookshelf.app.Route
-import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
 import com.capstone.bookshelf.domain.repository.NoteRepository
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
 import com.capstone.bookshelf.domain.wrapper.Note
-import com.capstone.bookshelf.domain.wrapper.TableOfContent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
@@ -23,7 +21,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 class DrawerContainerViewModel(
-    private val tableOfContentRepository: TableOfContentRepository,
+    private val tableOfContentsRepository: TableOfContentRepository,
     private val bookRepository: BookRepository,
     private val chapterRepository: ChapterRepository,
     private val imagePathRepository: ImagePathRepository,
@@ -61,7 +59,7 @@ class DrawerContainerViewModel(
                 } else {
                     viewModelScope.launch {
                         val currentTOC =
-                            tableOfContentRepository.getTableOfContent(bookId, action.toc)
+                            tableOfContentsRepository.getTableOfContent(bookId, action.toc)
                         _state.update {
                             it.copy(
                                 currentTOC = currentTOC
@@ -71,33 +69,9 @@ class DrawerContainerViewModel(
                 }
             }
 
-            is DrawerContainerAction.AddChapter -> {
-                viewModelScope.launch {
-                    val currentSize = _state.value.tableOfContents.size
-                    val newChapter = TableOfContent(
-                        bookId = bookId,
-                        title = action.chapter,
-                        index = currentSize,
-                        isFavorite = false
-                    )
-                    tableOfContentRepository.addChapter(bookId, newChapter)
-                    bookRepository.saveBookInfoTotalChapter(bookId, currentSize + 1)
-                    bookRepository.saveBookInfoChapterIndex(bookId, currentSize)
-                    val contentList = mutableListOf<String>()
-                    contentList.add("<${action.headerSize.lowercase()}>${action.chapter}</${action.headerSize.lowercase()}>")
-                    val newChapterContent = ChapterContentEntity(
-                        bookId = bookId,
-                        tocId = currentSize,
-                        chapterTitle = action.chapter,
-                        content = contentList
-                    )
-                    chapterRepository.saveChapterContent(newChapterContent)
-                }
-            }
-
             is DrawerContainerAction.UpdateIsFavorite -> {
                 viewModelScope.launch {
-                    tableOfContentRepository.updateTableOfContent(
+                    tableOfContentsRepository.updateTableOfContentFavoriteStatus(
                         bookId,
                         _state.value.currentTOC!!.index,
                         action.isFavorite
@@ -107,7 +81,11 @@ class DrawerContainerViewModel(
 
             is DrawerContainerAction.DeleteBookmark -> {
                 viewModelScope.launch {
-                    tableOfContentRepository.updateTableOfContent(bookId, action.tocId, false)
+                    tableOfContentsRepository.updateTableOfContentFavoriteStatus(
+                        bookId,
+                        action.tocId,
+                        false
+                    )
                 }
                 _state.value.undoBookmarkList += action.tocId
                 _state.update {
@@ -120,7 +98,11 @@ class DrawerContainerViewModel(
             is DrawerContainerAction.UndoDeleteBookmark -> {
                 viewModelScope.launch {
                     _state.value.undoBookmarkList.forEach {
-                        tableOfContentRepository.updateTableOfContent(bookId, it, true)
+                        tableOfContentsRepository.updateTableOfContentFavoriteStatus(
+                            bookId,
+                            it,
+                            true
+                        )
                     }
                     _state.update {
                         it.copy(
@@ -213,12 +195,31 @@ class DrawerContainerViewModel(
                 }
                 _state.value.undoNoteList = emptyList()
             }
+
+            is DrawerContainerAction.DeleteTocItem -> {
+                viewModelScope.launch {
+                    tableOfContentsRepository.deleteTableOfContent(action.tocItem.index)
+                    chapterRepository.deleteChapter(action.tocItem.bookId, action.tocItem.index)
+                    tableOfContentsRepository.updateTableOfContentIndexOnDelete(
+                        action.tocItem.bookId,
+                        action.tocItem.index
+                    )
+                    chapterRepository.updateChapterIndexOnDelete(
+                        action.tocItem.bookId,
+                        action.tocItem.index
+                    )
+                    bookRepository.updateChaptersOnDelete(
+                        action.tocItem.bookId,
+                        action.tocItem.index
+                    )
+                }
+            }
         }
     }
 
     init {
         viewModelScope.launch {
-            tableOfContentRepository
+            tableOfContentsRepository
                 .getTableOfContents(bookId)
                 .collectLatest { tableOfContents ->
                     _state.update {

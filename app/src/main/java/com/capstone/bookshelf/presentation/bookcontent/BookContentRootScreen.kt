@@ -4,16 +4,18 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.view.View
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +49,7 @@ import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerScreen
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBar
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarAction
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
+import com.capstone.bookshelf.presentation.bookwriter.BookWriterAction
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterEdit
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
 import com.capstone.bookshelf.util.DataStoreManager
@@ -72,6 +75,7 @@ fun BookContentScreenRoot(
     val contentState by viewModel.state.collectAsStateWithLifecycle()
     val drawerContainerState by drawerContainerViewModel.state.collectAsStateWithLifecycle()
     val colorPaletteState by colorPaletteViewModel.colorPalette.collectAsStateWithLifecycle()
+    val bookWriterState by bookWriterViewModel.bookWriterState.collectAsStateWithLifecycle()
     val hazeState = remember { HazeState() }
     val textMeasurer = rememberTextMeasurer()
     val scope = rememberCoroutineScope()
@@ -81,6 +85,8 @@ fun BookContentScreenRoot(
     var pagerState by remember { mutableStateOf<PagerState?>(null) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val drawerLazyColumnState = rememberLazyListState()
+    val isSystemLight = !isSystemInDarkTheme()
+    val currentFontSize = MaterialTheme.typography.bodyMedium.fontSize
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
@@ -131,13 +137,6 @@ fun BookContentScreenRoot(
             }
         }
     )
-    SideEffect {
-        val window = (view.context as? Activity)?.window ?: return@SideEffect
-        val insetsController = WindowCompat.getInsetsController(window, view)
-        insetsController.isAppearanceLightStatusBars = !colorPaletteState.backgroundColor.isDark()
-        insetsController.isAppearanceLightNavigationBars =
-            !colorPaletteState.backgroundColor.isDark()
-    }
     LaunchedEffect(Unit) {
         if (contentState.book == null) {
             viewModel.onContentAction(ContentAction.LoadBook)
@@ -164,6 +163,10 @@ fun BookContentScreenRoot(
         colorPaletteState = colorPaletteState,
         hazeState = hazeState,
         onDrawerItemClick = {
+            if(contentState.book?.isEditable == true) {
+                bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
+                bookWriterViewModel.onAction(BookWriterAction.UpdateTriggerLoadChapter(true))
+            }
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(it))
             viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(it))
@@ -173,15 +176,17 @@ fun BookContentScreenRoot(
             }
         },
         onAddingChapter = { chapterTitle, headerSize ->
+            bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
-            drawerContainerViewModel.onAction(
-                DrawerContainerAction.AddChapter(
-                    chapterTitle,
-                    headerSize
+            bookWriterViewModel.onAction(
+                BookWriterAction.AddChapter(
+                    chapterTitle = chapterTitle,
+                    headerSize = headerSize,
+                    totalTocSize = drawerContainerState.tableOfContents.size,
+                    currentFontSize = currentFontSize.value
                 )
             )
             viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(drawerContainerState.tableOfContents.size))
-            viewModel.onContentAction(ContentAction.GetChapterContent(contentState.currentChapterIndex))
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
         },
         onDeleteBookmark = {
@@ -214,7 +219,23 @@ fun BookContentScreenRoot(
         },
         onTabItemClick = {
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateSelectedNote(-1))
-        }
+        },
+        onEditBookTitle = {
+            viewModel.onContentAction(ContentAction.UpdateBookTitle(it))
+            viewModel.onContentAction(ContentAction.LoadBook)
+        },
+        onEditBookAuthor = {
+            viewModel.onContentAction(ContentAction.UpdateBookAuthors(it))
+            viewModel.onContentAction(ContentAction.LoadBook)
+        },
+        onEditBookCover = {uri,originalPath->
+            viewModel.onContentAction(ContentAction.UpdateCoverImage(context,uri,originalPath))
+            viewModel.onContentAction(ContentAction.LoadBook)
+        },
+        onDeleteTocItem = {
+            drawerContainerViewModel.onAction(DrawerContainerAction.DeleteTocItem(it))
+            bookWriterViewModel.onAction(BookWriterAction.UpdateTriggerLoadChapter(true))
+        },
     ) {
         LaunchedEffect(contentState.book) {
             if (contentState.book != null) {
@@ -299,9 +320,18 @@ fun BookContentScreenRoot(
             drawerContainerState.currentTOC?.let {
                 BookWriterEdit(
                     bookWriterViewModel = bookWriterViewModel,
-                    contentViewModel = viewModel,
-                    drawerContainerState = drawerContainerState,
-                    contentState = contentState
+                    bookWriterState = bookWriterState,
+                    contentState = contentState,
+                    onNavigateBack = {
+                        onBackClick(true)
+                    },
+                    onDrawerClick = {
+                        drawerContainerViewModel.onAction(
+                            DrawerContainerAction.UpdateDrawerState(
+                                true
+                            )
+                        )
+                    }
                 )
             }
         } else {
@@ -324,6 +354,22 @@ fun BookContentScreenRoot(
                     initialPage = it.currentChapter,
                     pageCount = { it.totalChapter }
                 )
+            }
+            DisposableEffect(contentState.book, colorPaletteState.backgroundColor, isSystemLight) {
+                val window = (context as? Activity)?.window
+                if (window == null) {
+                    return@DisposableEffect onDispose {}
+                }
+                val insetsController = WindowCompat.getInsetsController(window, view)
+                insetsController.isAppearanceLightStatusBars =
+                    !colorPaletteState.backgroundColor.isDark()
+                insetsController.isAppearanceLightNavigationBars =
+                    !colorPaletteState.backgroundColor.isDark()
+
+                onDispose {
+                    insetsController.isAppearanceLightStatusBars = isSystemLight
+                    insetsController.isAppearanceLightNavigationBars = isSystemLight
+                }
             }
             LaunchedEffect(contentState.isSpeaking) {
                 if (!contentState.isSpeaking && bottomBarState.visibility && bottomBarState.bottomBarTTSState) {
@@ -428,6 +474,7 @@ fun BookContentScreenRoot(
                         }
                     )
                 },
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 content = {
                     pagerState?.let {
                         LaunchedEffect(Unit) {

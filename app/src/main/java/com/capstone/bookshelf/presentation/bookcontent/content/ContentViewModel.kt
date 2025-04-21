@@ -3,7 +3,9 @@ package com.capstone.bookshelf.presentation.bookcontent.content
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.speech.tts.TextToSpeech
+import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +17,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaItem.Builder
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
@@ -29,7 +32,16 @@ import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSService
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TTSServiceHandler
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsPlayerEvent
 import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent.Backward
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent.Forward
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent.JumpToRandomChapter
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent.PlayPause
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent.SkipToBack
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent.SkipToNext
+import com.capstone.bookshelf.presentation.bookcontent.component.tts.TtsUiEvent.Stop
 import com.capstone.bookshelf.util.DataStoreManager
+import com.capstone.bookshelf.util.deleteImageFromPrivateStorage
+import com.capstone.bookshelf.util.saveImageToPrivateStorage
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
@@ -70,7 +82,7 @@ class ContentViewModel(
                     val selectedItems = sortedMusicItems.filter { it.isSelected }
                     mediaItemList.clear()
                     mediaItemList.addAll(selectedItems.map { media3Item ->
-                        MediaItem.Builder()
+                        Builder()
                             .setUri(media3Item.uri)
                             .setMediaMetadata(
                                 MediaMetadata.Builder()
@@ -159,6 +171,7 @@ class ContentViewModel(
 
             is ContentAction.UpdateCurrentChapterIndex -> {
                 viewModelScope.launch {
+                    Log.d("ContentViewModel", "UpdateCurrentChapterIndex: ${action.index}")
                     _state.update {
                         it.copy(
                             currentChapterIndex = action.index
@@ -247,7 +260,7 @@ class ContentViewModel(
                         isPaused = action.isPaused
                     )
                 }
-                onTtsUiEvent(TtsUiEvent.PlayPause(action.isPaused))
+                onTtsUiEvent(PlayPause(action.isPaused))
             }
 
             is ContentAction.UpdateTTSLanguage -> {
@@ -386,7 +399,7 @@ class ContentViewModel(
             is ContentAction.UpdateEnableBackgroundMusic -> {
                 viewModelScope.launch {
                     val selectedTrack = musicPathRepository.getSelectedMusicPaths()
-                    val silentMediaItem = MediaItem.Builder()
+                    val silentMediaItem = Builder()
                         .setUri("asset:///silent.mp3".toUri())
                         .setMediaMetadata(
                             MediaMetadata.Builder()
@@ -407,7 +420,7 @@ class ContentViewModel(
                         if (selectedTrack.isNotEmpty()) {
                             ttsServiceHandler.isTracksNull = false
                             selectedTrack.forEach { track ->
-                                val mediaItem = MediaItem.Builder()
+                                val mediaItem = Builder()
                                     .setUri(track.uri)
                                     .setMediaMetadata(
                                         MediaMetadata.Builder()
@@ -498,36 +511,65 @@ class ContentViewModel(
                     )
                 }
             }
+
+            is ContentAction.UpdateBookTitle -> {
+                viewModelScope.launch {
+                    bookRepository.saveBookInfoTitle(bookId,action.title+"(Draft)")
+                }
+            }
+
+            is ContentAction.UpdateBookAuthors -> {
+                viewModelScope.launch {
+                    val authorList = action.authors.split(",")
+                    bookRepository.saveBookInfoAuthors(bookId, authorList)
+                }
+            }
+
+            is ContentAction.UpdateCoverImage -> {
+                viewModelScope.launch {
+                    val imageFileName = action.path.substringAfterLast('/').substringBeforeLast('.')
+                    deleteImageFromPrivateStorage(action.path)
+                    action.context.contentResolver.openInputStream(action.uri).use {
+                        val bitmap = BitmapFactory.decodeStream(it)
+                        saveImageToPrivateStorage(
+                            context = action.context,
+                            bitmap = bitmap,
+                            filename = imageFileName
+                        )
+                    }
+                }
+
+            }
         }
     }
 
     fun onTtsUiEvent(event: TtsUiEvent) {
         when (event) {
-            is TtsUiEvent.Backward -> {
+            is Backward -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Backward)
             }
 
-            is TtsUiEvent.Forward -> {
+            is Forward -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Forward)
             }
 
-            is TtsUiEvent.PlayPause -> {
+            is PlayPause -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.PlayPause(isPaused = event.isPaused))
             }
 
-            is TtsUiEvent.SkipToBack -> {
+            is SkipToBack -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.SkipToBack)
             }
 
-            is TtsUiEvent.SkipToNext -> {
+            is SkipToNext -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.SkipToNext)
             }
 
-            is TtsUiEvent.Stop -> {
+            is Stop -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.Stop)
             }
 
-            is TtsUiEvent.JumpToRandomChapter -> {
+            is JumpToRandomChapter -> {
                 ttsServiceHandler.onTtsPlayerEvent(TtsPlayerEvent.JumpToRandomChapter)
             }
         }
@@ -719,7 +761,7 @@ class ContentViewModel(
     }
 
     fun play() {
-        val mediaItem = MediaItem.Builder()
+        val mediaItem = Builder()
             .setUri("asset:///silent.mp3".toUri())
             .setMediaMetadata(
                 MediaMetadata.Builder()

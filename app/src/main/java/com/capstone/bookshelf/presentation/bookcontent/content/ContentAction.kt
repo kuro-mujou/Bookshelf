@@ -1,6 +1,8 @@
 package com.capstone.bookshelf.presentation.bookcontent.content
 
+import android.content.Context
 import android.speech.tts.Voice
+import androidx.core.uri.Uri
 import com.capstone.bookshelf.domain.wrapper.Book
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkStyle
 import java.util.Locale
@@ -8,6 +10,10 @@ import java.util.Locale
 sealed interface ContentAction {
     data object LoadBook : ContentAction
     data class SelectedBook(val book: Book) : ContentAction
+    data class UpdateBookTitle(val title: String) : ContentAction
+    data class UpdateBookAuthors(val authors: String) : ContentAction
+    data class UpdateCoverImage(val context: Context, val uri: Uri,val path: String) : ContentAction
+
     data class UpdateFlagTriggerScrollForNote(val value: Int) : ContentAction
     data class UpdateFlagTriggerAdjustScroll(val value: Boolean) : ContentAction
     data class UpdateFlagStartScrolling(val value: Boolean) : ContentAction

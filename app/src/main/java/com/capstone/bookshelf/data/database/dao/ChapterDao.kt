@@ -18,4 +18,11 @@ interface ChapterDao {
 
     @Query("UPDATE chapter_content SET content = :content WHERE bookId = :bookId AND tocId = :tocId")
     suspend fun updateChapterContent(bookId: String, tocId: Int, content: List<String>)
+
+    @Query("DELETE FROM chapter_content WHERE bookId = :bookId AND tocId = :tocId")
+    suspend fun deleteChapterContent(bookId: String, tocId: Int)
+
+    @Query("UPDATE chapter_content SET tocId = tocId - 1 WHERE bookId = :bookId AND tocId > :tocId")
+    suspend fun updateChapterIndexOnDelete(bookId: String, tocId: Int)
+
 }

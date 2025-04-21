@@ -28,3 +28,14 @@ fun calculateHeaderSize(level: Int): Float {
         else -> fontSize.toFloat()
     }
 }
+
+fun calculateHeaderSizes(fontSize: Float): Array<Float> {
+    return arrayOf(
+        fontSize * 2f,
+        fontSize * 1.414f,
+        fontSize * 1.155f,
+        fontSize * 1f,
+        fontSize * 0.894f,
+        fontSize * 0.816f
+    )
+}

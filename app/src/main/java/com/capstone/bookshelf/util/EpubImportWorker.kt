@@ -679,7 +679,11 @@ class EpubImportWorker(
         title: String,
         index: Int
     ): Long {
-        val tocEntity = TableOfContentEntity(bookId = bookId, title = title, index = index)
+        val tocEntity = TableOfContentEntity(
+            bookId = bookId,
+            title = title,
+            index = index
+        )
         return tableOfContentsRepository.saveTableOfContent(tocEntity)
     }
 

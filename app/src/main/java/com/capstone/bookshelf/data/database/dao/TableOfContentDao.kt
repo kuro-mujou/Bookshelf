@@ -22,5 +22,15 @@ interface TableOfContentDao {
     suspend fun getTableOfContent(bookId: String, tocId: Int): TableOfContentEntity?
 
     @Query("UPDATE table_of_contents SET isFavorite = :isFavorite WHERE bookId = :bookId AND `index` = :index")
-    suspend fun updateTableOfContent(bookId: String, index: Int, isFavorite: Boolean)
+    suspend fun updateTableOfContentFavoriteStatus(bookId: String, index: Int, isFavorite: Boolean)
+
+    @Query("UPDATE table_of_contents SET title = :title WHERE bookId = :bookId AND `index` = :index")
+    suspend fun updateTableOfContentTitle(bookId: String, index: Int, title: String)
+
+    @Query("DELETE FROM table_of_contents WHERE `index` = :tocId")
+    suspend fun deleteTableOfContent(tocId: Int)
+
+    @Query("UPDATE table_of_contents SET `index` = `index` - 1 WHERE bookId = :bookId AND `index` > :index")
+    suspend fun updateTableOfContentIndexOnDelete(bookId: String, index: Int)
+
 }

@@ -46,6 +46,24 @@ interface BookDao {
     @Query("UPDATE books SET totalChapter = :totalChapter WHERE bookId = :bookId")
     suspend fun saveBookInfoTotalChapter(bookId: String, totalChapter: Int)
 
+    @Query("UPDATE books SET title = :title WHERE bookId = :bookId")
+    suspend fun saveBookInfoTitle(bookId: String, title: String)
+
+    @Query("UPDATE books SET authors = :authors WHERE bookId = :bookId")
+    suspend fun saveBookInfoAuthors(bookId: String, authors: List<String>)
+
+    @Query("""
+        UPDATE books
+        SET 
+            totalChapter = totalChapter - 1,
+            currentChapter = CASE 
+                WHEN :deletedChapter <= currentChapter THEN currentChapter - 1
+                ELSE currentChapter
+            END
+        WHERE bookId = :bookId
+    """)
+    suspend fun updateChaptersOnDelete(bookId: String, deletedChapter: Int)
+
     @Transaction
     @Delete
     suspend fun deleteBooks(bookEntity: BookEntity)

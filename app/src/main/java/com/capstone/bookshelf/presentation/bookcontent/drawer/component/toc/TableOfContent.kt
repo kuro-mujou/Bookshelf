@@ -1,6 +1,7 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
+import com.capstone.bookshelf.domain.wrapper.TableOfContent
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.AddTOCDialog
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
@@ -67,6 +69,7 @@ fun TableOfContents(
     colorPaletteState: ColorPalette,
     onDrawerItemClick: (Int) -> Unit,
     onAddingChapter: (String, String) -> Unit,
+    onDeleteTocItem: (TableOfContent) -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -307,6 +310,7 @@ fun TableOfContents(
                         selected = drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex,
                         onClick = {
                             onDrawerItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
+                            Log.d("TEST","${drawerContainerState.tableOfContents.indexOf(tocItem)}")
                         },
                         modifier = Modifier
                             .padding(4.dp, 2.dp, 4.dp, 2.dp)
@@ -351,9 +355,7 @@ fun TableOfContents(
                             if (contentState.book?.isEditable == true) {
                                 IconButton(
                                     onClick = {
-                                        scope.launch {
-
-                                        }
+                                        onDeleteTocItem(tocItem)
                                     },
                                     colors = IconButtonDefaults.iconButtonColors(
                                         containerColor = Color.Transparent

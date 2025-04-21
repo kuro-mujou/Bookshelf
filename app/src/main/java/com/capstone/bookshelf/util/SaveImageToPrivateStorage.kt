@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -114,5 +116,23 @@ fun decodeSampledBitmapFromStream(
         null
     } catch (e: Exception) {
         null
+    }
+}
+
+suspend fun deleteImageFromPrivateStorage(
+    path: String
+): Boolean = withContext(Dispatchers.IO) {
+    try {
+        val file = File(path)
+        if (file.exists()) {
+            val deleted = file.delete()
+            return@withContext deleted
+        } else {
+            return@withContext false
+        }
+    } catch (e: SecurityException) {
+        return@withContext false
+    } catch (e: Exception) {
+        return@withContext false
     }
 }

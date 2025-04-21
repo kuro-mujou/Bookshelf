@@ -8,6 +8,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicView
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerViewModel
 import com.capstone.bookshelf.presentation.bookcontent.topbar.TopBarViewModel
+import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -20,4 +21,5 @@ val bookContentModule = module {
     viewModelOf(::TopBarViewModel)
     viewModelOf(::ColorPaletteViewModel)
     viewModelOf(::MusicViewModel)
+    viewModelOf(::BookWriterViewModel)
 }

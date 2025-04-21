@@ -180,7 +180,7 @@ fun ContentScreen(
             modifier = Modifier
                 .fillMaxSize(),
             beyondViewportPageCount = beyondBoundsPageCount,
-            userScrollEnabled = contentState.enablePagerScroll,
+            userScrollEnabled = contentState.enablePagerScroll && !contentState.isSpeaking,
             key = { page -> page }
         ) { page ->
             val newPage by rememberUpdatedState(newValue = page)

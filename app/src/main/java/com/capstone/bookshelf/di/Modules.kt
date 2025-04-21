@@ -53,7 +53,6 @@ val viewModelModule = module {
     viewModelOf(::BookListViewModel)
     viewModelOf(::AsyncImportBookViewModel)
     viewModelOf(::BookDetailViewModel)
-    viewModelOf(::BookWriterViewModel)
 }
 val dataStoreModule = module {
     single { DataStoreManager(androidContext()) }

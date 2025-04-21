@@ -7,10 +7,16 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "table_of_contents",
-    indices = [Index(
-        value = ["bookId"],
-        unique = false
-    )],
+    indices = [
+        Index(
+            value = ["bookId"],
+            unique = false
+        ),
+//        Index(
+//            value = ["index"],
+//            unique = true
+//        )
+    ],
     foreignKeys = [ForeignKey(
         entity = BookEntity::class,
         parentColumns = ["bookId"],

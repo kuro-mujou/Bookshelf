@@ -20,7 +20,13 @@ import com.capstone.bookshelf.data.database.StringListTypeConverter
             childColumns = ["bookId"],
             onDelete = ForeignKey.CASCADE
         ),
-    ],
+//        ForeignKey(
+//            entity = TableOfContentEntity::class,
+//            parentColumns = ["index"],
+//            childColumns = ["tocId"],
+//            onDelete = ForeignKey.CASCADE
+//        )
+    ]
 )
 data class ChapterContentEntity(
     @PrimaryKey(autoGenerate = true) val chapterContentId: Int = 0,

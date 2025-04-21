@@ -78,7 +78,7 @@ fun SetupNavGraph(
 
                             is BookListAction.OnWritingNewBook -> {
                                 navController.navigate(
-                                    Route.WriteBook
+                                    Route.WriteBook("")
                                 )
                             }
 

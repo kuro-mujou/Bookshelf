@@ -1,8 +1,12 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer
 
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -17,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.PrimaryTabRow
@@ -27,22 +33,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.uri.Uri
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.domain.wrapper.Note
+import com.capstone.bookshelf.domain.wrapper.TableOfContent
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
+import com.capstone.bookshelf.presentation.bookcontent.component.dialog.EditBookInfoDialog
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkList
@@ -53,6 +68,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @UnstableApi
@@ -76,8 +92,21 @@ fun DrawerScreen(
     onDeleteNote: (Note) -> Unit,
     onUndoDeleteNote: () -> Unit,
     onTabItemClick: () -> Unit,
+    onEditBookTitle: (String) -> Unit,
+    onEditBookAuthor: (String) -> Unit,
+    onEditBookCover: (Uri, String) -> Unit,
+    onDeleteTocItem: (TableOfContent) -> Unit,
     content: @Composable () -> Unit
 ) {
+    val context = LocalContext.current
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            uri?.let {
+                onEditBookCover(it, contentState.book?.coverImagePath ?: "error")
+            }
+        }
+    )
     val style = HazeMaterials.thin(colorPaletteState.containerColor)
     val tabItems = listOf(
         TabItem(
@@ -91,9 +120,28 @@ fun DrawerScreen(
         ),
     )
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var showEditBookTitleDialog by remember { mutableStateOf(false) }
+    var showEditBookAuthorDialog by remember { mutableStateOf(false) }
+    val imageModel = contentState.book?.let {
+        if (it.coverImagePath == "error") {
+            R.mipmap.book_cover_not_available
+        } else {
+            val file = File(it.coverImagePath)
+            ImageRequest.Builder(context)
+                .data(file)
+                .setParameter(
+                    key = "timestamp",
+                    value = file.lastModified().toString(),
+                    memoryCacheKey = true.toString()
+                )
+                .build()
+        }
+    }
+
     LaunchedEffect(drawerState.isClosed) {
         selectedTabIndex = 0
     }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -120,20 +168,25 @@ fun DrawerScreen(
                     modifier = Modifier
                         .statusBarsPadding()
                         .fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(8.dp),
+                        .wrapContentHeight(),
                 ) {
                     AsyncImage(
-                        model =
-                            if (contentState.book?.coverImagePath == "error")
-                                R.mipmap.book_cover_not_available
-                            else
-                                contentState.book?.coverImagePath,
+                        model = imageModel,
                         contentDescription = null,
                         contentScale = ContentScale.FillWidth,
                         modifier = Modifier
-                            .width(70.dp)
+                            .padding(start = 8.dp)
+                            .width(100.dp)
                             .clip(RoundedCornerShape(8.dp))
+                            .then(
+                                if (contentState.book?.isEditable == true) {
+                                    Modifier.clickable {
+                                        imagePicker.launch("image/*")
+                                    }
+                                } else {
+                                    Modifier
+                                }
+                            )
                     )
                     Column(
                         modifier = Modifier
@@ -142,42 +195,80 @@ fun DrawerScreen(
                             .padding(8.dp)
                     ) {
                         contentState.book?.let {
-                            Text(
-                                text = it.title,
-                                style = TextStyle(
-                                    fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                                    color = if (it.isEditable) {
-                                        MaterialTheme.colorScheme.onBackground
-                                    } else {
-                                        colorPaletteState.textColor
-                                    },
-                                    fontWeight = FontWeight.Medium,
-                                    fontFamily = if (it.isEditable) {
-                                        MaterialTheme.typography.bodyMedium.fontFamily
-                                    } else {
-                                        contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                    },
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    modifier = Modifier.weight(1f),
+                                    text = it.title,
+                                    style = TextStyle(
+                                        fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                                        color = if (it.isEditable) {
+                                            MaterialTheme.colorScheme.onBackground
+                                        } else {
+                                            colorPaletteState.textColor
+                                        },
+                                        fontWeight = FontWeight.Medium,
+                                        fontFamily = if (it.isEditable) {
+                                            MaterialTheme.typography.bodyMedium.fontFamily
+                                        } else {
+                                            contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                        },
+                                    )
                                 )
-                            )
-                        }
-                        contentState.book?.let {
-                            Text(
-                                text = it.authors.joinToString(","),
-                                style = TextStyle(
-                                    color = if (it.isEditable) {
-                                        MaterialTheme.colorScheme.onBackground
-                                    } else {
-                                        colorPaletteState.textColor
-                                    },
-                                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                    fontWeight = FontWeight.Normal,
-                                    fontFamily = if (it.isEditable) {
-                                        MaterialTheme.typography.bodyMedium.fontFamily
-                                    } else {
-                                        contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                    },
-                                ),
-                            )
+                                if (it.isEditable) {
+                                    IconButton(
+                                        onClick = {
+                                            showEditBookTitleDialog = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = ImageVector.vectorResource(R.drawable.ic_edit),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onBackground
+                                        )
+                                    }
+                                }
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    modifier = Modifier.weight(1f),
+                                    text = it.authors.joinToString(","),
+                                    style = TextStyle(
+                                        color = if (it.isEditable) {
+                                            MaterialTheme.colorScheme.onBackground
+                                        } else {
+                                            colorPaletteState.textColor
+                                        },
+                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                                        fontWeight = FontWeight.Normal,
+                                        fontFamily = if (it.isEditable) {
+                                            MaterialTheme.typography.bodyMedium.fontFamily
+                                        } else {
+                                            contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                                        },
+                                    ),
+                                )
+                                if (it.isEditable) {
+                                    IconButton(
+                                        onClick = {
+                                            showEditBookAuthorDialog = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = ImageVector.vectorResource(R.drawable.ic_edit),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onBackground
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -192,6 +283,9 @@ fun DrawerScreen(
                         },
                         onAddingChapter = { chapterTitle, headerSize ->
                             onAddingChapter(chapterTitle, headerSize)
+                        },
+                        onDeleteTocItem = {
+                            onDeleteTocItem(it)
                         }
                     )
                 } else {
@@ -253,7 +347,8 @@ fun DrawerScreen(
                                             onDrawerItemClick(contentPageIndex)
                                         },
                                         onAddingChapter = { chapterTitle, headerSize ->
-                                            onAddingChapter(chapterTitle, headerSize)
+                                        },
+                                        onDeleteTocItem = {
                                         }
                                     )
                                 }
@@ -308,6 +403,28 @@ fun DrawerScreen(
         gesturesEnabled = contentState.enablePagerScroll || drawerState.isOpen,
     ) {
         content()
+    }
+    if (showEditBookTitleDialog) {
+        EditBookInfoDialog(
+            inputText = contentState.book?.title?.replace(Regex("\\s*\\(Draft\\)$"), "") ?: "",
+            onSubmit = {
+                onEditBookTitle(it)
+            },
+            onDismiss = {
+                showEditBookTitleDialog = false
+            }
+        )
+    }
+    if (showEditBookAuthorDialog) {
+        EditBookInfoDialog(
+            inputText = contentState.book?.authors?.joinToString(",") ?: "",
+            onSubmit = {
+                onEditBookAuthor(it)
+            },
+            onDismiss = {
+                showEditBookAuthorDialog = false
+            }
+        )
     }
 }
 
