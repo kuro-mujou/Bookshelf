@@ -113,16 +113,18 @@ class BookWriterViewModel(
 
             is BookWriterAction.AddChapter -> {
                 viewModelScope.launch {
-                    val currentSize = action.totalTocSize
+                    tableOfContentsRepository.updateTableOfContentIndexOnInsert(selectedBookId,action.currentTocIndex)
+                    chapterRepository.updateChapterIndexOnInsert(selectedBookId,action.currentTocIndex)
+                    yield()
                     val newChapter = TableOfContent(
                         bookId = selectedBookId,
                         title = action.chapterTitle,
-                        index = currentSize,
+                        index = if(action.totalTocSize == 0) 0 else action.currentTocIndex + 1,
                         isFavorite = false
                     )
                     tableOfContentsRepository.addChapter(selectedBookId, newChapter)
-                    bookRepository.saveBookInfoTotalChapter(selectedBookId, currentSize + 1)
-                    bookRepository.saveBookInfoChapterIndex(selectedBookId, currentSize)
+                    bookRepository.saveBookInfoTotalChapter(selectedBookId, action.totalTocSize + 1)
+                    bookRepository.saveBookInfoChapterIndex(selectedBookId, action.currentTocIndex + 1)
                     val contentList = mutableListOf<String>()
                     val headingHtml =
                         "<${action.headerSize.lowercase()}>${action.chapterTitle}</${action.headerSize.lowercase()}>"
@@ -130,7 +132,7 @@ class BookWriterViewModel(
                     contentList.add(headingContent)
                     val newChapterContent = ChapterContentEntity(
                         bookId = selectedBookId,
-                        tocId = currentSize,
+                        tocId = if(action.totalTocSize == 0) 0 else action.currentTocIndex + 1,
                         chapterTitle = action.chapterTitle,
                         content = contentList
                     )
@@ -157,7 +159,7 @@ class BookWriterViewModel(
                             val coverImagePath = saveImageToPrivateStorage(
                                 context = action.context,
                                 bitmap = bitmap,
-                                filename = "image_${selectedBookId}_${action.paragraphId}_${action.paragraphIndex}"
+                                filename = "image_${selectedBookId}_${action.paragraphId}"
                             )
                             imagePathRepository.saveImagePath(
                                 selectedBookId,
@@ -329,7 +331,7 @@ class BookWriterViewModel(
                             selectedBookId,
                             action.currentChapterIndex,
                             _bookWriterState.value.htmlTagPattern.replace(
-                                chapterContents.first(),
+                                _bookWriterState.value.contentList.first().richTextState.toText(),
                                 ""
                             )
                         )
@@ -418,6 +420,12 @@ class BookWriterViewModel(
         }
     }
 
+    fun moveItem(from: Int, to: Int) {
+        _bookWriterState.value = _bookWriterState.value.copy(
+            contentList = _bookWriterState.value.contentList.move(from, to)
+        )
+    }
+
     private fun getAllParagraphHtmlContent(): List<String> {
         val currentContentList = _bookWriterState.value.contentList
         if (currentContentList.isEmpty()) {
@@ -461,4 +469,14 @@ class BookWriterViewModel(
                 "<p style='font-size:${headingTextSizes[5]}px; font-weight:bold; text-align:center;'>$1</p>"
             )
     }
+}
+
+fun <T> List<T>.move(from: Int, to: Int): List<T> {
+    if (from !in indices || to !in indices) return this
+    if (from == to) return this
+
+    val mutableList = this.toMutableList()
+    val item = mutableList.removeAt(from)
+    mutableList.add(to, item)
+    return mutableList.toList()
 }

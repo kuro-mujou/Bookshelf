@@ -4,9 +4,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,52 +15,50 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.ParagraphStyle
-import androidx.compose.ui.text.style.TextIndent
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookwriter.component.ComponentContainer
 import com.capstone.bookshelf.presentation.bookwriter.component.EditorControls
 import com.capstone.bookshelf.presentation.bookwriter.component.Paragraph
-import com.capstone.bookshelf.presentation.bookwriter.component.ParagraphType
+import com.capstone.bookshelf.presentation.bookwriter.component.TopBar
+import com.capstone.bookshelf.util.DraggableItem
+import com.capstone.bookshelf.util.dragContainer
+import com.capstone.bookshelf.util.rememberDragAndDropListState
 import com.mohamedrejeb.richeditor.model.RichTextState
 import kotlinx.coroutines.delay
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @UnstableApi
 @Composable
 fun BookWriterEdit(
-    bookWriterViewModel: BookWriterViewModel,
-    bookWriterState: BookWriterState,
     contentState: ContentState,
     onNavigateBack: () -> Unit,
     onDrawerClick: () -> Unit,
 ) {
+    val bookWriterViewModel = koinViewModel<BookWriterViewModel>()
+    val bookWriterState by bookWriterViewModel.bookWriterState.collectAsStateWithLifecycle()
     val isImeVisible = WindowInsets.isImeVisible
-    val lazyListState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
-    LaunchedEffect(contentState.currentChapterIndex) {
-        bookWriterViewModel.loadChapterContent(contentState.currentChapterIndex)
-    }
     LaunchedEffect(bookWriterState.triggerLoadChapter) {
         if (bookWriterState.triggerLoadChapter) {
             bookWriterViewModel.loadChapterContent(contentState.currentChapterIndex)
@@ -69,8 +67,8 @@ fun BookWriterEdit(
     }
     LaunchedEffect(isImeVisible) {
         if (!isImeVisible) {
-            bookWriterViewModel.onAction(BookWriterAction.UpdateSelectedItem(""))
             focusManager.clearFocus()
+            bookWriterViewModel.onAction(BookWriterAction.UpdateSelectedItem(""))
             bookWriterViewModel.onAction(
                 BookWriterAction.UpdateItemMenuVisible(
                     "",
@@ -79,13 +77,148 @@ fun BookWriterEdit(
             )
         }
     }
-    LaunchedEffect(bookWriterState.itemToFocusId) {
-        val focusTargetId = bookWriterState.itemToFocusId
-        if (focusTargetId.isNotEmpty()) {
-            val index = bookWriterState.contentList.indexOfFirst { it.id == focusTargetId }
-            if (index != -1) {
-                delay(100)
-                lazyListState.scrollToItem(index)
+    Scaffold(
+        modifier = Modifier
+            .imePadding()
+            .fillMaxSize()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = {
+                    focusManager.clearFocus()
+                    bookWriterViewModel.onAction(BookWriterAction.UpdateSelectedItem(""))
+                    bookWriterViewModel.onAction(
+                        BookWriterAction.UpdateItemMenuVisible(
+                            "",
+                            false
+                        )
+                    )
+                }
+            ),
+        bottomBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                EditorControls(
+                    bookWriterState = bookWriterState,
+                    selectedState = bookWriterState.contentList.firstOrNull { it.id == bookWriterState.selectedItem }?.richTextState,
+                    onAction = { action ->
+                        bookWriterViewModel.editTextStyle(action)
+                    },
+                )
+                Spacer(modifier = Modifier.navigationBarsPadding())
+            }
+        },
+        topBar = {
+            TopBar(
+                bookWriterState,
+                onNavigateBack = {
+                    bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
+                    onNavigateBack()
+                },
+                onDrawerClick = {
+                    onDrawerClick()
+                },
+                onSaveClick = {
+                    bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
+                }
+            )
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { innerPadding ->
+        BookEditLazyColumn<Paragraph>(
+            bookWriterViewModel = bookWriterViewModel,
+            modifier = Modifier
+                .padding(innerPadding),
+            itemContent = { itemData, itemModifier ->
+                ComponentContainer(
+                    modifier = itemModifier,
+                    state = itemData.richTextState,
+                    bookWriterState = bookWriterState,
+                    paragraph = itemData,
+                    onAddAbove = { type ->
+                        bookWriterViewModel.onAction(
+                            BookWriterAction.AddParagraphAbove(
+                                itemData.id,
+                                Paragraph(
+                                    type = type,
+                                    richTextState = RichTextState(),
+                                )
+                            )
+                        )
+                    },
+                    onAddBelow = { type ->
+                        bookWriterViewModel.onAction(
+                            BookWriterAction.AddParagraphBelow(
+                                itemData.id,
+                                Paragraph(
+                                    type = type,
+                                    richTextState = RichTextState(),
+                                )
+                            )
+                        )
+                    },
+                    onDelete = {
+                        bookWriterViewModel.onAction(BookWriterAction.DeleteParagraph(itemData.id))
+                    },
+                    onVisibilityChange = { isVisible ->
+                        bookWriterViewModel.onAction(
+                            BookWriterAction.UpdateItemMenuVisible(
+                                itemData.id,
+                                isVisible
+                            )
+                        )
+                    },
+                    focusedItem = {
+                        bookWriterViewModel.onAction(
+                            BookWriterAction.UpdateSelectedItem(
+                                itemData.id
+                            )
+                        )
+                    },
+                    onFocusRequestedAndCleared = {
+                        bookWriterViewModel.onAction(BookWriterAction.SetFocusTarget(""))
+                    },
+                    onImageSelected = { uri ->
+                        bookWriterViewModel.onAction(
+                            BookWriterAction.AddImage(
+                                context = context,
+                                chapterIndex = contentState.currentChapterIndex,
+                                paragraphId = itemData.id,
+                                imageUri = uri
+                            )
+                        )
+                    }
+                )
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun <T> BookEditLazyColumn(
+    bookWriterViewModel: BookWriterViewModel,
+    modifier: Modifier = Modifier,
+    itemContent: @Composable LazyItemScope.(itemData: Paragraph, modifier: Modifier) -> Unit
+) {
+    val lazyListState = rememberLazyListState()
+    val bookWriterState by bookWriterViewModel.bookWriterState.collectAsStateWithLifecycle()
+    val rememberedOnMove = remember<(Int, Int) -> Unit>(bookWriterViewModel) {
+        { from, to -> bookWriterViewModel.moveItem(from, to) }
+    }
+    val dragDropState = rememberDragAndDropListState<Paragraph>(
+        lazyListState = lazyListState,
+        onMove = rememberedOnMove,
+        getCurrentList = { bookWriterState.contentList }
+    )
+
+    val getLazyListItemInfo: (Offset) -> LazyListItemInfo? = remember(lazyListState) {
+        { offset ->
+            lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
+                offset.y.toInt() in item.offset..(item.offset + item.size)
             }
         }
     }
@@ -109,180 +242,65 @@ fun BookWriterEdit(
             }
         }
     }
-    Scaffold(
-        modifier = Modifier
-            .imePadding()
-            .fillMaxSize(),
-        bottomBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                EditorControls(
-                    bookWriterState = bookWriterState,
-                    selectedState = bookWriterState.contentList.firstOrNull { it.id == bookWriterState.selectedItem }?.richTextState,
-                    onAction = { action ->
-                        bookWriterViewModel.editTextStyle(action)
-                    },
-                )
-                Spacer(modifier = Modifier.navigationBarsPadding())
+
+    LaunchedEffect(bookWriterState.itemToFocusId) {
+        val focusTargetId = bookWriterState.itemToFocusId
+        if (focusTargetId.isNotEmpty()) {
+            val index = bookWriterState.contentList.indexOfFirst { it.id == focusTargetId }
+            if (index != -1) {
+                delay(100)
+                lazyListState.scrollToItem(index)
             }
-        },
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                IconButton(
-                    modifier = Modifier.statusBarsPadding(),
-                    onClick = {
-                        bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
-                        onNavigateBack()
-                    }
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_back),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                IconButton(
-                    modifier = Modifier.statusBarsPadding(),
-                    onClick = {
-                        onDrawerClick()
-                    }
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_menu),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                if(bookWriterState.contentList.isNotEmpty()) {
-                    IconButton(
-                        modifier = Modifier.statusBarsPadding(),
-                        onClick = {
-                            bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
-                        }
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.ic_save),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    ) { innerPadding ->
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .dragContainer(dragDropState, getLazyListItemInfo)
+    ) {
         LazyColumn(
-            state = lazyListState,
             modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                    onClick = {
-                        focusManager.clearFocus()
-                        bookWriterViewModel.onAction(
-                            BookWriterAction.UpdateItemMenuVisible(
-                                "",
-                                false
-                            )
-                        )
-                    }
-                ),
+                .fillMaxSize(),
+            state = lazyListState
         ) {
             itemsIndexed(
                 items = bookWriterState.contentList,
-                key = { _, item -> item.id }
-            ) { index, paragraph ->
-                ComponentContainer(
-                    state = paragraph.richTextState,
-                    bookWriterState = bookWriterState,
-                    paragraph = paragraph,
-                    onAddAbove = { type ->
-                        bookWriterViewModel.onAction(
-                            BookWriterAction.AddParagraphAbove(
-                                paragraph.id,
-                                if (type == ParagraphType.PARAGRAPH) {
-                                    Paragraph(
-                                        type = type,
-                                        richTextState = RichTextState().apply {
-                                            toggleParagraphStyle(ParagraphStyle(textIndent = TextIndent(20.sp)))
-                                        },
-                                    )
-                                } else {
-                                    Paragraph(
-                                        type = type,
-                                        richTextState = RichTextState(),
-                                    )
-                                }
-                            )
-                        )
-                    },
-                    onAddBelow = { type ->
-                        bookWriterViewModel.onAction(
-                            BookWriterAction.AddParagraphBelow(
-                                paragraph.id,
-                                if (type == ParagraphType.PARAGRAPH) {
-                                    Paragraph(
-                                        type = type,
-                                        richTextState = RichTextState().apply {
-                                            toggleParagraphStyle(ParagraphStyle(textIndent = TextIndent(20.sp)))
-                                        },
-                                    )
-                                } else {
-                                    Paragraph(
-                                        type = type,
-                                        richTextState = RichTextState(),
-                                    )
-                                }
-                            )
-                        )
-                    },
-                    onDelete = {
-                        bookWriterViewModel.onAction(BookWriterAction.DeleteParagraph(paragraph.id))
-                    },
-                    onMoveUp = {
-                        bookWriterViewModel.onAction(BookWriterAction.MoveParagraphUp(paragraph.id))
-                        bookWriterViewModel.onAction(BookWriterAction.SetFocusTarget(""))
-                    },
-                    onMoveDown = {
-                        bookWriterViewModel.onAction(BookWriterAction.MoveParagraphDown(paragraph.id))
-                        bookWriterViewModel.onAction(BookWriterAction.SetFocusTarget(""))
-                    },
-                    onVisibilityChange = { isVisible ->
-                        bookWriterViewModel.onAction(
-                            BookWriterAction.UpdateItemMenuVisible(
-                                paragraph.id,
-                                isVisible
-                            )
-                        )
-                    },
-                    focusedItem = {
-                        bookWriterViewModel.onAction(BookWriterAction.UpdateSelectedItem(paragraph.id))
-                    },
-                    onFocusRequestedAndCleared = {
-                        bookWriterViewModel.onAction(BookWriterAction.SetFocusTarget(""))
-                    },
-                    onImageSelected = { uri ->
-                        bookWriterViewModel.onAction(
-                            BookWriterAction.AddImage(
-                                context = context,
-                                chapterIndex = contentState.currentChapterIndex,
-                                paragraphIndex = index,
-                                paragraphId = paragraph.id,
-                                imageUri = uri
-                            )
-                        )
-                    }
-                )
+                key = { index, item -> item.id }
+            ) { index, item ->
+                DraggableItem(
+                    dragAndDropListState = dragDropState,
+                    index = index
+                ) { _, itemModifier ->
+                    itemContent(
+                        item,
+                        itemModifier
+                    )
+                }
+            }
+        }
+
+        dragDropState.draggedItemData?.let { draggedItem: Paragraph ->
+            dragDropState.currentDragPosition?.let { currentPosition ->
+                val itemHeight = dragDropState.draggedItemHeight?.toFloat() ?: 0f
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            translationX = 0f
+                            translationY = currentPosition.y - (itemHeight / 2f)
+                            scaleX = 1.05f
+                            scaleY = 1.05f
+                            shadowElevation = 8.dp.toPx()
+                            alpha = 0.9f
+                        }
+                ) {
+                    ComponentContainer(
+                        modifier = Modifier,
+                        state = draggedItem.richTextState,
+                        bookWriterState = bookWriterState,
+                        paragraph = draggedItem,
+                    )
+                }
             }
         }
     }

@@ -54,8 +54,7 @@ import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.data.mapper.toDataClass
 import com.capstone.bookshelf.domain.wrapper.Book
-import com.capstone.bookshelf.util.RationaleDialog
-import com.capstone.bookshelf.util.SettingsRedirectDialog
+import com.capstone.bookshelf.util.CustomAlertDialog
 import com.capstone.bookshelf.util.rememberMediaPermissionsState
 
 @Composable
@@ -201,7 +200,10 @@ fun BookWriterCreate(
                         .wrapContentSize()
                         .clip(RoundedCornerShape(8.dp))
                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                        .clickable { requestImageAccess() },
+                        .clickable {
+                            focusManager.clearFocus()
+                            requestImageAccess()
+                        },
                 )
             } else {
                 Column(
@@ -211,7 +213,10 @@ fun BookWriterCreate(
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(8.dp))
                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                        .clickable { requestImageAccess() },
+                        .clickable {
+                            focusManager.clearFocus()
+                            requestImageAccess()
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -267,7 +272,11 @@ fun BookWriterCreate(
         if (showPermissionRationale) {
             val currentRationaleLauncher = rationaleLauncherInstance
             if (currentRationaleLauncher != null) {
-                RationaleDialog(
+                CustomAlertDialog(
+                    title = "Permission Needed",
+                    text = "To select a cover image, this app needs access to your photos. Please grant the permission when prompted.",
+                    confirmButtonText = "Continue",
+                    dismissButtonText = "Cancel",
                     onConfirm = {
                         showPermissionRationale = false
                         rationaleLauncherInstance = null
@@ -285,7 +294,11 @@ fun BookWriterCreate(
         }
 
         if (showSettingsRedirect) {
-            SettingsRedirectDialog(
+            CustomAlertDialog(
+                title = "Permission Required",
+                text = "Access to photos was denied. To select a cover image, please enable the Photos permission for this app in your device Settings.",
+                confirmButtonText = "Go to Settings",
+                dismissButtonText = "Cancel",
                 onConfirm = {
                     showSettingsRedirect = false
                     mediaPermissionState.openAppSettings()

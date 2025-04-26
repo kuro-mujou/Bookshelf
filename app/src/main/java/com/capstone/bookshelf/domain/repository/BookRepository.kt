@@ -18,5 +18,5 @@ interface BookRepository {
     suspend fun saveBookInfoTitle(bookId: String, title: String)
     suspend fun saveBookInfoAuthors(bookId: String, authors: List<String>)
     suspend fun deleteBooks(books: List<Book>)
-    suspend fun updateChaptersOnDelete(bookId: String, deleteIndex: Int)
+    suspend fun updateCurrentChapterIndexOnDelete(bookId: String, deleteIndex: Int)
 }

@@ -13,6 +13,5 @@ data class Paragraph(
 enum class ParagraphType {
     TITLE,
     PARAGRAPH,
-    IMAGE,
-    NONE
+    IMAGE
 }

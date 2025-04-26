@@ -62,7 +62,7 @@ interface BookDao {
             END
         WHERE bookId = :bookId
     """)
-    suspend fun updateChaptersOnDelete(bookId: String, deletedChapter: Int)
+    suspend fun updateCurrentChapterIndexOnDelete(bookId: String, deletedChapter: Int)
 
     @Transaction
     @Delete

@@ -63,6 +63,7 @@ import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkList
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.note.NoteList
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContents
+import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContentsEditable
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -82,8 +83,8 @@ fun DrawerScreen(
     drawerLazyColumnState: LazyListState,
     colorPaletteState: ColorPalette,
     hazeState: HazeState,
-    onDrawerItemClick: (Int) -> Unit,
-    onAddingChapter: (String, String) -> Unit,
+    onTocItemClick: (Int) -> Unit,
+    onAddTocItem: (String, String) -> Unit,
     onDeleteBookmark: (Int) -> Unit,
     onUndoDeleteBookmark: () -> Unit,
     onNoteClicked: (Int, Int) -> Unit,
@@ -273,16 +274,15 @@ fun DrawerScreen(
                     }
                 }
                 if (contentState.book?.isEditable == true) {
-                    TableOfContents(
+                    TableOfContentsEditable(
                         drawerContainerState = drawerContainerState,
                         contentState = contentState,
                         drawerLazyColumnState = drawerLazyColumnState,
-                        colorPaletteState = colorPaletteState,
-                        onDrawerItemClick = { contentPageIndex ->
-                            onDrawerItemClick(contentPageIndex)
+                        onTocItemClick = { contentPageIndex ->
+                            onTocItemClick(contentPageIndex)
                         },
-                        onAddingChapter = { chapterTitle, headerSize ->
-                            onAddingChapter(chapterTitle, headerSize)
+                        onAddTocItem = { chapterTitle, headerSize ->
+                            onAddTocItem(chapterTitle, headerSize)
                         },
                         onDeleteTocItem = {
                             onDeleteTocItem(it)
@@ -343,13 +343,9 @@ fun DrawerScreen(
                                         contentState = contentState,
                                         drawerLazyColumnState = drawerLazyColumnState,
                                         colorPaletteState = colorPaletteState,
-                                        onDrawerItemClick = { contentPageIndex ->
-                                            onDrawerItemClick(contentPageIndex)
+                                        onTocItemClick = { contentPageIndex ->
+                                            onTocItemClick(contentPageIndex)
                                         },
-                                        onAddingChapter = { chapterTitle, headerSize ->
-                                        },
-                                        onDeleteTocItem = {
-                                        }
                                     )
                                 }
 
@@ -384,7 +380,7 @@ fun DrawerScreen(
                                         dataStoreManager = dataStoreManager,
                                         colorPaletteState = colorPaletteState,
                                         onCardClicked = {
-                                            onDrawerItemClick(it)
+                                            onTocItemClick(it)
                                         },
                                         onDeleted = {
                                             onDeleteBookmark(it)

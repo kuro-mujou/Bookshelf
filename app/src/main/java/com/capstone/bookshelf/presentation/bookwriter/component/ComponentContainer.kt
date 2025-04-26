@@ -5,7 +5,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,14 +42,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.uri.Uri
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
@@ -63,18 +62,17 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ComponentContainer(
+    modifier: Modifier = Modifier,
     state: RichTextState,
     bookWriterState: BookWriterState,
     paragraph: Paragraph,
-    onAddAbove: (ParagraphType) -> Unit,
-    onAddBelow: (ParagraphType) -> Unit,
-    onDelete: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    onVisibilityChange: (Boolean) -> Unit,
-    focusedItem: () -> Unit,
-    onFocusRequestedAndCleared: () -> Unit,
-    onImageSelected: (Uri) -> Unit,
+    onAddAbove: ((ParagraphType) -> Unit)? = null,
+    onAddBelow: ((ParagraphType) -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    onVisibilityChange: ((Boolean) -> Unit)? = null,
+    focusedItem: (() -> Unit)? = null,
+    onFocusRequestedAndCleared: (() -> Unit)? = null,
+    onImageSelected: ((Uri) -> Unit)? = null,
 ) {
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
@@ -84,7 +82,7 @@ fun ComponentContainer(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
             uri?.let {
-                onImageSelected(it)
+                onImageSelected?.invoke(it)
             }
         }
     )
@@ -93,7 +91,7 @@ fun ComponentContainer(
             if (paragraph.type != ParagraphType.IMAGE) {
                 delay(150)
                 focusRequester.requestFocus()
-                onFocusRequestedAndCleared()
+                onFocusRequestedAndCleared?.invoke()
             }
         }
     }
@@ -110,19 +108,11 @@ fun ComponentContainer(
             }
         }
     }
-
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .bringIntoViewRequester(bringIntoViewRequester)
-            .combinedClickable(
-                hapticFeedbackEnabled = false,
-                onClick = {},
-                onLongClick = {
-                    onVisibilityChange(!paragraph.isControllerVisible)
-                }
-            ),
-        contentAlignment = Alignment.TopEnd
+            .bringIntoViewRequester(bringIntoViewRequester),
+        contentAlignment = Alignment.CenterEnd
     ) {
         Column(
             modifier = Modifier
@@ -132,8 +122,8 @@ fun ComponentContainer(
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     RoundedCornerShape(15.dp)
                 )
-                    then (
-                    if (paragraph.isControllerVisible) {
+                .then (
+                    if (paragraph.isControllerVisible || bookWriterState.selectedItem == paragraph.id) {
                         Modifier.border(
                             width = 1.dp,
                             color = MaterialTheme.colorScheme.primary,
@@ -142,7 +132,7 @@ fun ComponentContainer(
                     } else {
                         Modifier
                     }
-                    ),
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -153,100 +143,114 @@ fun ComponentContainer(
                     ParagraphType.PARAGRAPH, ParagraphType.IMAGE -> {
                         TopIndicator(
                             onAddParagraph = {
-                                onVisibilityChange(false)
-                                onAddAbove(ParagraphType.PARAGRAPH)
+                                onVisibilityChange?.invoke(false)
+                                onAddAbove?.invoke(ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAddAbove(ParagraphType.IMAGE)
+                                onAddAbove?.invoke(ParagraphType.IMAGE)
                             },
                         )
                     }
+                    else -> {
 
-                    else -> {}
+                    }
                 }
             }
-            when (paragraph.type) {
-                ParagraphType.TITLE,
-                ParagraphType.PARAGRAPH -> {
-                    RichTextEditor(
-                        state = state,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester)
-                            .onFocusChanged {
-                                if (it.isFocused) {
-                                    focusedItem()
-                                    onVisibilityChange(false)
-                                }
-                            },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next,
-                            capitalization = KeyboardCapitalization.Sentences
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = {
-                                onVisibilityChange(false)
-                                onAddBelow(ParagraphType.PARAGRAPH)
-                            }
-                        ),
-                        colors = RichTextEditorDefaults.richTextEditorColors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            containerColor = Color.Transparent,
-                        ),
-                        placeholder = {
-                            RichText(
-                                modifier = Modifier.fillMaxWidth(),
-                                state = RichTextState().apply {
-                                    toggleParagraphStyle(
-                                        ParagraphStyle(
-                                            textIndent = TextIndent(firstLine = 20.sp)
-                                        )
-                                    )
-                                    setText(
-                                        "Type here..."
-                                    )
-                                }
-                            )
-                        },
-                        textStyle = TextStyle(
-                            textIndent = TextIndent()
-                        )
-                    )
-                }
-
-                ParagraphType.IMAGE -> {
-                    if (state.toText() == "") {
-                        IconButton(
-                            modifier = Modifier.size(70.dp),
-                            onClick = {
-                                imagePicker.launch("image/*")
-                            }
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(50.dp),
-                                imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_image),
-                                contentDescription = null
-                            )
-                        }
-                        Text(text = "Pick Image")
-                        Spacer(modifier = Modifier.height(8.dp))
-                    } else {
-                        AsyncImage(
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                when (paragraph.type) {
+                    ParagraphType.TITLE,
+                    ParagraphType.PARAGRAPH -> {
+                        RichTextEditor(
+                            state = state,
                             modifier = Modifier
-                                .padding(12.dp)
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(15.dp)),
-                            model = state.toText(),
-                            contentDescription = null,
-                            contentScale = ContentScale.FillWidth
+                                .focusRequester(focusRequester)
+                                .onFocusChanged {
+                                    if (it.isFocused) {
+                                        focusedItem?.invoke()
+                                        onVisibilityChange?.invoke(false)
+                                    }
+                                },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next,
+                                capitalization = KeyboardCapitalization.Sentences
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = {
+                                    onVisibilityChange?.invoke(false)
+                                    onAddBelow?.invoke(ParagraphType.PARAGRAPH)
+                                }
+                            ),
+                            colors = RichTextEditorDefaults.richTextEditorColors(
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                                containerColor = Color.Transparent,
+                            ),
+                            placeholder = {
+                                RichText(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    state = RichTextState().apply {
+                                        setText(
+                                            "Type here..."
+                                        )
+                                    }
+                                )
+                            },
+                            textStyle = TextStyle(
+                                textIndent = TextIndent()
+                            )
                         )
                     }
+                    ParagraphType.IMAGE -> {
+                        Column {
+                            if (state.toText() == "") {
+                                IconButton(
+                                    modifier = Modifier.size(70.dp),
+                                    onClick = {
+                                        imagePicker.launch("image/*")
+                                    }
+                                ) {
+                                    Icon(
+                                        modifier = Modifier.size(50.dp),
+                                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_add_image),
+                                        contentDescription = null
+                                    )
+                                }
+                                Text(text = "Pick Image")
+                                Spacer(modifier = Modifier.height(8.dp))
+                            } else {
+                                AsyncImage(
+                                    modifier = Modifier
+                                        .padding(12.dp)
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(15.dp)),
+                                    model = state.toText(),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillWidth
+                                )
+                            }
+                        }
+                    }
                 }
-
-                else -> {}
+                if (bookWriterState.selectedItem != paragraph.id && paragraph.type != ParagraphType.IMAGE) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable(
+                                onClick = {
+                                    focusRequester.requestFocus()
+                                },
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            )
+                    )
+                }
             }
             AnimatedVisibility(
                 visible = paragraph.isControllerVisible,
@@ -255,11 +259,11 @@ fun ComponentContainer(
                     ParagraphType.TITLE -> {
                         ChapterTitleIndicator(
                             onAddParagraph = {
-                                onVisibilityChange(false)
-                                onAddBelow(ParagraphType.PARAGRAPH)
+                                onVisibilityChange?.invoke(false)
+                                onAddBelow?.invoke(ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAddBelow(ParagraphType.IMAGE)
+                                onAddBelow?.invoke(ParagraphType.IMAGE)
                             },
                         )
                     }
@@ -267,31 +271,23 @@ fun ComponentContainer(
                     ParagraphType.PARAGRAPH, ParagraphType.IMAGE -> {
                         BottomIndicator(
                             onAddParagraph = {
-                                onVisibilityChange(false)
-                                onAddBelow(ParagraphType.PARAGRAPH)
+                                onVisibilityChange?.invoke(false)
+                                onAddBelow?.invoke(ParagraphType.PARAGRAPH)
                             },
                             onAddImage = {
-                                onAddBelow(ParagraphType.IMAGE)
+                                onAddBelow?.invoke(ParagraphType.IMAGE)
                             },
                             onDelete = {
-                                onDelete()
+                                onDelete?.invoke()
                             },
-                            onMoveUp = {
-                                onMoveUp()
-                            },
-                            onMoveDown = {
-                                onMoveDown()
-                            }
                         )
                     }
-
-                    else -> {}
                 }
             }
         }
         IconButton(
             onClick = {
-                onVisibilityChange(!paragraph.isControllerVisible)
+                onVisibilityChange?.invoke(!paragraph.isControllerVisible)
             }
         ) {
             Icon(

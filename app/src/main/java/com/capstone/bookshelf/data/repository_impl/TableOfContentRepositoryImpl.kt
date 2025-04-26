@@ -40,11 +40,16 @@ class TableOfContentRepositoryImpl(
         tableOfContentDao.updateTableOfContentTitle(bookId, index, title)
     }
 
-    override suspend fun deleteTableOfContent(tocId: Int) {
-        tableOfContentDao.deleteTableOfContent(tocId)
+    override suspend fun deleteTableOfContent(bookId: String, tocId: Int) {
+        tableOfContentDao.deleteTableOfContent(bookId,tocId)
     }
 
     override suspend fun updateTableOfContentIndexOnDelete(bookId: String, index: Int) {
         tableOfContentDao.updateTableOfContentIndexOnDelete(bookId, index)
     }
+
+    override suspend fun updateTableOfContentIndexOnInsert(bookId: String, index: Int) {
+        tableOfContentDao.updateTableOfContentIndexOnInsert(bookId, index)
+    }
+
 }

@@ -198,8 +198,14 @@ class DrawerContainerViewModel(
 
             is DrawerContainerAction.DeleteTocItem -> {
                 viewModelScope.launch {
-                    tableOfContentsRepository.deleteTableOfContent(action.tocItem.index)
-                    chapterRepository.deleteChapter(action.tocItem.bookId, action.tocItem.index)
+                    tableOfContentsRepository.deleteTableOfContent(
+                        action.tocItem.bookId,
+                        action.tocItem.index
+                    )
+                    chapterRepository.deleteChapter(
+                        action.tocItem.bookId,
+                        action.tocItem.index
+                    )
                     tableOfContentsRepository.updateTableOfContentIndexOnDelete(
                         action.tocItem.bookId,
                         action.tocItem.index
@@ -208,7 +214,7 @@ class DrawerContainerViewModel(
                         action.tocItem.bookId,
                         action.tocItem.index
                     )
-                    bookRepository.updateChaptersOnDelete(
+                    bookRepository.updateCurrentChapterIndexOnDelete(
                         action.tocItem.bookId,
                         action.tocItem.index
                     )

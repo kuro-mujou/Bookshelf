@@ -12,9 +12,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -217,50 +214,4 @@ fun Context.findActivity(): ComponentActivity? {
         context = context.baseContext
     }
     return null
-}
-
-/** Standard Composable for displaying a permission rationale dialog. */
-@Composable
-fun RationaleDialog(
-    title: String = "Permission Needed",
-    text: String = "To select a cover image, this app needs access to your photos. Please grant the permission when prompted.",
-    confirmButtonText: String = "Continue",
-    dismissButtonText: String = "Cancel",
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(text) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text(confirmButtonText) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(dismissButtonText) }
-        }
-    )
-}
-
-/** Standard Composable for displaying a dialog guiding the user to app settings. */
-@Composable
-fun SettingsRedirectDialog(
-    title: String = "Permission Required",
-    text: String = "Access to photos was denied. To select a cover image, please enable the Photos permission for this app in your device Settings.",
-    confirmButtonText: String = "Go to Settings",
-    dismissButtonText: String = "Cancel",
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(text) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text(confirmButtonText) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(dismissButtonText) }
-        }
-    )
 }

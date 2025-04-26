@@ -75,7 +75,7 @@ fun BookContentScreenRoot(
     val contentState by viewModel.state.collectAsStateWithLifecycle()
     val drawerContainerState by drawerContainerViewModel.state.collectAsStateWithLifecycle()
     val colorPaletteState by colorPaletteViewModel.colorPalette.collectAsStateWithLifecycle()
-    val bookWriterState by bookWriterViewModel.bookWriterState.collectAsStateWithLifecycle()
+//    val bookWriterState by bookWriterViewModel.bookWriterState.collectAsStateWithLifecycle()
     val hazeState = remember { HazeState() }
     val textMeasurer = rememberTextMeasurer()
     val scope = rememberCoroutineScope()
@@ -162,32 +162,35 @@ fun BookContentScreenRoot(
         drawerLazyColumnState = drawerLazyColumnState,
         colorPaletteState = colorPaletteState,
         hazeState = hazeState,
-        onDrawerItemClick = {
-            if(contentState.book?.isEditable == true) {
+        onTocItemClick = {
+            if (contentState.book?.isEditable == true) {
                 bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
                 bookWriterViewModel.onAction(BookWriterAction.UpdateTriggerLoadChapter(true))
+            } else {
+                drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(it))
             }
             drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
-            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(it))
             viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(it))
             viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex(it))
             if (contentState.isSpeaking) {
                 viewModel.onTtsUiEvent(TtsUiEvent.JumpToRandomChapter)
             }
         },
-        onAddingChapter = { chapterTitle, headerSize ->
+        onAddTocItem = { chapterTitle, headerSize ->
             bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
-            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
             bookWriterViewModel.onAction(
                 BookWriterAction.AddChapter(
                     chapterTitle = chapterTitle,
                     headerSize = headerSize,
                     totalTocSize = drawerContainerState.tableOfContents.size,
-                    currentFontSize = currentFontSize.value
+                    currentFontSize = currentFontSize.value,
+                    currentTocIndex = contentState.currentChapterIndex
                 )
             )
-            viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(drawerContainerState.tableOfContents.size))
-            drawerContainerViewModel.onAction(DrawerContainerAction.UpdateCurrentTOC(contentState.currentChapterIndex))
+            viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(
+                if(drawerContainerState.tableOfContents.isEmpty()) 0
+                else contentState.currentChapterIndex + 1
+            ))
         },
         onDeleteBookmark = {
             drawerContainerViewModel.onAction(DrawerContainerAction.DeleteBookmark(it))
@@ -228,13 +231,24 @@ fun BookContentScreenRoot(
             viewModel.onContentAction(ContentAction.UpdateBookAuthors(it))
             viewModel.onContentAction(ContentAction.LoadBook)
         },
-        onEditBookCover = {uri,originalPath->
-            viewModel.onContentAction(ContentAction.UpdateCoverImage(context,uri,originalPath))
+        onEditBookCover = { uri, originalPath ->
+            viewModel.onContentAction(ContentAction.UpdateCoverImage(context, uri, originalPath))
             viewModel.onContentAction(ContentAction.LoadBook)
         },
         onDeleteTocItem = {
-            drawerContainerViewModel.onAction(DrawerContainerAction.DeleteTocItem(it))
-            bookWriterViewModel.onAction(BookWriterAction.UpdateTriggerLoadChapter(true))
+            scope.launch {
+                drawerContainerViewModel.onAction(DrawerContainerAction.DeleteTocItem(it))
+                yield()
+                val currentChapterIndex = contentState.currentChapterIndex
+                if (it.index == currentChapterIndex) {
+                    viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex((it.index - 1).coerceAtLeast(0)))
+                    viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex((it.index - 1).coerceAtLeast(0)))
+                    bookWriterViewModel.onAction(BookWriterAction.UpdateTriggerLoadChapter(true))
+                } else if (it.index < currentChapterIndex) {
+                    viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex((currentChapterIndex - 1).coerceAtLeast(0)))
+                    viewModel.onContentAction(ContentAction.UpdateBookInfoCurrentChapterIndex((currentChapterIndex - 1).coerceAtLeast(0)))
+                }
+            }
         },
     ) {
         LaunchedEffect(contentState.book) {
@@ -248,6 +262,8 @@ fun BookContentScreenRoot(
                         dataStoreManager.enableBackgroundMusic.first()
                     )
                     viewModel.onContentAction(ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
+                } else {
+                    bookWriterViewModel.onAction(BookWriterAction.UpdateTriggerLoadChapter(true))
                 }
             }
         }
@@ -317,23 +333,19 @@ fun BookContentScreenRoot(
             }
         }
         if (contentState.book?.isEditable == true) {
-            drawerContainerState.currentTOC?.let {
-                BookWriterEdit(
-                    bookWriterViewModel = bookWriterViewModel,
-                    bookWriterState = bookWriterState,
-                    contentState = contentState,
-                    onNavigateBack = {
-                        onBackClick(true)
-                    },
-                    onDrawerClick = {
-                        drawerContainerViewModel.onAction(
-                            DrawerContainerAction.UpdateDrawerState(
-                                true
-                            )
+            BookWriterEdit(
+                contentState = contentState,
+                onNavigateBack = {
+                    onBackClick(true)
+                },
+                onDrawerClick = {
+                    drawerContainerViewModel.onAction(
+                        DrawerContainerAction.UpdateDrawerState(
+                            true
                         )
-                    }
-                )
-            }
+                    )
+                }
+            )
         } else {
             val bottomBarViewModel = koinViewModel<BottomBarViewModel>()
             val topBarViewModel = koinViewModel<TopBarViewModel>()

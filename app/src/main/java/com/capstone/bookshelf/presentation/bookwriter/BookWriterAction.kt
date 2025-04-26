@@ -16,13 +16,13 @@ sealed interface BookWriterAction {
         val chapterTitle: String,
         val headerSize: String,
         val totalTocSize: Int,
-        val currentFontSize: Float
+        val currentFontSize: Float,
+        val currentTocIndex: Int
     ) : BookWriterAction
 
     data class AddImage(
         val context: Context,
         val chapterIndex: Int,
-        val paragraphIndex: Int,
         val paragraphId: String,
         val imageUri: Uri
     ) : BookWriterAction

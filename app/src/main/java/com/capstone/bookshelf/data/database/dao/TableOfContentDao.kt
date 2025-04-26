@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TableOfContentDao {
     @Transaction
-    @Query("SELECT * FROM table_of_contents WHERE bookId = :bookId")
+    @Query("SELECT * FROM table_of_contents WHERE bookId = :bookId ORDER BY `index` ASC")
     fun getTableOfContents(bookId: String): Flow<List<TableOfContentEntity>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -27,10 +27,14 @@ interface TableOfContentDao {
     @Query("UPDATE table_of_contents SET title = :title WHERE bookId = :bookId AND `index` = :index")
     suspend fun updateTableOfContentTitle(bookId: String, index: Int, title: String)
 
-    @Query("DELETE FROM table_of_contents WHERE `index` = :tocId")
-    suspend fun deleteTableOfContent(tocId: Int)
+    @Query("DELETE FROM table_of_contents WHERE `index` = :tocId AND bookId = :bookId")
+    suspend fun deleteTableOfContent(bookId: String,tocId: Int)
 
     @Query("UPDATE table_of_contents SET `index` = `index` - 1 WHERE bookId = :bookId AND `index` > :index")
     suspend fun updateTableOfContentIndexOnDelete(bookId: String, index: Int)
+
+    @Query("UPDATE table_of_contents SET `index` = `index` + 1 WHERE bookId = :bookId AND `index` > :index")
+    suspend fun updateTableOfContentIndexOnInsert(bookId: String, index: Int)
+
 
 }

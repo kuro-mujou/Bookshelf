@@ -78,7 +78,7 @@ class BookRepositoryImpl(
             bookDao.deleteBooks(bookEntity)
         }
     }
-    override suspend fun updateChaptersOnDelete(bookId: String, deleteIndex: Int) {
-        bookDao.updateChaptersOnDelete(bookId, deleteIndex)
+    override suspend fun updateCurrentChapterIndexOnDelete(bookId: String, deleteIndex: Int) {
+        bookDao.updateCurrentChapterIndexOnDelete(bookId, deleteIndex)
     }
 }

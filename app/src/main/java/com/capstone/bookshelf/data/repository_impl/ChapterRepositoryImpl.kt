@@ -35,4 +35,7 @@ class ChapterRepositoryImpl(
         chapterDao.updateChapterIndexOnDelete(bookId, tocId)
     }
 
+    override suspend fun updateChapterIndexOnInsert(bookId: String, tocId: Int) {
+        chapterDao.updateChapterIndexOnInsert(bookId, tocId)
+    }
 }

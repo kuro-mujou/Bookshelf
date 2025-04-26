@@ -1,8 +1,8 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc
 
 import android.annotation.SuppressLint
-import android.util.Log
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,15 +12,12 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -52,9 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
-import com.capstone.bookshelf.domain.wrapper.TableOfContent
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
-import com.capstone.bookshelf.presentation.bookcontent.component.dialog.AddTOCDialog
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import kotlinx.coroutines.launch
@@ -67,9 +62,7 @@ fun TableOfContents(
     contentState: ContentState,
     drawerLazyColumnState: LazyListState,
     colorPaletteState: ColorPalette,
-    onDrawerItemClick: (Int) -> Unit,
-    onAddingChapter: (String, String) -> Unit,
-    onDeleteTocItem: (TableOfContent) -> Unit
+    onTocItemClick: (Int) -> Unit,
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -80,7 +73,6 @@ fun TableOfContents(
     var firstItemIndex by remember { mutableIntStateOf(0) }
     var lastItemIndex by remember { mutableIntStateOf(0) }
     var showButton by remember { mutableStateOf(false) }
-    var showAddDialog by remember { mutableStateOf(false) }
     var flag by remember { mutableStateOf(false) }
     LaunchedEffect(flag) {
         if (flag) {
@@ -97,39 +89,10 @@ fun TableOfContents(
             focusManager.clearFocus()
         }
     }
-    if (showAddDialog) {
-        AddTOCDialog(
-            onDismissRequest = {
-                showAddDialog = false
-            },
-            onConfirm = { chapterTitle, headerSize ->
-                onAddingChapter(chapterTitle, headerSize)
-                showAddDialog = false
-            }
-        )
-    }
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent,
         floatingActionButton = {
-            if (contentState.book?.isEditable == true) {
-                IconButton(
-                    onClick = {
-                        scope.launch {
-                            showAddDialog = true
-                        }
-                    },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.onBackground
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.background
-                    )
-                }
-            }
             if (showButton) {
                 IconButton(
                     onClick = {
@@ -138,11 +101,7 @@ fun TableOfContents(
                         }
                     },
                     colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = if (contentState.book?.isEditable == true) {
-                            MaterialTheme.colorScheme.onBackground
-                        } else {
-                            colorPaletteState.textColor
-                        },
+                        containerColor = colorPaletteState.textColor,
                     )
                 ) {
                     if (contentState.currentChapterIndex < firstItemIndex)
@@ -150,22 +109,14 @@ fun TableOfContents(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_up),
                             modifier = Modifier.size(16.dp),
                             contentDescription = null,
-                            tint = if (contentState.book?.isEditable == true) {
-                                MaterialTheme.colorScheme.background
-                            } else {
-                                colorPaletteState.backgroundColor
-                            },
+                            tint = colorPaletteState.backgroundColor,
                         )
                     else
                         Icon(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_down),
                             modifier = Modifier.size(16.dp),
                             contentDescription = null,
-                            tint = if (contentState.book?.isEditable == true) {
-                                MaterialTheme.colorScheme.background
-                            } else {
-                                colorPaletteState.backgroundColor
-                            },
+                            tint = colorPaletteState.backgroundColor,
                         )
                 }
             }
@@ -180,31 +131,15 @@ fun TableOfContents(
                     }
                 },
                 textStyle = TextStyle(
-                    color = if (contentState.book?.isEditable == true) {
-                        MaterialTheme.colorScheme.onBackground
-                    } else {
-                        colorPaletteState.textColor
-                    },
-                    fontFamily = if (contentState.book?.isEditable == true) {
-                        MaterialTheme.typography.bodyMedium.fontFamily
-                    } else {
-                        contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                    },
+                    color = colorPaletteState.textColor,
+                    fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                 ),
                 label = {
                     Text(
                         text = "Enter a chapter number",
                         style = TextStyle(
-                            color = if (contentState.book?.isEditable == true) {
-                                MaterialTheme.colorScheme.onBackground
-                            } else {
-                                colorPaletteState.textColor
-                            },
-                            fontFamily = if (contentState.book?.isEditable == true) {
-                                MaterialTheme.typography.bodyMedium.fontFamily
-                            } else {
-                                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                            },
+                            color =  colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                         )
                     )
                 },
@@ -230,31 +165,11 @@ fun TableOfContents(
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = if (contentState.book?.isEditable == true) {
-                        MaterialTheme.colorScheme.onBackground
-                    } else {
-                        colorPaletteState.textColor
-                    },
-                    unfocusedLabelColor = if (contentState.book?.isEditable == true) {
-                        MaterialTheme.colorScheme.onBackground
-                    } else {
-                        colorPaletteState.textColor
-                    },
-                    focusedBorderColor = if (contentState.book?.isEditable == true) {
-                        MaterialTheme.colorScheme.onBackground
-                    } else {
-                        colorPaletteState.textColor
-                    },
-                    focusedLabelColor = if (contentState.book?.isEditable == true) {
-                        MaterialTheme.colorScheme.onBackground
-                    } else {
-                        colorPaletteState.textColor
-                    },
-                    cursorColor = if (contentState.book?.isEditable == true) {
-                        MaterialTheme.colorScheme.onBackground
-                    } else {
-                        colorPaletteState.textColor
-                    },
+                    unfocusedBorderColor = colorPaletteState.textColor,
+                    unfocusedLabelColor = colorPaletteState.textColor,
+                    focusedBorderColor = colorPaletteState.textColor,
+                    focusedLabelColor = colorPaletteState.textColor,
+                    cursorColor = colorPaletteState.textColor,
                 )
             )
             LazyColumn(
@@ -264,115 +179,65 @@ fun TableOfContents(
                 items(
                     items = drawerContainerState.tableOfContents
                 ) { tocItem ->
-                    NavigationDrawerItem(
+                    CustomNavigationDrawerItem(
                         label = {
                             Text(
                                 text = tocItem.title,
                                 style =
                                     if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
                                         TextStyle(
-                                            color = if (contentState.book?.isEditable == true) {
-                                                MaterialTheme.colorScheme.onSecondaryContainer
-                                            } else {
-                                                colorPaletteState.containerColor
-                                            },
+                                            color = colorPaletteState.textColor,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = if (contentState.book?.isEditable == true) {
-                                                MaterialTheme.typography.bodyMedium.fontFamily
-                                            } else {
-                                                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                            },
+                                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                                         )
                                     } else if (drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex) {
                                         TextStyle(
+                                            color = colorPaletteState.containerColor,
                                             fontStyle = FontStyle.Italic,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = if (contentState.book?.isEditable == true) {
-                                                MaterialTheme.typography.bodyMedium.fontFamily
-                                            } else {
-                                                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                            },
+                                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                                         )
                                     } else {
                                         TextStyle(
                                             fontSize = 14.sp,
-                                            fontFamily = if (contentState.book?.isEditable == true) {
-                                                MaterialTheme.typography.bodyMedium.fontFamily
-                                            } else {
-                                                contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                                            },
+                                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                                         )
                                     },
                             )
                         },
                         selected = drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex,
-                        onClick = {
-                            onDrawerItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
-                            Log.d("TEST","${drawerContainerState.tableOfContents.indexOf(tocItem)}")
-                        },
                         modifier = Modifier
                             .padding(4.dp, 2.dp, 4.dp, 2.dp)
-                            .wrapContentHeight(),
+                            .wrapContentHeight()
+                            .clickable(
+                                onClick = {
+                                    onTocItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
+                                },
+                            )
+                            .then(
+                                if(drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex)
+                                    Modifier.border(
+                                        width = 1.dp,
+                                        color = colorPaletteState.textColor,
+                                        shape = RoundedCornerShape(25.dp)
+                                    )
+                                else {
+                                    Modifier
+                                }
+                            ),
                         colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = if (drawerContainerState.tableOfContents.indexOf(
-                                    tocItem
-                                ) == targetSearchIndex
-                            ) {
-                                if (contentState.book?.isEditable == true) {
-                                    MaterialTheme.colorScheme.secondaryContainer
+                            selectedContainerColor = colorPaletteState.textColor,
+                            unselectedContainerColor =
+                                if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
+                                    colorPaletteState.textBackgroundColor
                                 } else {
-                                    colorPaletteState.textColor
-                                }
-                            } else {
-                                Color.Transparent
-                            },
-                            unselectedContainerColor = if (drawerContainerState.tableOfContents.indexOf(
-                                    tocItem
-                                ) == targetSearchIndex
-                            ) {
-                                if (contentState.book?.isEditable == true) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    colorPaletteState.textColor
-                                }
-                            } else {
-                                Color.Transparent
-                            },
-                            selectedTextColor = if (contentState.book?.isEditable == true) {
-                                MaterialTheme.colorScheme.onBackground
-                            } else {
-                                colorPaletteState.tocTextColor
-                            },
-                            unselectedTextColor = if (contentState.book?.isEditable == true) {
-                                MaterialTheme.colorScheme.onBackground
-                            } else {
-                                colorPaletteState.tocTextColor.copy(alpha = 0.75f)
-                            },
-                        ),
-                        badge = {
-                            if (contentState.book?.isEditable == true) {
-                                IconButton(
-                                    onClick = {
-                                        onDeleteTocItem(tocItem)
-                                    },
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = Color.Transparent
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
-                                        contentDescription = null,
-                                        tint = if (isSystemInDarkTheme()) Color(
-                                            250,
-                                            160,
-                                            160
-                                        ) else Color(194, 59, 34)
-                                    )
-                                }
-                            }
-                        }
+                                    Color.Transparent
+                                },
+                            selectedTextColor = colorPaletteState.tocTextColor,
+                            unselectedTextColor = colorPaletteState.tocTextColor.copy(alpha = 0.75f),
+                        )
                     )
                 }
             }

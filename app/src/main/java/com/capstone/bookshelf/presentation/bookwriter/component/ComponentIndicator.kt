@@ -39,8 +39,6 @@ fun BottomIndicator(
     onAddParagraph: () -> Unit,
     onAddImage: () -> Unit,
     onDelete: () -> Unit,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit
 ){
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -61,18 +59,6 @@ fun BottomIndicator(
         IconButton(onClick = { onDelete() }) {
             Icon(
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete),
-                contentDescription = null,
-            )
-        }
-        IconButton(onClick = { onMoveUp() }) {
-            Icon(
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_up),
-                contentDescription = null,
-            )
-        }
-        IconButton( onClick = { onMoveDown() }) {
-            Icon(
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_down),
                 contentDescription = null,
             )
         }

@@ -44,7 +44,7 @@ fun AddTOCDialog(
     ) {
         var text by remember { mutableStateOf("") }
         var expanded by remember { mutableStateOf(false) }
-        val options = listOf("H1", "H2", "H3")
+        val options = listOf("H1", "H2", "H3", "H4", "H5", "H6")
         var selectedHeaderSize by remember { mutableStateOf(options[0]) }
         val focusManager = LocalFocusManager.current
         val isImeVisible = WindowInsets.isImeVisible

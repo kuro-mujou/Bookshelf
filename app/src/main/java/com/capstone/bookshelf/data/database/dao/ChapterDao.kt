@@ -10,7 +10,7 @@ import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 @Dao
 interface ChapterDao {
     @Transaction
-    @Query("SELECT * FROM chapter_content WHERE bookId = :bookId AND tocId = :tocId")
+    @Query("SELECT * FROM chapter_content WHERE bookId = :bookId AND tocId = :tocId ORDER BY tocId ASC")
     suspend fun getChapterContent(bookId: String, tocId: Int): ChapterContentEntity?
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -25,4 +25,6 @@ interface ChapterDao {
     @Query("UPDATE chapter_content SET tocId = tocId - 1 WHERE bookId = :bookId AND tocId > :tocId")
     suspend fun updateChapterIndexOnDelete(bookId: String, tocId: Int)
 
+    @Query("UPDATE chapter_content SET tocId = tocId + 1 WHERE bookId = :bookId AND tocId > :tocId")
+    suspend fun updateChapterIndexOnInsert(bookId: String, tocId: Int)
 }
