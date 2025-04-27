@@ -162,143 +162,161 @@ class TTSServiceHandler(
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
-        if (_isSpeaking.value) {
-            if (isPlaying) {
-                _isPaused.value = false
-                resumeReading()
-            } else {
-                _isPaused.value = true
-                pauseReading()
+        CoroutineScope(Dispatchers.Main).launch {
+            if (_isSpeaking.value) {
+                if (isPlaying) {
+                    _isPaused.value = false
+                    resumeReading()
+                } else {
+                    _isPaused.value = true
+                    pauseReading()
+                }
             }
         }
     }
 
     fun startReading(paragraphIndex: Int, chapterIndex: Int) {
-        if (!isTtsInitialized) {
-            return
-        }
-        if (currentChapterParagraphs.isEmpty()) {
-            return
-        }
-        audioFocusRequestResult = audioManager!!.requestAudioFocus(focusRequest!!)
-        _isSpeaking.value = true
-        _isPaused.value = false
-        currentReadingPositionInParagraph = 0
-        _currentParagraphIndex.value = paragraphIndex
-        _currentChapterIndex.value = chapterIndex
-        if (audioFocusRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-            startSpeakCurrentParagraph()
+        CoroutineScope(Dispatchers.Main).launch {
+            if (!isTtsInitialized) {
+                stopReading()
+            }
+            if (currentChapterParagraphs.isEmpty()) {
+                stopReading()
+            }
+            audioFocusRequestResult = audioManager!!.requestAudioFocus(focusRequest!!)
+            _isSpeaking.value = true
+            _isPaused.value = false
+            currentReadingPositionInParagraph = 0
+            _currentParagraphIndex.value = paragraphIndex
+            _currentChapterIndex.value = chapterIndex
+            if (audioFocusRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                startSpeakCurrentParagraph()
+            }
         }
     }
 
     fun pauseReading() {
-        if (textToSpeech?.isSpeaking == true) {
-            if (!enableBackgroundMusic) {
-                player?.pause()
-            } else {
-                player?.volume = 1f
+        CoroutineScope(Dispatchers.Main).launch {
+            if (textToSpeech?.isSpeaking == true) {
+                if (!enableBackgroundMusic) {
+                    player?.pause()
+                } else {
+                    player?.volume = 1f
+                }
+                textToSpeech?.stop()
             }
-            textToSpeech?.stop()
         }
     }
 
     fun resumeReading() {
-        if (!enableBackgroundMusic) {
-            player?.play()
-        } else {
-            player?.volume = 0.3f
+        CoroutineScope(Dispatchers.Main).launch {
+            if (!enableBackgroundMusic) {
+                player?.play()
+            } else {
+                player?.volume = 0.3f
+            }
+            startSpeakCurrentParagraph()
         }
-        startSpeakCurrentParagraph()
     }
 
     fun stopReading() {
-        if (!enableBackgroundMusic || isTracksNull) {
-            player?.stop()
-        } else {
-            player?.volume = 1f
+        CoroutineScope(Dispatchers.Main).launch {
+            if (!enableBackgroundMusic || isTracksNull) {
+                player?.stop()
+            } else {
+                player?.volume = 1f
+            }
+            _isSpeaking.value = false
+            _isPaused.value = false
+            textToSpeech?.stop()
+            _currentParagraphIndex.value = -1
+            currentReadingPositionInParagraph = 0
+            audioFocusRequestResult = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
         }
-        _isSpeaking.value = false
-        _isPaused.value = false
-        textToSpeech?.stop()
-        _currentParagraphIndex.value = -1
-        currentReadingPositionInParagraph = 0
-        audioFocusRequestResult = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
     }
 
     fun shutdown() {
-        stopReading()
-        textToSpeech?.shutdown()
-        textToSpeech = null
+        CoroutineScope(Dispatchers.Main).launch {
+            stopReading()
+            textToSpeech?.shutdown()
+            textToSpeech = null
+        }
     }
 
     private fun startSpeakCurrentParagraph() {
-        if (_currentChapterIndex.value != -1) {
-            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size) {
-                totalParagraphs = currentChapterParagraphs.size
-                val text = currentChapterParagraphs[_currentParagraphIndex.value]
-                textToSpeakNow = text.substring(currentReadingPositionInParagraph)
-                oldPos = text.length - textToSpeakNow.length
-                _scrollTimes.value = 0
-                flowTextLength = processTextLength(
-                    text = text,
-                    maxWidth = screenWidth,
-                    maxHeight = screenHeight,
-                    textStyle = TextStyle(
-                        textIndent = if (textIndentTTS)
-                            TextIndent(firstLine = (fontSizeTTS * 2).sp)
-                        else
-                            TextIndent.None,
-                        textAlign = if (textAlignTTS) TextAlign.Justify else TextAlign.Left,
-                        fontSize = fontSizeTTS.sp,
-                        fontFamily = fontFamilyTTS,
-                        lineBreak = LineBreak.Paragraph,
-                        lineHeight = (fontSizeTTS + lineSpacingTTS).sp
-                    ),
-                    textMeasurer = textMeasurer!!
-                )
-                sumLength = flowTextLength[_scrollTimes.value]
-                textToSpeech?.speak(
-                    textToSpeakNow,
-                    TextToSpeech.QUEUE_FLUSH,
-                    null,
-                    "paragraph_${_currentChapterIndex.value}_${_currentParagraphIndex.value}"
-                )
-            } else {
-                moveToNextChapterOrStop()
+        CoroutineScope(Dispatchers.Main).launch {
+            if (_currentChapterIndex.value != -1) {
+                if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size) {
+                    totalParagraphs = currentChapterParagraphs.size
+                    val text = currentChapterParagraphs[_currentParagraphIndex.value]
+                    textToSpeakNow = text.substring(currentReadingPositionInParagraph)
+                    oldPos = text.length - textToSpeakNow.length
+                    _scrollTimes.value = 0
+                    flowTextLength = processTextLength(
+                        text = text,
+                        maxWidth = screenWidth,
+                        maxHeight = screenHeight,
+                        textStyle = TextStyle(
+                            textIndent = if (textIndentTTS)
+                                TextIndent(firstLine = (fontSizeTTS * 2).sp)
+                            else
+                                TextIndent.None,
+                            textAlign = if (textAlignTTS) TextAlign.Justify else TextAlign.Left,
+                            fontSize = fontSizeTTS.sp,
+                            fontFamily = fontFamilyTTS,
+                            lineBreak = LineBreak.Paragraph,
+                            lineHeight = (fontSizeTTS + lineSpacingTTS).sp
+                        ),
+                        textMeasurer = textMeasurer!!
+                    )
+                    sumLength = flowTextLength[_scrollTimes.value]
+                    textToSpeech?.speak(
+                        textToSpeakNow,
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "paragraph_${_currentChapterIndex.value}_${_currentParagraphIndex.value}"
+                    )
+                } else {
+                    moveToNextChapterOrStop()
+                }
             }
         }
     }
 
     private fun playNextParagraphOrChapter() {
-        if (_currentChapterIndex.value != -1) {
-            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size - 1) {
-                _currentParagraphIndex.value += 1
-                currentReadingPositionInParagraph = 0
-                if (_isSpeaking.value && !_isPaused.value)
-                    startSpeakCurrentParagraph()
-            } else {
-                moveToNextChapterOrStop()
+        CoroutineScope(Dispatchers.Main).launch {
+            if (_currentChapterIndex.value != -1) {
+                if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size - 1) {
+                    _currentParagraphIndex.value += 1
+                    currentReadingPositionInParagraph = 0
+                    if (_isSpeaking.value && !_isPaused.value)
+                        startSpeakCurrentParagraph()
+                } else {
+                    moveToNextChapterOrStop()
+                }
             }
         }
     }
 
     private fun playPreviousParagraphOrChapter() {
-        if (_currentChapterIndex.value != -1) {
-            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value - 1 >= 0) {
-                _currentParagraphIndex.value -= 1
-                currentReadingPositionInParagraph = 0
-                if (_isSpeaking.value && !_isPaused.value)
-                    startSpeakCurrentParagraph()
-            } else {
-                moveToPreviousChapterOrStop()
+        CoroutineScope(Dispatchers.Main).launch {
+            if (_currentChapterIndex.value != -1) {
+                if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value - 1 >= 0) {
+                    _currentParagraphIndex.value -= 1
+                    currentReadingPositionInParagraph = 0
+                    if (_isSpeaking.value && !_isPaused.value)
+                        startSpeakCurrentParagraph()
+                } else {
+                    moveToPreviousChapterOrStop()
+                }
             }
         }
     }
 
     fun moveToNextChapterOrStop() {
-        if (_isSpeaking.value) {
-            if (_currentChapterIndex.value + 1 <= totalChapter) {
-                CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.Main).launch {
+            if (_isSpeaking.value) {
+                if ((_currentChapterIndex.value + 1) < totalChapter) {
                     textToSpeech?.stop()
                     currentReadingPositionInParagraph = 0
                     _currentParagraphIndex.value = 0
@@ -306,17 +324,17 @@ class TTSServiceHandler(
                     delay(1000L)
                     if (_isSpeaking.value && !_isPaused.value)
                         startSpeakCurrentParagraph()
+                } else {
+                    stopReading()
                 }
-            } else {
-                stopReading()
             }
         }
     }
 
     fun moveToPreviousChapterOrStop() {
-        if (_isSpeaking.value) {
-            if (_currentChapterIndex.value - 1 >= 0) {
-                CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.Main).launch {
+            if (_isSpeaking.value) {
+                if ((_currentChapterIndex.value - 1) >= 0) {
                     textToSpeech?.stop()
                     currentReadingPositionInParagraph = 0
                     _currentParagraphIndex.value = 0
@@ -324,15 +342,15 @@ class TTSServiceHandler(
                     delay(1000L)
                     if (_isSpeaking.value && !_isPaused.value)
                         startSpeakCurrentParagraph()
+                } else {
+                    stopReading()
                 }
-            } else {
-                stopReading()
             }
         }
     }
 
     private fun jumpToRandomChapter() {
-        CoroutineScope(Dispatchers.Default).launch {
+        CoroutineScope(Dispatchers.Main).launch {
             textToSpeech?.stop()
             currentReadingPositionInParagraph = 0
             _currentParagraphIndex.value = 0
