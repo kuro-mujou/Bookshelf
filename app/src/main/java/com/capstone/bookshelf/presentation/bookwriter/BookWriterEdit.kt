@@ -113,7 +113,8 @@ fun BookWriterEdit(
         },
         topBar = {
             TopBar(
-                bookWriterState,
+                bookWriterViewModel = bookWriterViewModel,
+                bookWriterState = bookWriterState,
                 onNavigateBack = {
                     bookWriterViewModel.onAction(BookWriterAction.SaveChapter(contentState.currentChapterIndex))
                     onNavigateBack()
@@ -211,6 +212,7 @@ fun <T> BookEditLazyColumn(
     }
     val dragDropState = rememberDragAndDropListState<Paragraph>(
         lazyListState = lazyListState,
+        stableIndex = 0,
         onMove = rememberedOnMove,
         getCurrentList = { bookWriterState.contentList }
     )

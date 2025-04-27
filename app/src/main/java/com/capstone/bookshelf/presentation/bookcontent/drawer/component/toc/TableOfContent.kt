@@ -228,7 +228,12 @@ fun TableOfContents(
                                 }
                             ),
                         colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = colorPaletteState.textColor,
+                            selectedContainerColor =
+                                if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
+                                    colorPaletteState.textBackgroundColor
+                                } else {
+                                    colorPaletteState.textColor
+                                },
                             unselectedContainerColor =
                                 if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
                                     colorPaletteState.textBackgroundColor

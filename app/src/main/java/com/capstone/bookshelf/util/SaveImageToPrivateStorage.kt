@@ -11,7 +11,6 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 
-@Suppress("DEPRECATION")
 fun saveImageToPrivateStorage(
     context: Context,
     bitmap: Bitmap?,
@@ -21,6 +20,7 @@ fun saveImageToPrivateStorage(
         val file = File(context.filesDir, "$filename.webp")
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
             FileOutputStream(file).use { outputStream ->
+                @Suppress("DEPRECATION")
                 bitmap?.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
             }
         } else {

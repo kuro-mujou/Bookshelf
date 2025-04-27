@@ -10,4 +10,5 @@ interface ChapterRepository {
     suspend fun deleteChapter(bookId: String, tocId: Int)
     suspend fun updateChapterIndexOnDelete(bookId: String, tocId: Int)
     suspend fun updateChapterIndexOnInsert(bookId: String, tocId: Int)
+    suspend fun swapTocIndex(bookId: String, chapterContentId: Int, from: Int, to: Int)
 }

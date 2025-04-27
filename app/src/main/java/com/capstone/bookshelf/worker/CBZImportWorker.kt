@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.util
+package com.capstone.bookshelf.worker
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -7,11 +7,11 @@ import android.content.Context
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
+import androidx.core.uri.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -23,6 +23,9 @@ import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
+import com.capstone.bookshelf.util.NaturalOrderComparator
+import com.capstone.bookshelf.util.calculateInSampleSize
+import com.capstone.bookshelf.util.saveBitmapToPrivateStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -30,6 +33,7 @@ import org.koin.core.component.inject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.zip.ZipFile
@@ -123,7 +127,7 @@ class CBZImportWorker(
         zipFileUri: Uri,
         originalDisplayName: String,
         onProgress: suspend (currentChapter: Int, totalChapters: Int, chapterName: String) -> Unit
-    ): kotlin.Result<String> {
+    ): kotlin.Result<String>  {
         var tempZipFile: File? = null
         val actualFileName = originalDisplayName
         val bookTitle = actualFileName.substringBeforeLast('.')
@@ -414,7 +418,7 @@ class CBZImportWorker(
 
     /** Decodes bitmap with sampling to prevent OOM errors. */
     private fun decodeSampledBitmapFromStream(
-        stream: java.io.InputStream,
+        stream: InputStream,
         reqWidth: Int = MAX_BITMAP_DIMENSION,
         reqHeight: Int = MAX_BITMAP_DIMENSION
     ): Bitmap? {

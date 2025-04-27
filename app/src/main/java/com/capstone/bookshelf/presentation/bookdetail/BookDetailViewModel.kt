@@ -31,7 +31,7 @@ class BookDetailViewModel(
     init {
         viewModelScope.launch {
             tableOfContentRepository
-                .getTableOfContents(bookId)
+                .getFlowTableOfContents(bookId)
                 .collectLatest { tableOfContents ->
                     _state.update {
                         it.copy(

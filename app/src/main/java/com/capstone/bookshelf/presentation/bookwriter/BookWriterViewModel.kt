@@ -1,6 +1,7 @@
 package com.capstone.bookshelf.presentation.bookwriter
 
 import android.graphics.BitmapFactory
+import android.widget.Toast
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -10,6 +11,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.capstone.bookshelf.app.Route
 import com.capstone.bookshelf.data.database.entity.BookEntity
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
@@ -24,7 +28,9 @@ import com.capstone.bookshelf.presentation.bookwriter.component.Paragraph
 import com.capstone.bookshelf.presentation.bookwriter.component.ParagraphType
 import com.capstone.bookshelf.util.calculateHeaderSizes
 import com.capstone.bookshelf.util.deleteImageFromPrivateStorage
+import com.capstone.bookshelf.util.move
 import com.capstone.bookshelf.util.saveImageToPrivateStorage
+import com.capstone.bookshelf.worker.EPUBExportWorker
 import com.mohamedrejeb.richeditor.model.RichTextState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -346,6 +352,26 @@ class BookWriterViewModel(
                     )
                 }
             }
+
+            is BookWriterAction.ExportEpub -> {
+                viewModelScope.launch {
+                    try {
+                        Toast.makeText(action.context, "Exporting EPUB", Toast.LENGTH_SHORT).show()
+                        val inputData = workDataOf(
+                            EPUBExportWorker.SAVE_URI to action.uri.toString(),
+                            EPUBExportWorker.BOOK_ID to selectedBookId,
+                            EPUBExportWorker.FONT_SIZE to action.fontSize
+                        )
+                        val request = OneTimeWorkRequestBuilder<EPUBExportWorker>()
+                            .setInputData(inputData)
+                            .build()
+                        WorkManager.getInstance(action.context).enqueue(request)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(action.context, "Something went wrong", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
     }
 
@@ -426,6 +452,13 @@ class BookWriterViewModel(
         )
     }
 
+    fun getBookTitle(callback: (String) -> Unit) {
+        viewModelScope.launch {
+            val book = bookRepository.getBook(selectedBookId)
+            callback(book?.title ?: "null")
+        }
+    }
+
     private fun getAllParagraphHtmlContent(): List<String> {
         val currentContentList = _bookWriterState.value.contentList
         if (currentContentList.isEmpty()) {
@@ -469,14 +502,4 @@ class BookWriterViewModel(
                 "<p style='font-size:${headingTextSizes[5]}px; font-weight:bold; text-align:center;'>$1</p>"
             )
     }
-}
-
-fun <T> List<T>.move(from: Int, to: Int): List<T> {
-    if (from !in indices || to !in indices) return this
-    if (from == to) return this
-
-    val mutableList = this.toMutableList()
-    val item = mutableList.removeAt(from)
-    mutableList.add(to, item)
-    return mutableList.toList()
 }

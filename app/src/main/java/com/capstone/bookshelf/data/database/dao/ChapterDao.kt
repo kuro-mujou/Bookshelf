@@ -27,4 +27,42 @@ interface ChapterDao {
 
     @Query("UPDATE chapter_content SET tocId = tocId + 1 WHERE bookId = :bookId AND tocId > :tocId")
     suspend fun updateChapterIndexOnInsert(bookId: String, tocId: Int)
+
+    @Query("""
+        UPDATE chapter_content
+        SET `tocId` = `tocId` + 1
+        WHERE bookId = :bookId
+        AND `tocId` >= :endIndex
+        AND `tocId` < :startIndex
+    """)
+    suspend fun shiftIndexesDown(bookId: String, startIndex: Int, endIndex: Int)
+
+    @Query("""
+        UPDATE chapter_content
+        SET `tocId` = `tocId` - 1
+        WHERE bookId = :bookId
+        AND `tocId` > :startIndex
+        AND `tocId` <= :endIndex
+    """)
+    suspend fun shiftIndexesUp(bookId: String, startIndex: Int, endIndex: Int)
+
+    @Query("""
+        UPDATE chapter_content
+        SET `tocId` = :newIndex
+        WHERE chapterContentId = :chapterContentId
+    """)
+    suspend fun updateDraggedItem(chapterContentId: Int, newIndex: Int)
+
+    @Transaction
+    suspend fun reorderChapterContent(bookId: String, chapterContentId: Int, startIndex: Int, endIndex: Int) {
+        if (startIndex == endIndex) return
+
+        if (startIndex > endIndex) {
+            shiftIndexesDown(bookId, startIndex, endIndex)
+        } else {
+            shiftIndexesUp(bookId, startIndex, endIndex)
+        }
+
+        updateDraggedItem(chapterContentId, endIndex)
+    }
 }

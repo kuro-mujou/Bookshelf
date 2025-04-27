@@ -1,10 +1,13 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc
 
 import android.annotation.SuppressLint
+import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,8 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,12 +37,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -49,37 +55,41 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.domain.wrapper.TableOfContent
 import com.capstone.bookshelf.presentation.bookcontent.component.dialog.AddTOCDialog
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
+import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerViewModel
 import com.capstone.bookshelf.util.CustomAlertDialog
-import kotlinx.coroutines.launch
+import com.capstone.bookshelf.util.DraggableItem
+import com.capstone.bookshelf.util.dragContainer
+import com.capstone.bookshelf.util.rememberDragAndDropListState
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 @UnstableApi
 fun TableOfContentsEditable(
+    drawerContainerViewModel: DrawerContainerViewModel,
     drawerContainerState: DrawerContainerState,
     contentState: ContentState,
     drawerLazyColumnState: LazyListState,
     onTocItemClick: (Int) -> Unit,
     onAddTocItem: (String, String) -> Unit,
-    onDeleteTocItem: (TableOfContent) -> Unit
+    onDeleteTocItem: (TableOfContent) -> Unit,
+    onMoveItem: (Int, Int) -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
-    val scope = rememberCoroutineScope()
-
+    var enableDeleteMode by remember { mutableStateOf(false) }
     var searchInput by remember { mutableStateOf("") }
     var targetSearchIndex by remember { mutableIntStateOf(-1) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showDeleteChapterDialog by remember { mutableStateOf(false) }
     var onDeleteItem by remember { mutableStateOf<TableOfContent?>(null) }
-    var enableSwapMode by remember { mutableStateOf(false) }
     var flag by remember { mutableStateOf(false) }
     LaunchedEffect(flag) {
         if (flag) {
@@ -94,6 +104,7 @@ fun TableOfContentsEditable(
             flag = false
             keyboardController?.hide()
             focusManager.clearFocus()
+            enableDeleteMode = false
         }
     }
     if (showAddDialog) {
@@ -182,11 +193,12 @@ fun TableOfContentsEditable(
                     .fillMaxWidth()
                     .wrapContentHeight(),
                 horizontalArrangement = Arrangement.End
-            ){
-                if(enableSwapMode){
+            ) {
+                if (enableDeleteMode) {
                     IconButton(
                         onClick = {
-                            enableSwapMode = false
+                            enableDeleteMode = false
+                            targetSearchIndex = -1
                         }
                     ) {
                         Icon(
@@ -198,9 +210,20 @@ fun TableOfContentsEditable(
                 } else {
                     IconButton(
                         onClick = {
-                            scope.launch {
-                                showAddDialog = true
-                            }
+                            enableDeleteMode = true
+                            targetSearchIndex = -1
+                        }
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            showAddDialog = true
+                            targetSearchIndex = -1
                         }
                     ) {
                         Icon(
@@ -211,26 +234,27 @@ fun TableOfContentsEditable(
                     }
                 }
             }
-            LazyColumn(
+            TocEditLazyColumn<TableOfContent>(
+                lazyListState = drawerLazyColumnState,
+                drawerContainerViewModel = drawerContainerViewModel,
+                moveItem = {from, to->
+                    onMoveItem(from, to)
+                },
                 modifier = Modifier.fillMaxSize(),
-                state = drawerLazyColumnState,
-            ) {
-                items(
-                    items = drawerContainerState.tableOfContents
-                ) { tocItem ->
+                itemContent = { itemData, itemModifier ->
                     CustomNavigationDrawerItem(
                         label = {
                             Text(
-                                text = tocItem.title,
+                                text = itemData.title,
                                 style =
-                                    if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
+                                    if (drawerContainerState.tableOfContents.indexOf(itemData) == targetSearchIndex) {
                                         TextStyle(
                                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Bold,
                                             fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,
                                         )
-                                    } else if (drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex) {
+                                    } else if (drawerContainerState.tableOfContents.indexOf(itemData) == contentState.currentChapterIndex) {
                                         TextStyle(
                                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                                             fontStyle = FontStyle.Italic,
@@ -246,26 +270,31 @@ fun TableOfContentsEditable(
                                     },
                             )
                         },
-                        selected = drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex,
-                        modifier = Modifier
+                        selected = drawerContainerState.tableOfContents.indexOf(itemData) == contentState.currentChapterIndex,
+                        modifier = itemModifier
                             .padding(4.dp, 2.dp, 4.dp, 2.dp)
                             .wrapContentHeight()
-                            .combinedClickable(
+                            .clickable(
                                 onClick = {
-                                    onTocItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
-                                },
-                                onLongClick = {
-                                    enableSwapMode = true
+                                    onTocItemClick(
+                                        drawerContainerState.tableOfContents.indexOf(
+                                            itemData
+                                        )
+                                    )
+                                    Log.d(
+                                        "TableOfContentsEditable",
+                                        "id: ${drawerContainerState.tableOfContents.indexOf(itemData)}"
+                                    )
                                 }
                             )
                             .then(
-                                if(drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex)
+                                if (drawerContainerState.tableOfContents.indexOf(itemData) == targetSearchIndex)
                                     Modifier.border(
                                         width = 1.dp,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                                         shape = RoundedCornerShape(25.dp)
                                     )
-                                else if (drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex && enableSwapMode){
+                                else if (drawerContainerState.tableOfContents.indexOf(itemData) == contentState.currentChapterIndex) {
                                     Modifier.border(
                                         width = 1.dp,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -276,9 +305,14 @@ fun TableOfContentsEditable(
                                 }
                             ),
                         colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            selectedContainerColor =
+                                if (drawerContainerState.tableOfContents.indexOf(itemData) == targetSearchIndex) {
+                                    MaterialTheme.colorScheme.tertiaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                },
                             unselectedContainerColor =
-                                if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex) {
+                                if (drawerContainerState.tableOfContents.indexOf(itemData) == targetSearchIndex) {
                                     MaterialTheme.colorScheme.tertiaryContainer
                                 } else {
                                     Color.Transparent
@@ -288,42 +322,12 @@ fun TableOfContentsEditable(
                         ),
                         badge = {
                             Row {
-                                if (enableSwapMode) {
-                                    if(drawerContainerState.tableOfContents.indexOf(tocItem) == contentState.currentChapterIndex) {
-                                        IconButton(
-                                            onClick = {
-
-                                            },
-                                            colors = IconButtonDefaults.iconButtonColors(
-                                                containerColor = Color.Transparent
-                                            )
-                                        ) {
-                                            Icon(
-                                                imageVector = ImageVector.vectorResource(R.drawable.ic_up),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onBackground
-                                            )
-                                        }
-                                        IconButton(
-                                            onClick = {
-
-                                            },
-                                            colors = IconButtonDefaults.iconButtonColors(
-                                                containerColor = Color.Transparent
-                                            )
-                                        ) {
-                                            Icon(
-                                                imageVector = ImageVector.vectorResource(R.drawable.ic_down),
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onBackground
-                                            )
-                                        }
-                                    }
-                                } else {
+                                if (enableDeleteMode) {
                                     IconButton(
                                         onClick = {
+                                            targetSearchIndex = -1
                                             showDeleteChapterDialog = true
-                                            onDeleteItem = tocItem
+                                            onDeleteItem = itemData
                                         },
                                         colors = IconButtonDefaults.iconButtonColors(
                                             containerColor = Color.Transparent
@@ -333,7 +337,7 @@ fun TableOfContentsEditable(
                                             imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
                                             contentDescription = null,
                                             tint = if (isSystemInDarkTheme())
-                                                Color(250,160,160)
+                                                Color(250, 160, 160)
                                             else
                                                 Color(194, 59, 34)
                                         )
@@ -341,6 +345,110 @@ fun TableOfContentsEditable(
                                 }
                             }
                         }
+                    )
+                }
+            )
+        }
+    }
+}
+
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun <T> TocEditLazyColumn(
+    lazyListState: LazyListState,
+    drawerContainerViewModel: DrawerContainerViewModel,
+    moveItem: (Int, Int) -> Unit,
+    modifier: Modifier = Modifier,
+    itemContent: @Composable LazyItemScope.(itemData: TableOfContent, modifier: Modifier) -> Unit
+) {
+    val drawerContainerState by drawerContainerViewModel.state.collectAsStateWithLifecycle()
+    val rememberedOnMove = remember<(Int, Int) -> Unit>(drawerContainerViewModel) {
+        { from, to ->
+            drawerContainerViewModel.moveItem(from, to)
+            moveItem(from, to)
+        }
+    }
+    val dragDropState = rememberDragAndDropListState<TableOfContent>(
+        lazyListState = lazyListState,
+        onMove = rememberedOnMove,
+        getCurrentList = { drawerContainerState.tableOfContents }
+    )
+
+    val getLazyListItemInfo: (Offset) -> LazyListItemInfo? = remember(lazyListState) {
+        { offset ->
+            lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
+                offset.y.toInt() in item.offset..(item.offset + item.size)
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .dragContainer(dragDropState, getLazyListItemInfo)
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize(),
+            state = lazyListState
+        ) {
+            itemsIndexed(
+                items = drawerContainerState.tableOfContents,
+                key = { index, item -> item.tocId!! }
+            ) { index, item ->
+                DraggableItem(
+                    dragAndDropListState = dragDropState,
+                    index = index
+                ) { _, itemModifier ->
+                    itemContent(
+                        item,
+                        itemModifier
+                    )
+                }
+            }
+        }
+
+        dragDropState.draggedItemData?.let { draggedItem: TableOfContent ->
+            dragDropState.currentDragPosition?.let { currentPosition ->
+                val itemHeight = dragDropState.draggedItemHeight?.toFloat() ?: 0f
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            translationX = 0f
+                            translationY = currentPosition.y - (itemHeight / 2f)
+                            scaleX = 1.05f
+                            scaleY = 1.05f
+                            shadowElevation = 8.dp.toPx()
+                            alpha = 0.9f
+                        }
+                ) {
+                    CustomNavigationDrawerItem(
+                        label = {
+                            Text(
+                                text = draggedItem.title,
+                                style =
+                                    TextStyle(
+                                        fontSize = 14.sp,
+                                        fontFamily = MaterialTheme.typography.bodyMedium.fontFamily,
+                                    )
+                            )
+                        },
+                        selected = false,
+                        modifier = Modifier
+                            .padding(4.dp, 2.dp, 4.dp, 2.dp)
+                            .wrapContentHeight()
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                shape = RoundedCornerShape(25.dp)
+                            ),
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = Color.Transparent,
+                            unselectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                            unselectedTextColor = MaterialTheme.colorScheme.onBackground,
+                        )
                     )
                 }
             }

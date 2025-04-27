@@ -75,6 +75,7 @@ import java.io.File
 @UnstableApi
 @Composable
 fun DrawerScreen(
+    drawerContainerViewModel: DrawerContainerViewModel,
     dataStoreManager: DataStoreManager,
     contentViewModel: ContentViewModel,
     drawerContainerState: DrawerContainerState,
@@ -97,6 +98,7 @@ fun DrawerScreen(
     onEditBookAuthor: (String) -> Unit,
     onEditBookCover: (Uri, String) -> Unit,
     onDeleteTocItem: (TableOfContent) -> Unit,
+    onMoveTocItem: (Int, Int) -> Unit,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -275,6 +277,7 @@ fun DrawerScreen(
                 }
                 if (contentState.book?.isEditable == true) {
                     TableOfContentsEditable(
+                        drawerContainerViewModel = drawerContainerViewModel,
                         drawerContainerState = drawerContainerState,
                         contentState = contentState,
                         drawerLazyColumnState = drawerLazyColumnState,
@@ -286,6 +289,9 @@ fun DrawerScreen(
                         },
                         onDeleteTocItem = {
                             onDeleteTocItem(it)
+                        },
+                        onMoveItem = {from, to->
+                            onMoveTocItem(from, to)
                         }
                     )
                 } else {

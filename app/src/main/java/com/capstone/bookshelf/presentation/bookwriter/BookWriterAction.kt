@@ -50,4 +50,5 @@ sealed interface BookWriterAction {
     data class UpdateSelectedItem(val selectedItem: String) : BookWriterAction
     data class UpdateTriggerScroll(val triggerScroll: Boolean) : BookWriterAction
     data class SetFocusTarget(val paragraphId: String) : BookWriterAction
+    data class ExportEpub(val context: Context, val uri: Uri, val fontSize: Float) : BookWriterAction
 }

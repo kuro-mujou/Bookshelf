@@ -52,10 +52,6 @@ fun <T> Modifier.dragContainer(
 
 @Composable
 fun <T> LazyItemScope.DraggableItem(
-    // --- Use full state object again if simpler ---
-    // It seems passing individual params didn't fix the core issue,
-    // and using the state object is cleaner if @Stable works.
-    // Let's assume DragAndDropListState IS marked @Stable.
     dragAndDropListState: DragAndDropListState<T>,
     index: Int,
     modifier: Modifier = Modifier,
@@ -64,12 +60,9 @@ fun <T> LazyItemScope.DraggableItem(
     val initialDraggingIndex = dragAndDropListState.initialIndexOfDraggedItem
     val currentHoverIndex = dragAndDropListState.currentHoveredItemIndex
     val draggedItemHeight = dragAndDropListState.draggedItemHeight
-    // Check if THIS item is the one originally dragged
     val isCurrentlyDraggedItem = index == initialDraggingIndex
 
-    // Calculate the TARGET offset based on current state
     val targetOffsetY = remember(initialDraggingIndex, currentHoverIndex, draggedItemHeight, index, isCurrentlyDraggedItem) {
-        // Calculation logic remains the same...
         val calculatedOffset = when {
             isCurrentlyDraggedItem -> 0f
             initialDraggingIndex == null || currentHoverIndex == null || draggedItemHeight == null -> 0f
@@ -81,24 +74,16 @@ fun <T> LazyItemScope.DraggableItem(
             }
             else -> 0f
         }
-        // Log.d("DraggableItem", "Index $index: Calculated TARGET Offset = $calculatedOffset")
         calculatedOffset
     }
 
-    // --- Animate the translationY ---
     val animatedOffsetY by animateFloatAsState(
         targetValue = targetOffsetY,
         label = "DraggableItemOffsetY"
-        // animationSpec = tween(durationMillis = 150) // Optional: Adjust speed
     )
-    // -------------------------------
-
-    // Log the value being applied (will now be the animated value)
-    // Log.d("DraggableItemApply", "Index $index: Applying animatedOffsetY = $animatedOffsetY, alpha = ${if (isCurrentlyDraggedItem) 0f else 1f}")
 
     val itemModifier = modifier
         .graphicsLayer {
-            // Apply the ANIMATED offset
             translationY = animatedOffsetY
             alpha = if (isCurrentlyDraggedItem) 0f else 1f
         }
@@ -109,6 +94,7 @@ fun <T> LazyItemScope.DraggableItem(
 @Composable
 fun <T> rememberDragAndDropListState(
     lazyListState: LazyListState,
+    stableIndex: Int? = null,
     onMove: (Int, Int) -> Unit,
     getCurrentList: () -> List<T>
 ): DragAndDropListState<T> {
@@ -116,6 +102,7 @@ fun <T> rememberDragAndDropListState(
     val state = remember(lazyListState, onMove, scope) {
         DragAndDropListState<T>(
             lazyListState = lazyListState,
+            stableIndex = stableIndex,
             onMove = onMove,
             scope = scope,
             getCurrentList = getCurrentList
@@ -138,15 +125,11 @@ fun <T> rememberDragAndDropListState(
 @Stable
 class DragAndDropListState<T>(
     val lazyListState: LazyListState,
+    val stableIndex : Int? = null,
     private val onMove: (Int, Int) -> Unit,
     private val scope: CoroutineScope,
     private val getCurrentList: () -> List<T>
 ) {
-    //should pass in the null object so we can check if the place holder is null
-    companion object{
-        const val UNDRAGGABLE_INDEX = 0
-    }
-
     val scrollChannel = Channel<Float>(Channel.UNLIMITED)
     var initialIndexOfDraggedItem by mutableStateOf<Int?>(null)
         private set
@@ -171,9 +154,10 @@ class DragAndDropListState<T>(
         startOffset: Offset,
         itemInfo: LazyListItemInfo?
     ) {
-        //in normal condition this if will not be called
-        if (itemInfo?.index == UNDRAGGABLE_INDEX) {
-            return
+        stableIndex?.let{
+            if (itemInfo?.index == it) {
+                return
+            }
         }
         cancelContinuousScroll()
         if (itemInfo != null) {
@@ -232,13 +216,14 @@ class DragAndDropListState<T>(
                 }
             }
         }
-        //in normal condition this if will not be called
-        if (newHoverIndex == UNDRAGGABLE_INDEX) {
-            val listSize = getCurrentList().size
-            newHoverIndex = if (listSize > 1) {
-                1
-            } else {
-                initialIndexOfDraggedItem
+        stableIndex?.let {
+            if (newHoverIndex == it) {
+                val listSize = getCurrentList().size
+                newHoverIndex = if (listSize > 1) {
+                    1
+                } else {
+                    initialIndexOfDraggedItem
+                }
             }
         }
         if (newHoverIndex != null && currentHoveredItemIndex != newHoverIndex) {
@@ -247,112 +232,16 @@ class DragAndDropListState<T>(
         checkAndManageAutoScroll()
     }
 
-//    fun onDrag(dragAmount: Offset, absolutePosition: Offset) {
-//        draggingDistance += dragAmount.y // Keep tracking for direction and scroll
-//        currentDragPosition = absolutePosition
-//
-//        val currentDraggingIdx = currentIndexOfDraggedItem ?: return
-//        val initialIndex = initialIndexOfDraggedItem ?: return
-//        val itemHeight = draggedItemHeight?.toFloat() ?: 0f
-//        //should not use this cus we calculate middle point of the preview item
-////        val fixOffsetPx = this.fixOffsetPx
-////        val previewTopY = absolutePosition.y
-////        val previewBottomY = previewTopY + itemHeight
-//        // Calculate the effective center of the preview for gap checking
-//        val previewCenterY = absolutePosition.y + itemHeight / 2f
-//
-//        val visibleItems = lazyListState.layoutInfo.visibleItemsInfo
-//        var newHoverIndex: Int? = null
-//
-//        // --- Hover Index Calculation v3 ---
-//
-//        // 1. Prioritize finding the item whose midpoint is closest to the preview's CENTER Y
-//        //    This is generally the most stable way to determine the target slot.
-//        val closestItem = visibleItems
-//            .filter { it.index != currentDraggingIdx } // Exclude self
-//            .minByOrNull { abs((it.offset + it.size / 2f) - previewCenterY) } // Find item with min distance from center
-//
-//        if (closestItem != null) {
-//            // Check if the preview center is actually within the bounds where it should target this item.
-//            // Generally, target the index of the closest item if the preview center is
-//            // below the midpoint of the item above it (if any) and
-//            // above the midpoint of the item below it (if any).
-//
-//            // Simpler approach: If the preview center is closer to this item's midpoint
-//            // than half the item's height, consider it a likely target.
-//            // A more robust check involves comparing to neighbours.
-//
-//            // Let's refine: Determine if the preview center is before or after the closest item's center
-//            val closestItemMidY = closestItem.offset + closestItem.size / 2f
-//
-//            if (previewCenterY <= closestItemMidY) {
-//                // If preview center is at or above the closest item's center, target THIS item's index
-//                newHoverIndex = closestItem.index
-//            } else {
-//                // If preview center is below the closest item's center, target the NEXT index
-//                newHoverIndex = closestItem.index + 1
-//            }
-//            Log.d("DragDropDebug", "onDrag Hover: Closest Item Idx: ${closestItem.index}, Preview Center: $previewCenterY, Closest MidY: $closestItemMidY -> Target Index $newHoverIndex")
-//
-//        } else if (visibleItems.any { it.index != currentDraggingIdx }) {
-//            // If no "closest" found but other items exist, maybe we are way above or below?
-//            // Fallback: Check if above all visible items or below all visible items
-//            val firstOtherVisible = visibleItems.firstOrNull { it.index != currentDraggingIdx }
-//            val lastOtherVisible = visibleItems.lastOrNull { it.index != currentDraggingIdx }
-//
-//            newHoverIndex = if (firstOtherVisible != null && previewCenterY < (firstOtherVisible.offset + firstOtherVisible.size / 2f)) {
-//                // Above the first item's center
-//                firstOtherVisible.index
-//            } else if (lastOtherVisible != null && previewCenterY > (lastOtherVisible.offset + lastOtherVisible.size / 2f)) {
-//                // Below the last item's center
-//                lastOtherVisible.index + 1
-//            } else {
-//                // Should not happen if items exist, fallback to initial
-//                initialIndex
-//            }
-//            Log.d("DragDropDebug", "onDrag Hover: Edge Case Fallback -> Target Index $newHoverIndex")
-//        } else {
-//            // Only the dragged item is visible
-//            newHoverIndex = initialIndex
-//            Log.d("DragDropDebug", "onDrag Hover: Only dragged item visible -> Target Index $newHoverIndex")
-//        }
-//
-//
-//        // Prevent hovering/dropping onto UNDRAGGABLE_INDEX
-//        if (newHoverIndex != null && newHoverIndex <= UNDRAGGABLE_INDEX) {
-//            val listSize = getCurrentList().size
-//            newHoverIndex = if (listSize > 1 && initialIndex > UNDRAGGABLE_INDEX) {
-//                UNDRAGGABLE_INDEX + 1
-//            } else {
-//                initialIndex
-//            }
-//            Log.d("DragDropDebug", "onDrag Hover: Corrected hover index from <=$UNDRAGGABLE_INDEX to $newHoverIndex")
-//        }
-//
-//        // Clamp to valid range (1 to list size)
-//        val totalCount = getCurrentList().size
-//        // Allow hovering index `totalCount` which means dropping at the very end
-//        newHoverIndex = newHoverIndex?.coerceIn(UNDRAGGABLE_INDEX + 1, totalCount)
-//
-//
-//        // Update Hover State only if it changed
-//        if (newHoverIndex != null && currentHoveredItemIndex != newHoverIndex) {
-//            Log.d("DragDropDebug", "onDrag: Updating hover index from $currentHoveredItemIndex to $newHoverIndex")
-//            currentHoveredItemIndex = newHoverIndex
-//        }
-//
-//        checkAndManageAutoScroll()
-//    }
     fun onDragEnd() {
         cancelContinuousScroll()
         val initialIndex = initialIndexOfDraggedItem
         val targetIndex = currentHoveredItemIndex
         if (initialIndex != null && targetIndex != null && initialIndex != targetIndex) {
-//            in normal condition this will be called
-//            onMove(initialIndex, targetIndex)
-            if (targetIndex != UNDRAGGABLE_INDEX) {
-                onMove(initialIndex, targetIndex)
-            }
+            stableIndex?.let{
+                if (targetIndex != stableIndex) {
+                    onMove(initialIndex, targetIndex)
+                }
+            }?: onMove(initialIndex, targetIndex)
         }
         resetInternalState()
     }

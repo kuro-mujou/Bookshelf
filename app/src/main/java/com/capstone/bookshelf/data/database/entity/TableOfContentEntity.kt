@@ -12,10 +12,6 @@ import androidx.room.PrimaryKey
             value = ["bookId"],
             unique = false
         ),
-//        Index(
-//            value = ["index"],
-//            unique = true
-//        )
     ],
     foreignKeys = [ForeignKey(
         entity = BookEntity::class,

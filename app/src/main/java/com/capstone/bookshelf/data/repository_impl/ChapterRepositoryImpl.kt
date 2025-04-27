@@ -38,4 +38,13 @@ class ChapterRepositoryImpl(
     override suspend fun updateChapterIndexOnInsert(bookId: String, tocId: Int) {
         chapterDao.updateChapterIndexOnInsert(bookId, tocId)
     }
+
+    override suspend fun swapTocIndex(bookId: String, chapterContentId: Int, from: Int, to: Int) {
+        chapterDao.reorderChapterContent(
+            bookId = bookId,
+            chapterContentId = chapterContentId,
+            startIndex = from,
+            endIndex = to
+        )
+    }
 }

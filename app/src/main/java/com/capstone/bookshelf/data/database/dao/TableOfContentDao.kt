@@ -12,7 +12,11 @@ import kotlinx.coroutines.flow.Flow
 interface TableOfContentDao {
     @Transaction
     @Query("SELECT * FROM table_of_contents WHERE bookId = :bookId ORDER BY `index` ASC")
-    fun getTableOfContents(bookId: String): Flow<List<TableOfContentEntity>>
+    fun getFlowTableOfContents(bookId: String): Flow<List<TableOfContentEntity>>
+
+    @Transaction
+    @Query("SELECT * FROM table_of_contents WHERE bookId = :bookId ORDER BY `index` ASC")
+    suspend fun getTableOfContents(bookId: String): List<TableOfContentEntity>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTableOfContent(tableOfContent: TableOfContentEntity): Long
@@ -36,5 +40,43 @@ interface TableOfContentDao {
     @Query("UPDATE table_of_contents SET `index` = `index` + 1 WHERE bookId = :bookId AND `index` > :index")
     suspend fun updateTableOfContentIndexOnInsert(bookId: String, index: Int)
 
+    @Query("""
+        UPDATE table_of_contents
+        SET `index` = `index` + 1
+        WHERE bookId = :bookId
+        AND `index` >= :endIndex
+        AND `index` < :startIndex
+    """)
+    suspend fun shiftIndexesDown(bookId: String, startIndex: Int, endIndex: Int)
 
+    @Query("""
+        UPDATE table_of_contents
+        SET `index` = `index` - 1
+        WHERE bookId = :bookId
+        AND `index` > :startIndex
+        AND `index` <= :endIndex
+    """)
+    suspend fun shiftIndexesUp(bookId: String, startIndex: Int, endIndex: Int)
+
+    @Query("""
+        UPDATE table_of_contents
+        SET `index` = :newIndex
+        WHERE tocId = :tocId
+    """)
+    suspend fun updateDraggedItem(tocId: Int, newIndex: Int)
+
+    @Transaction
+    suspend fun reorderTableOfContents(bookId: String, tocId: Int, startIndex: Int, endIndex: Int) {
+        if (startIndex == endIndex) return
+
+        if (startIndex > endIndex) {
+            // Moving up
+            shiftIndexesDown(bookId, startIndex, endIndex)
+        } else {
+            // Moving down
+            shiftIndexesUp(bookId, startIndex, endIndex)
+        }
+
+        updateDraggedItem(tocId, endIndex)
+    }
 }

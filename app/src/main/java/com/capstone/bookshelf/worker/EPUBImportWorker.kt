@@ -1,15 +1,15 @@
-package com.capstone.bookshelf.util
+package com.capstone.bookshelf.worker
 
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
+import androidx.core.uri.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -21,6 +21,9 @@ import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
+import com.capstone.bookshelf.util.NaturalOrderComparator
+import com.capstone.bookshelf.util.decodeSampledBitmapFromStream
+import com.capstone.bookshelf.util.saveBitmapToPrivateStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nl.siegmann.epublib.domain.Author
@@ -29,6 +32,7 @@ import nl.siegmann.epublib.domain.Resource
 import nl.siegmann.epublib.domain.TOCReference
 import nl.siegmann.epublib.epub.EpubReader
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Node
 import org.jsoup.nodes.TextNode
@@ -42,7 +46,7 @@ import java.io.IOException
 import java.math.BigInteger
 import java.security.MessageDigest
 
-class EpubImportWorker(
+class EPUBImportWorker(
     private val appContext: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params), KoinComponent {
@@ -253,7 +257,7 @@ class EpubImportWorker(
             val resource = tocEntriesForResource.first().resource ?: continue
 
             var chapterHtml: String? = null
-            var document: org.jsoup.nodes.Document? = null
+            var document: Document? = null
             try {
                 resource.inputStream.use { stream ->
                     chapterHtml = stream.bufferedReader().readText()
@@ -415,7 +419,7 @@ class EpubImportWorker(
 
     /** Parses HTML segment between anchors, includes content within start anchor */
     private fun parseChapterHtmlSegment(
-        document: org.jsoup.nodes.Document,
+        document: Document,
         startAnchorId: String?,
         endAnchorId: String?,
         book: Book,

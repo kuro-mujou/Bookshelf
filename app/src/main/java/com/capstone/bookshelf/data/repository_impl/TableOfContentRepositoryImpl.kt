@@ -16,11 +16,19 @@ class TableOfContentRepositoryImpl(
         return tableOfContentDao.insertTableOfContent(tocEntity)
     }
 
-    override suspend fun getTableOfContents(bookId: String): Flow<List<TableOfContent>> {
+    override suspend fun getFlowTableOfContents(bookId: String): Flow<List<TableOfContent>> {
+        return tableOfContentDao
+            .getFlowTableOfContents(bookId)
+            .map { entity ->
+                entity.map { it.toDataClass() }
+            }
+    }
+
+    override suspend fun getTableOfContents(bookId: String): List<TableOfContent> {
         return tableOfContentDao
             .getTableOfContents(bookId)
             .map { entity ->
-                entity.map { it.toDataClass() }
+                entity.toDataClass()
             }
     }
 
@@ -52,4 +60,12 @@ class TableOfContentRepositoryImpl(
         tableOfContentDao.updateTableOfContentIndexOnInsert(bookId, index)
     }
 
+    override suspend fun swapTableOfContent(currentBookId: String, draggedItemTocId: Int, fromIndex: Int, toIndex: Int) {
+        tableOfContentDao.reorderTableOfContents(
+            bookId = currentBookId,
+            tocId = draggedItemTocId,
+            startIndex = fromIndex,
+            endIndex = toIndex
+        )
+    }
 }

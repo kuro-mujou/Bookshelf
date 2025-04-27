@@ -223,10 +223,29 @@ class DrawerContainerViewModel(
         }
     }
 
+    fun moveItem(from: Int, to: Int) {
+        viewModelScope.launch {
+            val tocItem = tableOfContentsRepository.getTableOfContent(bookId, from)
+            val chapterItem = chapterRepository.getChapterContent(bookId, from)
+            tableOfContentsRepository.swapTableOfContent(
+                currentBookId = bookId,
+                draggedItemTocId = tocItem?.tocId!!,
+                fromIndex = from,
+                toIndex = to
+            )
+            chapterRepository.swapTocIndex(
+                bookId = bookId,
+                chapterContentId = chapterItem?.chapterContentId!!,
+                from = from,
+                to = to
+            )
+        }
+    }
+
     init {
         viewModelScope.launch {
             tableOfContentsRepository
-                .getTableOfContents(bookId)
+                .getFlowTableOfContents(bookId)
                 .collectLatest { tableOfContents ->
                     _state.update {
                         it.copy(

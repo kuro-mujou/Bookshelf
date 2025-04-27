@@ -54,6 +54,7 @@ import com.capstone.bookshelf.presentation.bookwriter.BookWriterEdit
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import com.capstone.bookshelf.util.isDark
+import com.capstone.bookshelf.util.updateFocusIndex
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -154,6 +155,7 @@ fun BookContentScreenRoot(
         yield()
     }
     DrawerScreen(
+        drawerContainerViewModel = drawerContainerViewModel,
         dataStoreManager = dataStoreManager,
         contentViewModel = viewModel,
         drawerContainerState = drawerContainerState,
@@ -250,6 +252,14 @@ fun BookContentScreenRoot(
                 }
             }
         },
+        onMoveTocItem = {from, to->
+            val updatedIndex = updateFocusIndex(
+                focusedIndex = contentState.currentChapterIndex,
+                startIndex = from,
+                endIndex = to
+            )
+            viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(updatedIndex))
+        }
     ) {
         LaunchedEffect(contentState.book) {
             if (contentState.book != null) {

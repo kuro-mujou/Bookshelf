@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.util
+package com.capstone.bookshelf.worker
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,13 +9,13 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
-import android.net.Uri
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
+import androidx.core.uri.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -27,6 +27,7 @@ import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
+import com.capstone.bookshelf.util.saveBitmapToPrivateStorage
 import com.tom_roush.pdfbox.contentstream.operator.Operator
 import com.tom_roush.pdfbox.cos.COSBase
 import com.tom_roush.pdfbox.cos.COSName
