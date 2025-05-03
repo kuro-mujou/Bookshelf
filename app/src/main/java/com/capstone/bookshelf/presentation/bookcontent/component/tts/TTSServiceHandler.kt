@@ -3,6 +3,8 @@ package com.capstone.bookshelf.presentation.bookcontent.component.tts
 import android.content.Context
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
@@ -23,12 +25,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import java.util.Locale
 
 @UnstableApi
@@ -162,202 +160,181 @@ class TTSServiceHandler(
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (_isSpeaking.value) {
-                if (isPlaying) {
-                    _isPaused.value = false
-                    resumeReading()
-                } else {
-                    _isPaused.value = true
-                    pauseReading()
-                }
+        if (_isSpeaking.value) {
+            if (isPlaying) {
+                _isPaused.value = false
+                resumeReading()
+            } else {
+                _isPaused.value = true
+                pauseReading()
             }
         }
     }
 
     fun startReading(paragraphIndex: Int, chapterIndex: Int) {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (!isTtsInitialized) {
-                stopReading()
-            }
-            if (currentChapterParagraphs.isEmpty()) {
-                stopReading()
-            }
-            audioFocusRequestResult = audioManager!!.requestAudioFocus(focusRequest!!)
-            _isSpeaking.value = true
-            _isPaused.value = false
-            currentReadingPositionInParagraph = 0
-            _currentParagraphIndex.value = paragraphIndex
-            _currentChapterIndex.value = chapterIndex
-            if (audioFocusRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                startSpeakCurrentParagraph()
-            }
+        if (!isTtsInitialized) {
+            stopReading()
         }
-    }
-
-    fun pauseReading() {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (textToSpeech?.isSpeaking == true) {
-                if (!enableBackgroundMusic) {
-                    player?.pause()
-                } else {
-                    player?.volume = 1f
-                }
-                textToSpeech?.stop()
-            }
+        if (currentChapterParagraphs.isEmpty()) {
+            stopReading()
         }
-    }
-
-    fun resumeReading() {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (!enableBackgroundMusic) {
-                player?.play()
-            } else {
-                player?.volume = 0.3f
-            }
+        audioFocusRequestResult = audioManager!!.requestAudioFocus(focusRequest!!)
+        _isSpeaking.value = true
+        _isPaused.value = false
+        currentReadingPositionInParagraph = 0
+        _currentParagraphIndex.value = paragraphIndex
+        _currentChapterIndex.value = chapterIndex
+        if (audioFocusRequestResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             startSpeakCurrentParagraph()
         }
     }
 
-    fun stopReading() {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (!enableBackgroundMusic || isTracksNull) {
-                player?.stop()
+    fun pauseReading() {
+        if (textToSpeech?.isSpeaking == true) {
+            if (!enableBackgroundMusic) {
+                player?.pause()
             } else {
                 player?.volume = 1f
             }
-            _isSpeaking.value = false
-            _isPaused.value = false
             textToSpeech?.stop()
-            _currentParagraphIndex.value = -1
-            currentReadingPositionInParagraph = 0
-            audioFocusRequestResult = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
         }
+    }
+
+    fun resumeReading() {
+        if (!enableBackgroundMusic) {
+            player?.play()
+        } else {
+            player?.volume = 0.3f
+        }
+        startSpeakCurrentParagraph()
+    }
+
+    fun stopReading() {
+        if (!enableBackgroundMusic || isTracksNull) {
+            player?.stop()
+        } else {
+            player?.volume = 1f
+        }
+        _isSpeaking.value = false
+        _isPaused.value = false
+        textToSpeech?.stop()
+        _currentParagraphIndex.value = -1
+        currentReadingPositionInParagraph = 0
+        audioFocusRequestResult = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
     }
 
     fun shutdown() {
-        CoroutineScope(Dispatchers.Main).launch {
-            stopReading()
-            textToSpeech?.shutdown()
-            textToSpeech = null
-        }
+        stopReading()
+        textToSpeech?.shutdown()
+        textToSpeech = null
     }
 
     private fun startSpeakCurrentParagraph() {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (_currentChapterIndex.value != -1) {
-                if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size) {
-                    totalParagraphs = currentChapterParagraphs.size
-                    val text = currentChapterParagraphs[_currentParagraphIndex.value]
-                    textToSpeakNow = text.substring(currentReadingPositionInParagraph)
-                    oldPos = text.length - textToSpeakNow.length
-                    _scrollTimes.value = 0
-                    flowTextLength = processTextLength(
-                        text = text,
-                        maxWidth = screenWidth,
-                        maxHeight = screenHeight,
-                        textStyle = TextStyle(
-                            textIndent = if (textIndentTTS)
-                                TextIndent(firstLine = (fontSizeTTS * 2).sp)
-                            else
-                                TextIndent.None,
-                            textAlign = if (textAlignTTS) TextAlign.Justify else TextAlign.Left,
-                            fontSize = fontSizeTTS.sp,
-                            fontFamily = fontFamilyTTS,
-                            lineBreak = LineBreak.Paragraph,
-                            lineHeight = (fontSizeTTS + lineSpacingTTS).sp
-                        ),
-                        textMeasurer = textMeasurer!!
-                    )
-                    sumLength = flowTextLength[_scrollTimes.value]
-                    textToSpeech?.speak(
-                        textToSpeakNow,
-                        TextToSpeech.QUEUE_FLUSH,
-                        null,
-                        "paragraph_${_currentChapterIndex.value}_${_currentParagraphIndex.value}"
-                    )
-                } else {
-                    moveToNextChapterOrStop()
-                }
+        if (_currentChapterIndex.value != -1) {
+            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size) {
+                totalParagraphs = currentChapterParagraphs.size
+                val text = currentChapterParagraphs[_currentParagraphIndex.value]
+                textToSpeakNow = text.substring(currentReadingPositionInParagraph)
+                oldPos = text.length - textToSpeakNow.length
+                _scrollTimes.value = 0
+                flowTextLength = processTextLength(
+                    text = text,
+                    maxWidth = screenWidth,
+                    maxHeight = screenHeight,
+                    textStyle = TextStyle(
+                        textIndent = if (textIndentTTS)
+                            TextIndent(firstLine = (fontSizeTTS * 2).sp)
+                        else
+                            TextIndent.None,
+                        textAlign = if (textAlignTTS) TextAlign.Justify else TextAlign.Left,
+                        fontSize = fontSizeTTS.sp,
+                        fontFamily = fontFamilyTTS,
+                        lineBreak = LineBreak.Paragraph,
+                        lineHeight = (fontSizeTTS + lineSpacingTTS).sp
+                    ),
+                    textMeasurer = textMeasurer!!
+                )
+                sumLength = flowTextLength[_scrollTimes.value]
+                textToSpeech?.speak(
+                    textToSpeakNow,
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "paragraph_${_currentChapterIndex.value}_${_currentParagraphIndex.value}"
+                )
+            } else {
+                moveToNextChapterOrStop()
             }
         }
     }
 
     private fun playNextParagraphOrChapter() {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (_currentChapterIndex.value != -1) {
-                if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size - 1) {
-                    _currentParagraphIndex.value += 1
-                    currentReadingPositionInParagraph = 0
-                    if (_isSpeaking.value && !_isPaused.value)
-                        startSpeakCurrentParagraph()
-                } else {
-                    moveToNextChapterOrStop()
-                }
+        if (_currentChapterIndex.value != -1) {
+            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value < currentChapterParagraphs.size - 1) {
+                _currentParagraphIndex.value += 1
+                currentReadingPositionInParagraph = 0
+                if (_isSpeaking.value && !_isPaused.value)
+                    startSpeakCurrentParagraph()
+            } else {
+                moveToNextChapterOrStop()
             }
         }
     }
 
     private fun playPreviousParagraphOrChapter() {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (_currentChapterIndex.value != -1) {
-                if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value - 1 >= 0) {
-                    _currentParagraphIndex.value -= 1
-                    currentReadingPositionInParagraph = 0
-                    if (_isSpeaking.value && !_isPaused.value)
-                        startSpeakCurrentParagraph()
-                } else {
-                    moveToPreviousChapterOrStop()
-                }
+        if (_currentChapterIndex.value != -1) {
+            if (currentChapterParagraphs.isNotEmpty() && _currentParagraphIndex.value - 1 >= 0) {
+                _currentParagraphIndex.value -= 1
+                currentReadingPositionInParagraph = 0
+                if (_isSpeaking.value && !_isPaused.value)
+                    startSpeakCurrentParagraph()
+            } else {
+                moveToPreviousChapterOrStop()
             }
         }
     }
 
     fun moveToNextChapterOrStop() {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (_isSpeaking.value) {
-                if ((_currentChapterIndex.value + 1) < totalChapter) {
-                    textToSpeech?.stop()
-                    currentReadingPositionInParagraph = 0
-                    _currentParagraphIndex.value = 0
-                    _currentChapterIndex.value += 1
-                    delay(1000L)
+        if (_isSpeaking.value) {
+            if ((_currentChapterIndex.value + 1) < totalChapter) {
+                textToSpeech?.stop()
+                currentReadingPositionInParagraph = 0
+                _currentParagraphIndex.value = 0
+                _currentChapterIndex.value += 1
+                Handler(Looper.getMainLooper()).postDelayed({
                     if (_isSpeaking.value && !_isPaused.value)
                         startSpeakCurrentParagraph()
-                } else {
-                    stopReading()
-                }
+                }, 1000)
+            } else {
+                stopReading()
             }
         }
     }
 
     fun moveToPreviousChapterOrStop() {
-        CoroutineScope(Dispatchers.Main).launch {
-            if (_isSpeaking.value) {
-                if ((_currentChapterIndex.value - 1) >= 0) {
-                    textToSpeech?.stop()
-                    currentReadingPositionInParagraph = 0
-                    _currentParagraphIndex.value = 0
-                    _currentChapterIndex.value -= 1
-                    delay(1000L)
+        if (_isSpeaking.value) {
+            if ((_currentChapterIndex.value - 1) >= 0) {
+                textToSpeech?.stop()
+                currentReadingPositionInParagraph = 0
+                _currentParagraphIndex.value = 0
+                _currentChapterIndex.value -= 1
+                Handler(Looper.getMainLooper()).postDelayed({
                     if (_isSpeaking.value && !_isPaused.value)
                         startSpeakCurrentParagraph()
-                } else {
-                    stopReading()
-                }
+                }, 1000)
+            } else {
+                stopReading()
             }
         }
     }
 
     private fun jumpToRandomChapter() {
-        CoroutineScope(Dispatchers.Main).launch {
-            textToSpeech?.stop()
-            currentReadingPositionInParagraph = 0
-            _currentParagraphIndex.value = 0
-            delay(1000L)
+        textToSpeech?.stop()
+        currentReadingPositionInParagraph = 0
+        _currentParagraphIndex.value = 0
+        Handler(Looper.getMainLooper()).postDelayed({
             if (_isSpeaking.value && !_isPaused.value)
                 startSpeakCurrentParagraph()
-        }
+        }, 1000)
     }
 
     private fun processTextLength(
