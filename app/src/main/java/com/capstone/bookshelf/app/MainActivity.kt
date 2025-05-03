@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
                 ImportBook(
                     context = this,
                     scope = this.lifecycleScope
-                ).importBook(uri)
+                ).processIntentUri(uri)
             }
         }
     }

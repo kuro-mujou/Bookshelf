@@ -51,18 +51,19 @@ class BookDetailViewModel(
                     }
                 }
         }
+        viewModelScope.launch {
+            bookRepository.getBook(bookId).let { book ->
+                _state.update {
+                    it.copy(
+                        book = book
+                    )
+                }
+            }
+        }
     }
 
     fun onAction(action: BookDetailAction) {
         when (action) {
-            is BookDetailAction.OnSelectedBookChange -> {
-                _state.update {
-                    it.copy(
-                        book = action.book
-                    )
-                }
-            }
-
             is BookDetailAction.OnDrawerItemClick -> {
                 viewModelScope.launch {
                     bookRepository.saveBookInfoChapterIndex(bookId, action.index)

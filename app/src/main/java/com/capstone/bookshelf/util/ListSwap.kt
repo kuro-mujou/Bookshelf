@@ -1,12 +1,25 @@
 package com.capstone.bookshelf.util
 
 fun <T> List<T>.move(from: Int, to: Int): List<T> {
-    if (from !in indices || to !in indices) return this
-    if (from == to) return this
-
+    val size = this.size
+    if (from !in 0..<size) {
+        return this
+    }
+    if (to < 0 || to > size) {
+        return this
+    }
+    if (from == to) {
+        return this
+    }
     val mutableList = this.toMutableList()
     val item = mutableList.removeAt(from)
-    mutableList.add(to, item)
+    val adjustedTo = if (to > from) to - 1 else to
+
+    if (adjustedTo <= mutableList.size) {
+        mutableList.add(adjustedTo, item)
+    } else {
+        return mutableList.toList()
+    }
     return mutableList.toList()
 }
 

@@ -76,7 +76,6 @@ fun BookContentScreenRoot(
     val contentState by viewModel.state.collectAsStateWithLifecycle()
     val drawerContainerState by drawerContainerViewModel.state.collectAsStateWithLifecycle()
     val colorPaletteState by colorPaletteViewModel.colorPalette.collectAsStateWithLifecycle()
-//    val bookWriterState by bookWriterViewModel.bookWriterState.collectAsStateWithLifecycle()
     val hazeState = remember { HazeState() }
     val textMeasurer = rememberTextMeasurer()
     val scope = rememberCoroutineScope()
@@ -525,6 +524,7 @@ fun BookContentScreenRoot(
                                     dataStoreManager.autoScrollResumeDelayTime.first()
                                 )
                             )
+                            viewModel.onContentAction(ContentAction.UpdateBookAsRecentRead)
                         }
                         ContentScreen(
                             viewModel = viewModel,

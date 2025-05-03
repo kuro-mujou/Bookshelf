@@ -232,6 +232,102 @@ class DragAndDropListState<T>(
         checkAndManageAutoScroll()
     }
 
+//    fun onDrag(dragAmount: Offset, absolutePosition: Offset) {
+//        draggingDistance += dragAmount.y
+//        currentDragPosition = absolutePosition
+//
+//        val currentDraggingIdx = currentIndexOfDraggedItem ?: return
+//        val initialIndex = initialIndexOfDraggedItem ?: return
+//        val itemHeight = draggedItemHeight?.toFloat() ?: 0f
+//
+//        // --- Use preview center for hover detection ---
+//        // Assuming overlay is centered or offset correctly relative to absolutePosition.y
+//        // If using fixOffset: val previewTopY = absolutePosition.y - fixOffsetPx
+//        // If using centering: val previewTopY = absolutePosition.y - (itemHeight / 2f)
+//        // Calculate center based on your chosen preview positioning method:
+//        val previewCenterY = absolutePosition.y // Adjust if needed based on overlay offset
+//
+//        val visibleItems = lazyListState.layoutInfo.visibleItemsInfo
+//        val otherVisibleItems = visibleItems.filter { it.index != currentDraggingIdx } // Exclude self
+//        val totalCount = getCurrentList().size // Get total count for bounds checks
+//
+//        var newHoverIndex: Int? = null
+//
+//        // --- Hover Index Calculation v4 (Handling End of List) ---
+//
+//        if (otherVisibleItems.isNotEmpty()) {
+//            // Find the item whose midpoint is closest to the preview's CENTER Y
+//            val closestItem = otherVisibleItems
+//                .minByOrNull { abs((it.offset + it.size / 2f) - previewCenterY) }
+//
+//            if (closestItem != null) {
+//                val closestItemMidY = closestItem.offset + closestItem.size / 2f
+//
+//                if (previewCenterY <= closestItemMidY) {
+//                    // Preview center is at or above the closest item's center -> target this item's index
+//                    newHoverIndex = closestItem.index
+//                } else {
+//                    // Preview center is below the closest item's center
+//                    // Is this the *last* item in the list?
+//                    if (closestItem.index == totalCount - 1) {
+//                        // If closest is the last, and we are below its center, target position AFTER it
+//                        newHoverIndex = totalCount
+//                    } else {
+//                        // Otherwise, target the index after the closest item
+//                        newHoverIndex = closestItem.index + 1
+//                    }
+//                }
+//                Log.d("DragDropDebug", "onDrag Hover: Closest Item Idx: ${closestItem.index} -> Target Index $newHoverIndex")
+//
+//            } else {
+//                // This case should ideally not happen if otherVisibleItems is not empty,
+//                // but handle as fallback (e.g., way above first item)
+//                val firstOtherVisible = otherVisibleItems.first()
+//                newHoverIndex = if (previewCenterY < (firstOtherVisible.offset + firstOtherVisible.size / 2f)) {
+//                    firstOtherVisible.index // Target first visible item's slot
+//                } else {
+//                    initialIndex // Fallback
+//                }
+//                Log.d("DragDropDebug", "onDrag Hover: Fallback (No Closest?) -> Target Index $newHoverIndex")
+//            }
+//        } else {
+//            // Only the dragged item is visible
+//            newHoverIndex = initialIndex
+//            Log.d("DragDropDebug", "onDrag Hover: Only dragged item visible -> Target Index $newHoverIndex")
+//        }
+//
+//
+//        // Prevent hovering/dropping onto Stable Index (e.g., index 0)
+//        stableIndex?.let { undraggableIndex ->
+//            if (newHoverIndex == undraggableIndex) {
+//                val listSize = totalCount // Use already fetched totalCount
+//                newHoverIndex = if (listSize > 1 && initialIndex != undraggableIndex) {
+//                    // If dragging down towards index 0, snap to index 1
+//                    // If dragging up towards index 0, snap to index 1
+//                    undraggableIndex + 1
+//                } else {
+//                    initialIndex // Can't drop anywhere valid if list is too small or initial was 0
+//                }
+//                Log.d("DragDropDebug", "onDrag Hover: Corrected hover index from $undraggableIndex to $newHoverIndex")
+//            }
+//        }
+//
+//        // Clamp to valid range: [stableIndex + 1] to [totalCount]
+//        // (Allowing totalCount means dropping after the last item)
+//        val lowerBound = (stableIndex ?: -1) + 1 // Usually 1 if stableIndex is 0
+//        newHoverIndex = newHoverIndex?.coerceIn(lowerBound, totalCount)
+//        Log.d("DragDropDebug", "onDrag Hover: Clamped Target Index $newHoverIndex")
+//
+//
+//        // Update Hover State only if it changed
+//        if (newHoverIndex != null && currentHoveredItemIndex != newHoverIndex) {
+//            Log.d("DragDropDebug", "onDrag: Updating hover index from $currentHoveredItemIndex to $newHoverIndex")
+//            currentHoveredItemIndex = newHoverIndex
+//        }
+//
+//        checkAndManageAutoScroll()
+//    }
+
     fun onDragEnd() {
         cancelContinuousScroll()
         val initialIndex = initialIndexOfDraggedItem
@@ -245,6 +341,30 @@ class DragAndDropListState<T>(
         }
         resetInternalState()
     }
+
+//    fun onDragEnd() {
+//        cancelContinuousScroll()
+//        val initialIndex = initialIndexOfDraggedItem
+//        val targetIndex = currentHoveredItemIndex // This *should* be totalCount if hovering past last item
+//        Log.d("DragDropDebug", "onDragEnd: initial=$initialIndex, target=$targetIndex") // Add log here
+//
+//        if (initialIndex != null && targetIndex != null && initialIndex != targetIndex) {
+//            stableIndex?.let{ undraggableIndex -> // Using stableIndex for clarity
+//                if (targetIndex != undraggableIndex) {
+//                    Log.d("DragDropDebug", "onDragEnd: Calling onMove($initialIndex, $targetIndex)")
+//                    onMove(initialIndex, targetIndex)
+//                } else {
+//                    Log.w("DragDropDebug", "onDragEnd: Move prevented, target index $targetIndex is undraggable.")
+//                }
+//            } ?: run { // If stableIndex is null, just call onMove
+//                Log.d("DragDropDebug", "onDragEnd: Calling onMove($initialIndex, $targetIndex) (no stable index)")
+//                onMove(initialIndex, targetIndex)
+//            }
+//        } else {
+//            Log.d("DragDropDebug", "onDragEnd: Conditions not met for move. initial=$initialIndex, target=$targetIndex")
+//        }
+//        resetInternalState()
+//    }
 
     fun onDragInterrupted() {
         cancelContinuousScroll()

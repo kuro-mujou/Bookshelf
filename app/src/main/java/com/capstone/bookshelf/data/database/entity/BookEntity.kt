@@ -18,6 +18,7 @@ data class BookEntity(
     val totalChapter: Int,
     val currentChapter: Int,
     val currentParagraph: Int,
+    val isRecentRead: Int = 0,
     val isFavorite: Boolean = false,
     val storagePath: String?,
     val isEditable: Boolean,

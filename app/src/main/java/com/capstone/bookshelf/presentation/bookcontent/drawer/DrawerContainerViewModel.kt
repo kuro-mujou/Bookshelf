@@ -227,18 +227,24 @@ class DrawerContainerViewModel(
         viewModelScope.launch {
             val tocItem = tableOfContentsRepository.getTableOfContent(bookId, from)
             val chapterItem = chapterRepository.getChapterContent(bookId, from)
-            tableOfContentsRepository.swapTableOfContent(
-                currentBookId = bookId,
-                draggedItemTocId = tocItem?.tocId!!,
-                fromIndex = from,
-                toIndex = to
-            )
-            chapterRepository.swapTocIndex(
-                bookId = bookId,
-                chapterContentId = chapterItem?.chapterContentId!!,
-                from = from,
-                to = to
-            )
+
+            tocItem?.tocId?.let{
+                tableOfContentsRepository.swapTableOfContent(
+                    currentBookId = bookId,
+                    draggedItemTocId = tocItem.tocId,
+                    fromIndex = from,
+                    toIndex = to
+                )
+                chapterItem?.chapterContentId?.let{
+                    chapterRepository.swapTocIndex(
+                        bookId = bookId,
+                        chapterContentId = chapterItem.chapterContentId,
+                        from = from,
+                        to = to
+                    )
+                }
+            }
+
         }
     }
 

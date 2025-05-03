@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.presentation.booklist.component
+package com.capstone.bookshelf.presentation.home_screen.booklist.component
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -44,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.domain.wrapper.Book
-import com.capstone.bookshelf.presentation.booklist.BookListState
+import com.capstone.bookshelf.presentation.home_screen.booklist.BookListState
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -103,9 +102,9 @@ fun GridBookView(
                     Text(
                         modifier = Modifier.padding(top = 2.dp, start = 4.dp),
                         text = if (book.totalChapter == 0)
-                                "${book.currentChapter} / 0"
-                            else
-                                "${book.currentChapter + 1} / ${book.totalChapter}",
+                            "${book.currentChapter} / 0"
+                        else
+                            "${book.currentChapter + 1} / ${book.totalChapter}",
                         style = TextStyle(
                             fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             background = MaterialTheme.colorScheme.surfaceContainer,
@@ -269,7 +268,10 @@ fun ListBookView(
                     modifier = Modifier
                         .padding(top = 2.dp, start = 4.dp)
                         .align(Alignment.End),
-                    text = "${book.currentChapter + 1} / ${book.totalChapter}",
+                    text = if (book.totalChapter == 0)
+                        "${book.currentChapter} / 0"
+                    else
+                        "${book.currentChapter + 1} / ${book.totalChapter}",
                     style = TextStyle(
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                         background = MaterialTheme.colorScheme.surfaceContainer,
@@ -282,7 +284,8 @@ fun ListBookView(
                         (book.currentChapter + 1).toFloat() / book.totalChapter.toFloat()
                     },
                     modifier = Modifier
-                        .size(width = 200.dp, height = 4.dp)
+                        .fillMaxWidth(0.7f)
+                        .height(4.dp)
                         .align(Alignment.End)
                 )
                 Spacer(modifier = Modifier.height(4.dp))

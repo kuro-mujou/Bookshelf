@@ -22,6 +22,32 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE bookId = :bookId LIMIT 1")
     fun getBookAsFlow(bookId: String): Flow<BookEntity>
 
+    @Query("SELECT * FROM books WHERE isRecentRead > 0 ORDER BY isRecentRead ASC")
+    fun getTop5RecentBooksFlow(): Flow<List<BookEntity>>
+
+    @Query("""
+        UPDATE books
+        SET isRecentRead = isRecentRead + 1
+        WHERE isRecentRead > 0 AND isRecentRead < :oldRank
+    """)
+    suspend fun shiftRanksBefore(oldRank: Int)
+
+    @Query("""
+        UPDATE books
+        SET isRecentRead = isRecentRead + 1
+        WHERE isRecentRead BETWEEN 1 AND 5
+    """)
+    suspend fun shiftRanksForNew()
+
+    @Query("UPDATE books SET isRecentRead = 0 WHERE isRecentRead = 6")
+    suspend fun clearOldest()
+
+    @Query("UPDATE books SET isRecentRead = 1 WHERE bookId = :bookId")
+    suspend fun markAsMostRecent(bookId: String)
+
+    @Query("SELECT isRecentRead FROM books WHERE bookId = :bookId")
+    suspend fun getRecentRank(bookId: String): Int?
+
     @Transaction
     @Query("SELECT * FROM books ORDER BY isFavorite DESC")
     fun readAllBooksSortByFavorite(): Flow<List<BookEntity>>

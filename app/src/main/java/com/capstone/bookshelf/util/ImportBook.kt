@@ -3,7 +3,7 @@ package com.capstone.bookshelf.util
 import android.content.Context
 import android.widget.Toast
 import androidx.core.uri.Uri
-import com.capstone.bookshelf.presentation.booklist.component.AsyncImportBookViewModel
+import com.capstone.bookshelf.presentation.home_screen.booklist.component.AsyncImportBookViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.inject
@@ -13,7 +13,7 @@ class ImportBook(
     private val scope: CoroutineScope
 ) {
     val importBookViewModel: AsyncImportBookViewModel by inject(AsyncImportBookViewModel::class.java)
-    fun importBook(uri: Uri?) {
+    fun processIntentUri(uri: Uri?) {
         uri?.let {
             val fileName = getFileName(context, it)
             try {
@@ -40,6 +40,15 @@ class ImportBook(
             } catch (e: Exception) {
                 Toast.makeText(context, "Can't open book file", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+    fun importBookViaGoogleDrive(link: String){
+        try {
+            scope.launch {
+                importBookViewModel.enqueueImportFromDriveLink(context, link)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Can't open book file", Toast.LENGTH_SHORT).show()
         }
     }
 }

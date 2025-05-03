@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.presentation.booklist
+package com.capstone.bookshelf.presentation.home_screen.booklist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -153,18 +153,36 @@ class BookListViewModel(
                 }
             }
 
-            is BookListAction.OnWritingNewBook -> {
-
-            }
-
             is BookListAction.UpdateBookListType -> {
-                _state.update {
-                    it.copy(
-                        listViewType = action.type
-                    )
-                }
-                viewModelScope.launch {
-                    dataStoreManager.setBookListView(action.type)
+                if(action.type != null){
+                    _state.update {
+                        it.copy(
+                            listViewType = action.type
+                        )
+                    }
+                    viewModelScope.launch {
+                        dataStoreManager.setBookListView(action.type)
+                    }
+                } else {
+                    if(_state.value.listViewType == 1){
+                        _state.update {
+                            it.copy(
+                                listViewType = 0
+                            )
+                        }
+                        viewModelScope.launch {
+                            dataStoreManager.setBookListView(0)
+                        }
+                    } else if(_state.value.listViewType == 0) {
+                        _state.update {
+                            it.copy(
+                                listViewType = 1
+                            )
+                        }
+                        viewModelScope.launch {
+                            dataStoreManager.setBookListView(1)
+                        }
+                    }
                 }
             }
         }

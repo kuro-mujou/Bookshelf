@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookdetail
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -25,8 +26,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +35,7 @@ import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -52,8 +52,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +66,7 @@ import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
@@ -86,6 +89,9 @@ fun BookDetailScreenRoot(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val tocLazyColumnState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val view = LocalView.current
+    val isSystemLight = !isSystemInDarkTheme()
     val style = HazeMaterials.ultraThin(Color(0xFF181C20))
     val hazeState = remember { HazeState() }
     val focusRequester = remember { FocusRequester() }
@@ -106,6 +112,21 @@ fun BookDetailScreenRoot(
     LaunchedEffect(isImeVisible) {
         if (!isImeVisible) {
             focusManager.clearFocus()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        val window = (context as? Activity)?.window
+        if (window == null) {
+            return@DisposableEffect onDispose {}
+        }
+        val insetsController = WindowCompat.getInsetsController(window, view)
+        insetsController.isAppearanceLightStatusBars = false
+        insetsController.isAppearanceLightNavigationBars = false
+
+        onDispose {
+            insetsController.isAppearanceLightStatusBars = isSystemLight
+            insetsController.isAppearanceLightNavigationBars = isSystemLight
         }
     }
     Column(
@@ -170,7 +191,7 @@ fun BookDetailScreenRoot(
                             onClick = onBackClick,
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = ImageVector.vectorResource(R.drawable.ic_back),
                                 contentDescription = null,
                                 tint = Color.White
                             )
@@ -184,10 +205,7 @@ fun BookDetailScreenRoot(
                                 imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
                                 contentDescription = null,
                                 tint = if (state.isSortedByFavorite)
-                                    if (isSystemInDarkTheme())
-                                        Color(155, 212, 161)
-                                    else
-                                        Color(52, 105, 63)
+                                    Color(155, 212, 161)
                                 else
                                     Color.Gray,
                             )

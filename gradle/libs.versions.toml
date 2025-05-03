@@ -1,9 +1,6 @@
 [versions]
 agp = "8.9.2"
-koinAndroid = "4.0.2"
-koinAndroidxCompose = "4.0.2"
-koinAndroidxNavigation = "4.0.2"
-koinCore = "4.0.2"
+koin = "4.0.4"
 kotlin = "2.0.21"
 coreKtx = "1.16.0"
 junit = "4.13.2"
@@ -11,25 +8,26 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.10.1"
-composeBom = "2025.04.00"
+composeBom = "2025.04.01"
 richeditorCompose = "1.0.0-rc12"
-roomRuntime = "2.7.0"
+roomRuntime = "2.7.1"
 slf4jAndroid = "1.7.36"
-lottieCompose = "6.6.3"
-gson = "2.12.1"
+lottieCompose = "6.6.6"
+gson = "2.13.1"
 navigationCompose = "2.8.0-alpha12"
 coilCompose = "2.7.0"
-kotlinxSerializationJson = "1.8.0"
-lifecycleViewmodelCompose = "2.9.0-beta01"
-hazeMaterials = "1.5.0"
+kotlinxSerializationJson = "1.8.1"
+lifecycleViewmodelCompose = "2.9.0-rc01"
+hazeMaterials = "1.5.4"
 paletteKtx = "1.0.0"
 datastorePreferences = "1.1.4"
-workRuntimeKtx = "2.10.0"
-lifecycleLivedataKtx = "2.9.0-beta01"
+workRuntimeKtx = "2.10.1"
+lifecycleLivedataKtx = "2.9.0-rc01"
 lifecycleService = "2.8.7"
 media = "1.7.0"
 media3 = "1.5.1"
 pdfboxAndroid = "2.0.27.0"
+ktorClient = "3.1.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -48,14 +46,14 @@ androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version = "1.7.8" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version = "1.8.0" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
-koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinAndroid" }
-koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koinAndroidxCompose" }
-koin-androidx-navigation = { group = "io.insert-koin", name = "koin-androidx-navigation", version.ref = "koinAndroidxNavigation" }
-koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koinCore" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
+koin-androidx-navigation = { group = "io.insert-koin", name = "koin-androidx-navigation", version.ref = "koin" }
+koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
 
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottieCompose" }
 
@@ -87,9 +85,18 @@ androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplaye
 
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
 
+ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktorClient" }
+ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktorClient" }
+ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktorClient" }
+ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktorClient" }
+ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktorClient" }
+ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktorClient" }
+ktor-client-auth = { group = "io.ktor", name = "ktor-client-auth", version.ref = "ktorClient" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktorClient" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlinx-serialization={id="org.jetbrains.kotlin.plugin.serialization",version="2.0.21"}
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 

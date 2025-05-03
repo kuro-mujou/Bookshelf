@@ -26,6 +26,12 @@ class BookRepositoryImpl(
             .map { it.toDataClass() }
     }
 
+    override fun getBookListForMainScreen(): Flow<List<Book>> {
+        return bookDao.getTop5RecentBooksFlow().map { bookEntity ->
+            bookEntity.map { it.toDataClass() }
+        }
+    }
+
     override fun readAllBooksSortByFavorite(): Flow<List<Book>> {
         return bookDao
             .readAllBooksSortByFavorite()
@@ -48,6 +54,21 @@ class BookRepositoryImpl(
 
     override suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean) {
         bookDao.setBookAsFavorite(bookId, isFavorite)
+    }
+
+    override suspend fun updateRecentRead(bookId: String) {
+        val currentRank = bookDao.getRecentRank(bookId) ?: 0
+
+        if (currentRank == 0) {
+            // New book
+            bookDao.shiftRanksForNew()
+            bookDao.clearOldest()
+        } else if (currentRank > 1) {
+            // Existing recent book, shift only books before it
+            bookDao.shiftRanksBefore(currentRank)
+        }
+
+        bookDao.markAsMostRecent(bookId)
     }
 
     override suspend fun saveBookInfoChapterIndex(bookId: String, chapterIndex: Int) {

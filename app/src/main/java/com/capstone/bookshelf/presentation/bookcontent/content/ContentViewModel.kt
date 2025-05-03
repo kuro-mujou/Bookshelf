@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.speech.tts.TextToSpeech
-import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
@@ -171,7 +170,6 @@ class ContentViewModel(
 
             is ContentAction.UpdateCurrentChapterIndex -> {
                 viewModelScope.launch {
-                    Log.d("ContentViewModel", "UpdateCurrentChapterIndex: ${action.index}")
                     _state.update {
                         it.copy(
                             currentChapterIndex = action.index
@@ -538,7 +536,12 @@ class ContentViewModel(
                         )
                     }
                 }
+            }
 
+            is ContentAction.UpdateBookAsRecentRead -> {
+                viewModelScope.launch {
+                    bookRepository.updateRecentRead(bookId)
+                }
             }
         }
     }

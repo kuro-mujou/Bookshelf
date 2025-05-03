@@ -14,6 +14,7 @@ class Bookshelf : Application() {
             androidContext(this@Bookshelf)
             modules(
                 singleModule,
+                networkModule,
                 databaseModule,
                 repositoryModule,
                 viewModelModule,

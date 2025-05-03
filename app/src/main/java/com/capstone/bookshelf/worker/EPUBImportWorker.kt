@@ -17,6 +17,9 @@ import com.capstone.bookshelf.R
 import com.capstone.bookshelf.data.database.entity.BookEntity
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
+import com.capstone.bookshelf.data.network.mapHttpStatusToDataError
+import com.capstone.bookshelf.domain.error.DataError
+import com.capstone.bookshelf.domain.error.MyResult
 import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
@@ -24,6 +27,19 @@ import com.capstone.bookshelf.domain.repository.TableOfContentRepository
 import com.capstone.bookshelf.util.NaturalOrderComparator
 import com.capstone.bookshelf.util.decodeSampledBitmapFromStream
 import com.capstone.bookshelf.util.saveBitmapToPrivateStorage
+import io.ktor.client.HttpClient
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.http.isSuccess
+import io.ktor.util.network.UnresolvedAddressException
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import nl.siegmann.epublib.domain.Author
@@ -43,14 +59,20 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.math.BigInteger
 import java.security.MessageDigest
+
+enum class SourceType {
+    URI, DRIVE_LINK
+}
 
 class EPUBImportWorker(
     private val appContext: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params), KoinComponent {
 
+    private val httpClient: HttpClient by inject()
     private val bookRepository: BookRepository by inject()
     private val tableOfContentsRepository: TableOfContentRepository by inject()
     private val chapterRepository: ChapterRepository by inject()
@@ -64,6 +86,8 @@ class EPUBImportWorker(
 
     companion object {
         const val INPUT_URI_KEY = "input_uri"
+        const val INPUT_DRIVE_LINK_KEY = "input_drive_link"
+        const val INPUT_SOURCE_TYPE = "input_source_type"
         const val ORIGINAL_FILENAME_KEY = "original_filename"
         private const val TAG = "EpubImportWorker"
 
@@ -79,79 +103,247 @@ class EPUBImportWorker(
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val epubUriString = inputData.getString(INPUT_URI_KEY)
-        val originalFileName = inputData.getString(ORIGINAL_FILENAME_KEY)
-            ?: getDisplayNameFromUri(appContext, epubUriString?.toUri()) ?: "Unknown EPUB"
-
-        if (epubUriString == null) {
-            sendCompletionNotification(false, originalFileName, "Input data missing")
-            return@withContext Result.failure()
+        val sourceTypeString = inputData.getString(INPUT_SOURCE_TYPE)
+        val sourceType = try {
+            SourceType.valueOf(sourceTypeString ?: "")
+        } catch (e: IllegalArgumentException) {
+            null
         }
-        val epubUri = epubUriString.toUri()
+        val epubUriString = inputData.getString(INPUT_URI_KEY)
+        val driveLink = inputData.getString(INPUT_DRIVE_LINK_KEY)
+
+        val originalFileNameHint = inputData.getString(ORIGINAL_FILENAME_KEY)
+            ?: determineInitialFilename(sourceType, epubUriString, driveLink)
+
         val initialNotification = createProgressNotificationBuilder(
-            originalFileName, "Starting import..."
+            fileName = originalFileNameHint,
+            message = "Starting import..."
         ).build()
         try {
             setForeground(getForegroundInfoCompat(initialNotification))
         } catch (e: Exception) {
             // Proceed even if foreground fails, notification will still work
         }
-
-        val processingResult = processEpubViaCache(
-            appContext,
-            epubUri,
-            originalFileName,
-            onProgress = { progress, message ->
-                updateProgressNotification(originalFileName, message, progress)
+        val inputStreamResult: MyResult<InputStream, DataError.Remote> = when (sourceType) {
+            SourceType.URI -> {
+                try {
+                    if (epubUriString == null) {
+                        return@withContext Result.failure()
+                    } else {
+                        val epubUri = epubUriString.toUri()
+                        appContext.contentResolver.openInputStream(epubUri)?.let {
+                            MyResult.Success(it)
+                        } ?: MyResult.Error(DataError.Remote.NOT_FOUND)
+                    }
+                } catch (e: Exception) {
+                    MyResult.Error(DataError.Remote.UNKNOWN)
+                }
             }
-        )
+
+            SourceType.DRIVE_LINK -> {
+                if (driveLink == null) {
+                    MyResult.Error(DataError.Remote.UNKNOWN)
+                } else {
+                    val fileIdRegex = "[-\\w]{25,}".toRegex()
+                    val fileId = fileIdRegex.find(driveLink)?.value
+                    if (fileId == null) {
+                        MyResult.Error(DataError.Remote.UNKNOWN)
+                    } else {
+                        val directUrl = "https://drive.google.com/uc?export=download&id=$fileId"
+                        safeDownloadStream(httpClient, directUrl)
+                    }
+                }
+            }
+
+            null -> {
+                MyResult.Error(DataError.Remote.UNKNOWN)
+            }
+        }
+
+        val processingResult: kotlin.Result<String> = when (inputStreamResult) {
+            is MyResult.Success -> {
+                processEpubStream(
+                    context = appContext,
+                    inputStream = inputStreamResult.data,
+                    originalFileNameHint = originalFileNameHint,
+                    sourceIdentifier = driveLink ?: epubUriString ?: "null",
+                    onProgress = { progress, message ->
+                        updateProgressNotification(originalFileNameHint, message, progress)
+                    }
+                )
+            }
+
+            is MyResult.Error -> {
+                val errorReason = mapDataErrorToUserMessage(inputStreamResult.error)
+                kotlin.Result.failure(IOException("Failed to get input stream: $errorReason"))
+            }
+        }
 
         val isSuccess = processingResult.isSuccess
         val failureReason = if (!isSuccess) processingResult.exceptionOrNull()?.message else null
         val displayTitle = processingResult.getOrNull()
-            ?: originalFileName.substringBeforeLast('.')
+            ?: originalFileNameHint.substringBeforeLast('.')
 
         sendCompletionNotification(isSuccess, displayTitle, failureReason)
         return@withContext if (isSuccess) Result.success() else Result.failure()
     }
 
+    private fun determineInitialFilename(
+        sourceType: SourceType?,
+        uriString: String?,
+        link: String?
+    ): String {
+        return when (sourceType) {
+            SourceType.URI -> getDisplayNameFromUri(appContext, uriString?.toUri())
+                ?: "Imported EPUB"
+
+            SourceType.DRIVE_LINK -> "EPUB from Google Drive"
+
+            else -> "Unknown EPUB"
+        }
+    }
+
+    suspend fun safeDownloadStream(
+        httpClient: HttpClient,
+        initialUrl: String
+    ): MyResult<InputStream, DataError.Remote> {
+        try {
+            val response1: HttpResponse = httpClient.get(initialUrl)
+            if (!response1.status.isSuccess()) {
+                return MyResult.Error(mapHttpStatusToDataError(response1.status))
+            }
+            val contentType1 = response1.contentType()?.withoutParameters()
+            if (contentType1 == ContentType.Text.Html) {
+                val htmlBody = response1.bodyAsText()
+                val secondTryResult =
+                    parseHtmlAndAttemptSecondDownload(httpClient, htmlBody, initialUrl)
+                return secondTryResult ?: MyResult.Error(DataError.Remote.HTML_PARSING_FAILED)
+
+            } else {
+                val channel: ByteReadChannel = response1.bodyAsChannel()
+                val inputStream = withContext(Dispatchers.IO) {
+                    channel.toInputStream()
+                }
+                return MyResult.Success(inputStream)
+            }
+
+        } catch (e: SocketTimeoutException) {
+            return MyResult.Error(DataError.Remote.REQUEST_TIMEOUT)
+        } catch (e: UnresolvedAddressException) {
+            return MyResult.Error(DataError.Remote.NO_INTERNET)
+        } catch (e: Exception) {
+            return MyResult.Error(DataError.Remote.UNKNOWN)
+        }
+    }
+
+    private suspend fun parseHtmlAndAttemptSecondDownload(
+        httpClient: HttpClient,
+        htmlBody: String,
+        originalUrl: String
+    ): MyResult<InputStream, DataError.Remote>? {
+        try {
+            val document = Jsoup.parse(htmlBody)
+            val form = document.selectFirst("#download-form")
+            if (form == null) {
+                return null
+            }
+            val actionUrl = form.attr("abs:action")
+            if (actionUrl.isBlank()) {
+                return null
+            }
+
+            val formParams = mutableMapOf<String, String>()
+            val inputs = form.select("input[type=hidden]")
+            for (input in inputs) {
+                val name = input.attr("name")
+                val value = input.attr("value")
+                if (name.isNotBlank()) {
+                    formParams[name] = value
+                }
+            }
+
+            val response2: HttpResponse = httpClient.get(actionUrl) {
+                formParams.forEach { (key, value) ->
+                    parameter(key, value)
+                }
+            }
+
+            if (!response2.status.isSuccess()) {
+                return MyResult.Error(mapHttpStatusToDataError(response2.status))
+            }
+
+            val contentType2 = response2.contentType()?.withoutParameters()
+            if (contentType2 == ContentType.Text.Html) {
+                return MyResult.Error(DataError.Remote.DOWNLOAD_CONFIRMATION_FAILED)
+            }
+            val channel: ByteReadChannel = response2.bodyAsChannel()
+            val inputStream = withContext(Dispatchers.IO) {
+                channel.toInputStream()
+            }
+            return MyResult.Success(inputStream)
+
+        } catch (e: SocketTimeoutException) {
+            return MyResult.Error(DataError.Remote.REQUEST_TIMEOUT)
+        } catch (e: UnresolvedAddressException) {
+            return MyResult.Error(DataError.Remote.NO_INTERNET)
+        } catch (e: IOException) {
+            return MyResult.Error(DataError.Remote.HTML_PARSING_FAILED)
+        } catch (e: Exception) {
+            return MyResult.Error(DataError.Remote.UNKNOWN)
+        }
+    }
+
+    private fun mapDataErrorToUserMessage(error: DataError.Remote): String {
+        return when (error) {
+            DataError.Remote.REQUEST_TIMEOUT -> "Network request timed out."
+            DataError.Remote.NO_INTERNET -> "No internet connection or cannot reach server."
+            DataError.Remote.SERVER -> "Server error during download."
+            DataError.Remote.TOO_MANY_REQUESTS -> "Too many requests, please try again later."
+            DataError.Remote.UNAUTHORIZED -> "Access denied to the file."
+            DataError.Remote.NOT_FOUND -> "File not found at the source."
+            DataError.Remote.UNKNOWN -> "Unknown error occurred during download."
+            DataError.Remote.UNEXPECTED_CONTENT_TYPE_HTML -> "Download failed (possibly virus scan page)."
+            else -> "An unknown network or download error occurred."
+        }
+    }
+
     /**
-     * Processes EPUB by copying to cache, parsing, extracting, and saving data.
+     * Processes EPUB stream by copying to cache, parsing, extracting, and saving data.
      * Returns Result.success(bookTitle) or Result.failure(exception).
+     * IMPORTANT: The provided inputStream will be closed by this function.
      */
-    private suspend fun processEpubViaCache(
+    private suspend fun processEpubStream(
         context: Context,
-        epubUri: Uri,
-        originalFileName: String,
+        inputStream: InputStream,
+        originalFileNameHint: String,
+        sourceIdentifier: String,
         onProgress: suspend (progress: Int?, message: String) -> Unit
     ): kotlin.Result<String> {
         var tempEpubFile: File? = null
         var book: Book? = null
         var bookId: String? = null
-        var finalBookTitle = originalFileName.substringBeforeLast('.')
-
+        var finalBookTitle = originalFileNameHint.substringBeforeLast('.')
+        onProgress(null, "Copying file...")
         try {
-            onProgress(null, "Copying file...")
             tempEpubFile = File.createTempFile("epub_import_", ".epub", context.cacheDir)
-            context.contentResolver.openInputStream(epubUri)?.use { inputStream ->
+            inputStream.use { input ->
                 FileOutputStream(tempEpubFile).use { outputStream ->
-                    inputStream.copyTo(outputStream, 8192)
+                    input.copyTo(outputStream, 8192)
                 }
-            } ?: run {
-                tempEpubFile?.delete()
-                return kotlin.Result.failure(IOException("Failed to open InputStream for EPUB"))
             }
             onProgress(null, "Parsing EPUB structure...")
             try {
+                // Now read from the temporary file
                 FileInputStream(tempEpubFile).use { fis ->
                     book = EpubReader().readEpub(fis)
                 }
             } catch (e: Exception) {
                 throw IOException("Could not parse EPUB file.", e)
             }
+
             if (book == null) throw IOException("EpubReader returned a null book object.")
             finalBookTitle = book.title?.takeIf { it.isNotBlank() } ?: finalBookTitle
-            bookId = BigInteger(1, md.digest(originalFileName.toByteArray()))
+            bookId = BigInteger(1, md.digest(finalBookTitle.toByteArray()))
                 .toString(16).padStart(32, '0')
             if (bookRepository.isBookExist(finalBookTitle)) {
                 return kotlin.Result.failure(IOException("Book already imported"))
@@ -176,18 +368,12 @@ class EPUBImportWorker(
             } catch (e: Exception) {
                 coverImagePath = "error_processing_cover"
             }
-            val finalCoverPathForDb = if (coverImagePath == null)
-                "error"
-            else
-                if (coverImagePath.startsWith("error_") == true)
-                    "error"
-                else
-                    coverImagePath
+            val finalCoverPathForDb = coverImagePath?.takeIf { !it.startsWith("error_") } ?: "error"
             onProgress(null, "Processing table of contents...")
             val flattenedToc = flattenTocReferences(book.tableOfContents?.tocReferences)
             val totalChapters = flattenedToc.size
             if (totalChapters == 0) {
-                return kotlin.Result.failure(IOException("EPUB Table of Contents is empty or missing."))
+                return kotlin.Result.failure(IOException("EPUB Table of Contents is empty or missing. You might opened Epub3 format, currently not supported."))
             }
             onProgress(null, "Saving book information...")
             saveBookInfo(
@@ -198,12 +384,17 @@ class EPUBImportWorker(
                 categories = book.metadata.types,
                 description = book.metadata.descriptions,
                 totalChapters = totalChapters,
-                storagePath = tempEpubFile.absolutePath
+                storagePath = sourceIdentifier
             )
             imagePathRepository.saveImagePath(bookId, listOf(finalCoverPathForDb))
+            bookRepository.updateRecentRead(bookId)
             processAndSaveChapters(bookId, book, flattenedToc, context, onProgress)
             return kotlin.Result.success(finalBookTitle)
         } catch (e: Exception) {
+            try {
+                inputStream.close()
+            } catch (closeEx: Exception) {
+            }
             return kotlin.Result.failure(e)
         } finally {
             if (tempEpubFile != null && tempEpubFile.exists()) {
@@ -368,7 +559,7 @@ class EPUBImportWorker(
                         ((overallChapterIndex + 1).toFloat() / totalTocEntries * 100).toInt()
                     onProgress(
                         progressPercent,
-                        "Processing ${chapterTitle.take(30)}... (Segment ${i + 1})"
+                        "Processing $chapterTitle"
                     )
                     saveTableOfContentEntry(
                         bookId = bookId,
@@ -530,9 +721,9 @@ class EPUBImportWorker(
                                                     val name =
                                                         "image_${bookId}_${chapterIndex}_seg${imageCounter++}"
                                                     savedImagePath = saveBitmapToPrivateStorage(
-                                                        context,
-                                                        bitmap,
-                                                        name
+                                                        context = context,
+                                                        bitmap = bitmap,
+                                                        filenameWithoutExtension = name
                                                     )
                                                     bitmap.recycle()
                                                 } else {
@@ -542,7 +733,8 @@ class EPUBImportWorker(
                                         } catch (e: Exception) {
                                         }
                                         if (savedImagePath != null && !savedImagePath!!.startsWith("error_")) {
-                                            contentList.add(savedImagePath!!); imagePaths.add(
+                                            contentList.add(savedImagePath!!)
+                                            imagePaths.add(
                                                 savedImagePath!!
                                             )
                                         }

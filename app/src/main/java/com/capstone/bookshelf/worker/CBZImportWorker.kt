@@ -127,7 +127,7 @@ class CBZImportWorker(
         zipFileUri: Uri,
         originalDisplayName: String,
         onProgress: suspend (currentChapter: Int, totalChapters: Int, chapterName: String) -> Unit
-    ): kotlin.Result<String>  {
+    ): kotlin.Result<String> {
         var tempZipFile: File? = null
         val actualFileName = originalDisplayName
         val bookTitle = actualFileName.substringBeforeLast('.')
@@ -224,12 +224,14 @@ class CBZImportWorker(
                     coverImagePath
                 }
             saveBookInfo(
-                bookId,
-                bookTitle,
-                finalCoverPathForDb!!,
-                totalChapters,
-                tempZipFile.absolutePath
-            )
+                bookID = bookId,
+                title = bookTitle,
+                coverImagePath = finalCoverPathForDb!!,
+                totalChapters = totalChapters,
+                cacheFilePath = tempZipFile.absolutePath
+            ).run {
+                bookRepository.updateRecentRead(bookId)
+            }
             var chapterIndex = 0
             ZipFile(tempZipFile).use { chapterZipFile ->
                 for (chapterName in sortedDirNames) {

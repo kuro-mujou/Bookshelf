@@ -26,7 +26,7 @@ import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
         NoteEntity::class
     ],
     exportSchema = false,
-    version = 4
+    version = 6
 )
 @TypeConverters(StringListTypeConverter::class)
 abstract class LocalBookDatabase : RoomDatabase() {

@@ -77,10 +77,8 @@ class BookWriterViewModel(
                             )
                         }
                     }
-                    val bookIdTemp = BigInteger(
-                        1,
-                        md.digest(("$randomId(Draft)").toByteArray())
-                    ).toString(16).padStart(32, '0')
+                    val bookIdTemp = BigInteger(1,md.digest(("$randomId(Draft)").toByteArray()))
+                        .toString(16).padStart(32, '0')
                     val book = BookEntity(
                         bookId = bookIdTemp,
                         title = action.bookTitle + "(Draft)",
@@ -110,7 +108,9 @@ class BookWriterViewModel(
                         fileType = "editable epub"
                     )
                     _bookID.value = bookIdTemp
-                    bookRepository.insertBook(book)
+                    bookRepository.insertBook(book).run {
+                        bookRepository.updateRecentRead(bookIdTemp)
+                    }
                     if (coverImagePath != "error") {
                         imagePathRepository.saveImagePath(bookIdTemp, listOf(coverImagePath))
                     }

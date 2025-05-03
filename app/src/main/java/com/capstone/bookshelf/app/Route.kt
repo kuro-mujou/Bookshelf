@@ -6,17 +6,18 @@ import kotlinx.serialization.Serializable
 sealed interface Route {
 
     @Serializable
-    data object BookGraph : Route
-
-    @Serializable
-    data object Home : Route
+    data object HomeGraph : Route
+        @Serializable
+        data object MainScreen : Route
+        @Serializable
+        data object BookList : Route
+        @Serializable
+        data object SettingScreen : Route
 
     @Serializable
     data class BookDetail(val bookId: String) : Route
-
     @Serializable
     data class BookContent(val bookId: String) : Route
-
     @Serializable
     data class WriteBook(val bookId: String) : Route
 }

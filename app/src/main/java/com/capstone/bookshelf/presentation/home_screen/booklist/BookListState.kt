@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.presentation.booklist
+package com.capstone.bookshelf.presentation.home_screen.booklist
 
 import com.capstone.bookshelf.domain.wrapper.Book
 

@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.presentation.booklist.component
+package com.capstone.bookshelf.presentation.home_screen.booklist.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.capstone.bookshelf.presentation.booklist.BookListState
+import com.capstone.bookshelf.presentation.home_screen.booklist.BookListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

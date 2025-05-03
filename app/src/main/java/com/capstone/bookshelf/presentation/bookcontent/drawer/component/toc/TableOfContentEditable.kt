@@ -1,7 +1,6 @@
 package com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -280,10 +279,6 @@ fun TableOfContentsEditable(
                                         drawerContainerState.tableOfContents.indexOf(
                                             itemData
                                         )
-                                    )
-                                    Log.d(
-                                        "TableOfContentsEditable",
-                                        "id: ${drawerContainerState.tableOfContents.indexOf(itemData)}"
                                     )
                                 }
                             )

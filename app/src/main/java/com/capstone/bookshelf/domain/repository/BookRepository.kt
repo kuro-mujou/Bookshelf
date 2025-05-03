@@ -8,10 +8,12 @@ interface BookRepository {
     fun readAllBooks(): Flow<List<Book>>
     fun readAllBooksSortByFavorite(): Flow<List<Book>>
     fun getBookAsFlow(bookId: String): Flow<Book>
+    fun getBookListForMainScreen(): Flow<List<Book>>
     suspend fun getBook(bookId: String): Book?
     suspend fun insertBook(book: BookEntity): Long
     suspend fun isBookExist(title: String): Boolean
     suspend fun setBookAsFavorite(bookId: String, isFavorite: Boolean)
+    suspend fun updateRecentRead(bookId: String)
     suspend fun saveBookInfoChapterIndex(bookId: String, chapterIndex: Int)
     suspend fun saveBookInfoParagraphIndex(bookId: String, paragraphIndex: Int)
     suspend fun saveBookInfoTotalChapter(bookId: String, totalChapter: Int)

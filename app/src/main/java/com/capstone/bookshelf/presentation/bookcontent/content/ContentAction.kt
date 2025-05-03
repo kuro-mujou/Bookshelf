@@ -9,6 +9,7 @@ import java.util.Locale
 
 sealed interface ContentAction {
     data object LoadBook : ContentAction
+    data object UpdateBookAsRecentRead : ContentAction
     data class SelectedBook(val book: Book) : ContentAction
     data class UpdateBookTitle(val title: String) : ContentAction
     data class UpdateBookAuthors(val authors: String) : ContentAction

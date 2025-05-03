@@ -35,7 +35,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 
-
 @Composable
 @UnstableApi
 fun BottomBarDefault(

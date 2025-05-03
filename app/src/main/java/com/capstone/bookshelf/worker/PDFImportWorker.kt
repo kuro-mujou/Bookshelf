@@ -197,7 +197,9 @@ class PDFImportWorker(
                         coverImagePath = finalCoverPathForDb,
                         totalChapters = totalChaptersOrPages,
                         storagePath = tempPdfFile.absolutePath
-                    )
+                    ).run {
+                        bookRepository.updateRecentRead(bookId)
+                    }
                     if (finalCoverPathForDb != null) {
                         imagePathRepository.saveImagePath(bookId, listOf(finalCoverPathForDb))
                     }
