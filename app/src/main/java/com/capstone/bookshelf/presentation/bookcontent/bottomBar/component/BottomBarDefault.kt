@@ -105,7 +105,7 @@ fun BottomBarDefault(
                     contentDescription = "theme"
                 )
             }
-            if (contentState.book?.fileType != "cbz") {
+            if (contentState.book?.fileType != "cbz" && contentState.book?.fileType != "pdf/images") {
                 IconButton(
                     modifier = Modifier.size(50.dp),
                     onClick = {

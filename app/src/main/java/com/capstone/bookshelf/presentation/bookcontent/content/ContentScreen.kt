@@ -203,8 +203,9 @@ fun ContentScreen(
             var size by remember { mutableStateOf(IntSize.Zero) }
             var originalZoom by remember { mutableFloatStateOf(1f) }
             val density = LocalDensity.current
+            val showLoadingAnimationForThisPage = data == null && contentState.currentChapterIndex == page
 
-            if (data == null && contentState.currentChapterIndex == page) {
+            if (showLoadingAnimationForThisPage) {
                 LoadingAnimation(
                     contentState = contentState,
                     colorPaletteState = colorPaletteState
@@ -219,7 +220,8 @@ fun ContentScreen(
                     )
                 }.collectLatest { (scrollInProgress, diff) ->
                     if (!scrollInProgress && (diff in 0..beyondBoundsPageCount)) {
-                        if (diff > 0) delay(1000)
+                        if (diff > 0)
+                            delay(1000)
                         triggerLoadChapter = true
                         isAnimationRunning = false
                         hasPrintedAtEnd = false
@@ -232,11 +234,22 @@ fun ContentScreen(
                 if (triggerLoadChapter && data == null) {
                     viewModel.getChapter((page))
                     data = chapterContent
-                    data?.let { chapterData ->
-                        header = chapterData.chapterTitle
-                        chapterContents[page] = chapterData.content
-                    }
                     callbackLoadChapter = true
+                }
+            }
+            LaunchedEffect(data) {
+                if (data != null) {
+                    header = data!!.chapterTitle
+                    chapterContents[page] = data!!.content
+                }
+            }
+
+            LaunchedEffect(page, showLoadingAnimationForThisPage) {
+                if (showLoadingAnimationForThisPage) {
+                    while (true) {
+                        delay(5000)
+                        triggerLoadChapter = true
+                    }
                 }
             }
 

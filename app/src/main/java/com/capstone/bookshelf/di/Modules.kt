@@ -19,6 +19,7 @@ import com.capstone.bookshelf.presentation.bookdetail.BookDetailViewModel
 import com.capstone.bookshelf.presentation.home_screen.booklist.BookListViewModel
 import com.capstone.bookshelf.presentation.home_screen.booklist.component.AsyncImportBookViewModel
 import com.capstone.bookshelf.presentation.home_screen.main_screen.MainViewModel
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
@@ -60,6 +61,7 @@ val viewModelModule = module {
     viewModelOf(::AsyncImportBookViewModel)
     viewModelOf(::BookDetailViewModel)
     viewModelOf(::MainViewModel)
+    viewModelOf(::SettingViewModel)
 }
 val dataStoreModule = module {
     single { DataStoreManager(androidContext()) }

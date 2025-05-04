@@ -21,11 +21,11 @@ fun saveImageToPrivateStorage(
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
             FileOutputStream(file).use { outputStream ->
                 @Suppress("DEPRECATION")
-                bitmap?.compress(Bitmap.CompressFormat.WEBP, 80, outputStream)
+                bitmap?.compress(Bitmap.CompressFormat.WEBP, 100, outputStream)
             }
         } else {
             FileOutputStream(file).use { outputStream ->
-                bitmap?.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, outputStream)
+                bitmap?.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, outputStream)
             }
         }
         file.absolutePath
@@ -52,12 +52,12 @@ fun saveBitmapToPrivateStorage(
     return try {
         FileOutputStream(file).use { outputStream ->
             val format = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                Bitmap.CompressFormat.WEBP_LOSSY
+                Bitmap.CompressFormat.WEBP_LOSSLESS
             } else {
                 @Suppress("DEPRECATION")
                 Bitmap.CompressFormat.WEBP
             }
-            bitmap.compress(format, 80, outputStream)
+            bitmap.compress(format, 100, outputStream)
             outputStream.flush()
         }
         file.absolutePath

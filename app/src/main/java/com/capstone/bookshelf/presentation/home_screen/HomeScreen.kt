@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,6 +37,7 @@ import com.capstone.bookshelf.presentation.home_screen.component.DriveInputLinkD
 import com.capstone.bookshelf.presentation.home_screen.main_screen.MainScreen
 import com.capstone.bookshelf.presentation.home_screen.main_screen.MainViewModel
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingScreen
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import com.capstone.bookshelf.util.ImportBook
 import org.koin.androidx.compose.koinViewModel
@@ -48,6 +50,7 @@ fun HomeScreen(
     var showDriveInputLinkDialog by remember { mutableStateOf(false) }
     var fabExpanded by remember { mutableStateOf(false) }
     var paddingForFab by remember { mutableStateOf(PaddingValues()) }
+    var specialIntent by remember { mutableStateOf("null") }
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val context = LocalContext.current
@@ -57,34 +60,67 @@ fun HomeScreen(
     ) { uri ->
         ImportBook(
             context = context,
-            scope = scope
+            scope = scope,
+            specialIntent = specialIntent
         ).processIntentUri(uri)
     }
     val fabItems = listOf(
         MiniFabItems(
             icon = R.drawable.ic_add_epub,
-            title = "Import EPUB/PDF/CBZ",
+            title = "Import EPUB/CBZ",
             tint = if (isSystemInDarkTheme())
                 Color(255, 250, 160)
             else
                 Color(131, 105, 83),
             onClick = {
+                specialIntent = "null"
                 fabExpanded = false
                 importBookLauncher.launch(
                     arrayOf(
-                        "application/epub+zip", "application/pdf", "application/vnd.comicbook+zip"
+                        "application/epub+zip", "application/vnd.comicbook+zip"
                     )
                 )
             }
         ),
         MiniFabItems(
             icon = R.drawable.ic_add_epub,
-            title = "Import Epub via Google Drive",
+            title = "Import PDF with page render",
             tint = if (isSystemInDarkTheme())
                 Color(255, 250, 160)
             else
                 Color(131, 105, 83),
             onClick = {
+                specialIntent = "PAGE"
+                fabExpanded = false
+                importBookLauncher.launch(
+                    arrayOf("application/pdf")
+                )
+            }
+        ),
+        MiniFabItems(
+            icon = R.drawable.ic_add_epub,
+            title = "Import PDF with text/image extraction",
+            tint = if (isSystemInDarkTheme())
+                Color(255, 250, 160)
+            else
+                Color(131, 105, 83),
+            onClick = {
+                specialIntent = "TEXT"
+                fabExpanded = false
+                importBookLauncher.launch(
+                    arrayOf("application/pdf")
+                )
+            }
+        ),
+        MiniFabItems(
+            icon = R.drawable.ic_add_epub,
+            title = "Import EPUB via Google Drive",
+            tint = if (isSystemInDarkTheme())
+                Color(255, 250, 160)
+            else
+                Color(131, 105, 83),
+            onClick = {
+                specialIntent = "null"
                 fabExpanded = false
                 showDriveInputLinkDialog = true
             }
@@ -163,7 +199,16 @@ fun HomeScreen(
                 )
             }
             composable<Route.SettingScreen> {
-                SettingScreen()
+                val settingViewModel = koinViewModel<SettingViewModel>()
+                val settingState by settingViewModel.state.collectAsStateWithLifecycle()
+                val dataStoreManager = DataStoreManager(LocalContext.current)
+                SettingScreen(
+                    settingState = settingState,
+                    dataStoreManager = dataStoreManager,
+                    onAction = { action ->
+                        settingViewModel.onAction(action)
+                    }
+                )
             }
         }
     }
@@ -173,7 +218,8 @@ fun HomeScreen(
             onConfirm = { link ->
                 ImportBook(
                     context = context,
-                    scope = scope
+                    scope = scope,
+                    specialIntent = "null"
                 ).importBookViaGoogleDrive(link)
             }
         )

@@ -36,7 +36,6 @@ import com.capstone.bookshelf.presentation.bookcontent.component.dialog.VoiceMen
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
-import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
@@ -53,7 +52,6 @@ fun BottomBarTTS(
     colorPaletteState: ColorPalette,
     drawerContainerState: DrawerContainerState,
     tts: TextToSpeech,
-    dataStoreManager: DataStoreManager,
     onPreviousChapterIconClick: () -> Unit,
     onPreviousParagraphIconClick: () -> Unit,
     onPlayPauseIconClick: () -> Unit,
@@ -247,7 +245,6 @@ fun BottomBarTTS(
             contentState = contentState,
             colorPaletteState = colorPaletteState,
             tts = tts,
-            dataStoreManager = dataStoreManager,
             onDismiss = {
                 bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))
                 bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(false))

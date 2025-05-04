@@ -296,7 +296,7 @@ fun BottomBarTheme(
                     )
                 }
             }
-            if (contentState.book?.fileType != "cbz") {
+            if (contentState.book?.fileType != "cbz" && contentState.book?.fileType != "pdf/images") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,

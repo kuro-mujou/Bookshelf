@@ -43,7 +43,7 @@ class EPUBExportWorker(
             val tableOfContents = tableOfContentsRepository.getTableOfContents(bookId)
             val uri = uriString.toUri()
 
-            appContext.contentResolver.openOutputStream(uri)?.use { outputStream ->
+            appContext.contentResolver.openOutputStream(uri,"wt")?.use { outputStream ->
                 val epubBook = Book().apply {
                     metadata.addTitle(bookEntity.title.replace(Regex("\\s*\\(Draft\\)$"), ""))
                     bookEntity.authors.forEach { metadata.addAuthor(Author(it, "")) }

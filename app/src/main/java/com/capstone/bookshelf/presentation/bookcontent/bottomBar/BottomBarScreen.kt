@@ -201,7 +201,6 @@ fun BottomBarManager(
             colorPaletteState = colorPaletteState,
             drawerContainerState = drawerContainerState,
             tts = contentState.tts!!,
-            dataStoreManager = dataStoreManager,
             onPreviousChapterIconClick = {
                 viewModel.onTtsUiEvent(TtsUiEvent.SkipToBack)
             },
@@ -233,7 +232,7 @@ fun BottomBarManager(
             },
             onTTSSettingIconClick = {
                 bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))
-                viewModel.loadTTSSetting(dataStoreManager, contentState.tts)
+                viewModel.loadTTSSetting(contentState.tts)
                 bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
             }
         )

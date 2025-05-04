@@ -50,7 +50,6 @@ import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.Col
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
-import com.capstone.bookshelf.util.DataStoreManager
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,7 +61,6 @@ fun VoiceMenuDialog(
     bottomBarState: BottomBarState,
     colorPaletteState: ColorPalette,
     tts: TextToSpeech,
-    dataStoreManager: DataStoreManager,
     onDismiss: () -> Unit,
     testVoiceButtonClicked: () -> Unit
 ) {
@@ -78,7 +76,7 @@ fun VoiceMenuDialog(
     Dialog(
         onDismissRequest = {
             if (contentState.currentVoice == null) {
-                viewModel.fixNullVoice(dataStoreManager, tts)
+                viewModel.fixNullVoice(tts)
             }
             onDismiss()
         }

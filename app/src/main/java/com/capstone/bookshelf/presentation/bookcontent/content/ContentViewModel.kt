@@ -582,7 +582,7 @@ class ContentViewModel(
         _chapterContent.value = chapterRepository.getChapterContent(bookId, page)
     }
 
-    fun loadTTSSetting(dataStoreManager: DataStoreManager, tts: TextToSpeech) {
+    fun loadTTSSetting(tts: TextToSpeech) {
         viewModelScope.launch {
             val selectedLocale = tts.availableLanguages?.find {
                 it.displayName == dataStoreManager.ttsLocale.first()
@@ -601,7 +601,7 @@ class ContentViewModel(
         }
     }
 
-    fun fixNullVoice(dataStoreManager: DataStoreManager, textToSpeech: TextToSpeech) {
+    fun fixNullVoice(textToSpeech: TextToSpeech) {
         viewModelScope.launch {
             var selectedVoice = textToSpeech.voices?.find {
                 it.locale == _state.value.currentLanguage

@@ -42,7 +42,8 @@
             android:name=".presentation.bookcontent.component.tts.TTSService"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback"
-            android:label="TTSService">
+            android:label="TTSService"
+            tools:ignore="ExportedService">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
@@ -72,18 +73,6 @@
                     android:host="*"
                     android:mimeType="application/epub+zip"
                     android:pathPattern=".*\\.epub"
-                    android:scheme="file"
-                    tools:ignore="IntentFilterUniqueDataAttributes" />
-                <data
-                    android:host="*"
-                    android:mimeType="application/pdf"
-                    android:pathPattern=".*\\.pdf"
-                    android:scheme="content"
-                    tools:ignore="IntentFilterUniqueDataAttributes" />
-                <data
-                    android:host="*"
-                    android:mimeType="application/pdf"
-                    android:pathPattern=".*\\.pdf"
                     android:scheme="file"
                     tools:ignore="IntentFilterUniqueDataAttributes" />
                 <data

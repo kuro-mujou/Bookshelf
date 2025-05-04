@@ -10,7 +10,8 @@ import org.koin.java.KoinJavaComponent.inject
 
 class ImportBook(
     private val context: Context,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val specialIntent: String,
 ) {
     val importBookViewModel: AsyncImportBookViewModel by inject(AsyncImportBookViewModel::class.java)
     fun processIntentUri(uri: Uri?) {
@@ -24,7 +25,7 @@ class ImportBook(
                         }
 
                         fileName.endsWith(".pdf", ignoreCase = true) -> {
-                            importBookViewModel.processAndSavePdf(context, it.toString(), fileName)
+                            importBookViewModel.processAndSavePdf(context, it.toString(), fileName,specialIntent)
                         }
 
                         fileName.endsWith(".cbz", ignoreCase = true) -> {

@@ -69,7 +69,8 @@ class MainActivity : ComponentActivity() {
             if (uri != null) {
                 ImportBook(
                     context = this,
-                    scope = this.lifecycleScope
+                    scope = this.lifecycleScope,
+                    specialIntent = "null"
                 ).processIntentUri(uri)
             }
         }

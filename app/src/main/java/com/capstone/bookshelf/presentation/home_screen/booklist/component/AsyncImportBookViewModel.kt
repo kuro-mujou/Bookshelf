@@ -44,13 +44,15 @@ class AsyncImportBookViewModel(
     fun processAndSavePdf(
         context: Context,
         filePath: String,
-        fileName: String
+        fileName: String,
+        specialIntent: String
     ) = viewModelScope.launch {
         try {
             Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
             val inputData = Data.Builder()
                 .putString(PDFImportWorker.INPUT_URI_KEY, filePath)
                 .putString(PDFImportWorker.ORIGINAL_FILENAME_KEY, fileName)
+                .putString(PDFImportWorker.SPECIAL_INTENT_KEY, specialIntent)
                 .build()
             val workRequest = OneTimeWorkRequest.Builder(PDFImportWorker::class.java)
                 .setInputData(inputData)

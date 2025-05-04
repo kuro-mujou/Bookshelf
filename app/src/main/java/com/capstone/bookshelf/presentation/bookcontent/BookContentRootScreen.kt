@@ -467,7 +467,7 @@ fun BookContentScreenRoot(
                         dataStoreManager = dataStoreManager,
                         connectToService = {
                             scope.launch {
-                                viewModel.loadTTSSetting(dataStoreManager, contentState.tts!!)
+                                viewModel.loadTTSSetting(contentState.tts!!)
                                 bottomBarViewModel.onAction(
                                     BottomBarAction.UpdateBottomBarDefaultState(
                                         false

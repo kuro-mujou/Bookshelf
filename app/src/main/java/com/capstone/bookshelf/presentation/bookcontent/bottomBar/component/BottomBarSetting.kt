@@ -71,7 +71,6 @@ fun BottomBarSetting(
             contentState = contentState,
             colorPaletteState = colorPaletteState,
             tts = tts,
-            dataStoreManager = dataStoreManager,
             onDismiss = {
                 bottomBarViewModel.onAction(BottomBarAction.OpenSetting(false))
                 bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(false))
@@ -245,7 +244,7 @@ fun BottomBarSetting(
                     contentDescription = "Bookmark theme"
                 )
             }
-            if (contentState.book?.fileType != "cbz") {
+            if (contentState.book?.fileType != "cbz" && contentState.book?.fileType != "pdf/images") {
                 HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
                 Row(
                     modifier = Modifier
@@ -253,7 +252,7 @@ fun BottomBarSetting(
                         .height(50.dp)
                         .clickable {
                             bottomBarViewModel.onAction(BottomBarAction.OpenSetting(true))
-                            viewModel.loadTTSSetting(dataStoreManager, tts)
+                            viewModel.loadTTSSetting(tts)
                             bottomBarViewModel.onAction(BottomBarAction.OpenVoiceMenuSetting(true))
                         },
                     verticalAlignment = Alignment.CenterVertically,
