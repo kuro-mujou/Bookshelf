@@ -10,9 +10,9 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.worker.CBZImportWorker
+import com.capstone.bookshelf.worker.DriveEPUBImportWorker
 import com.capstone.bookshelf.worker.EPUBImportWorker
 import com.capstone.bookshelf.worker.PDFImportWorker
-import com.capstone.bookshelf.worker.SourceType
 import kotlinx.coroutines.launch
 
 class AsyncImportBookViewModel(
@@ -27,9 +27,7 @@ class AsyncImportBookViewModel(
         try {
             Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
             val inputData = workDataOf(
-                EPUBImportWorker.INPUT_SOURCE_TYPE to SourceType.URI.name,
                 EPUBImportWorker.INPUT_URI_KEY to filePath,
-                EPUBImportWorker.ORIGINAL_FILENAME_KEY to fileName
             )
             val workRequest = OneTimeWorkRequest.Builder(EPUBImportWorker::class.java)
                 .setInputData(inputData)
@@ -87,12 +85,27 @@ class AsyncImportBookViewModel(
 
     fun enqueueImportFromDriveLink(context: Context, driveLink: String) {
         val inputData = workDataOf(
-            EPUBImportWorker.INPUT_SOURCE_TYPE to SourceType.DRIVE_LINK.name,
-            EPUBImportWorker.INPUT_DRIVE_LINK_KEY to driveLink,
+            DriveEPUBImportWorker.INPUT_DRIVE_LINK_KEY to driveLink,
         )
-        val importWorkRequest = OneTimeWorkRequest.Builder(EPUBImportWorker::class.java)
+        val importWorkRequest = OneTimeWorkRequest.Builder(DriveEPUBImportWorker::class.java)
             .setInputData(inputData)
             .build()
         WorkManager.getInstance(context).enqueue(importWorkRequest)
+    }
+
+    fun test(context: Context, uri: String) = viewModelScope.launch {
+        try {
+            Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
+            val inputData = workDataOf(
+                EPUBImportWorker.INPUT_URI_KEY to uri,
+            )
+            val workRequest = OneTimeWorkRequest.Builder(EPUBImportWorker::class.java)
+                .setInputData(inputData)
+                .build()
+            WorkManager.getInstance(context).enqueue(workRequest)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(context, "Can't open ebook file", Toast.LENGTH_SHORT).show()
+        }
     }
 }

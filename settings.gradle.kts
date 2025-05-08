@@ -25,4 +25,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "BookShelf"
 include(":app")
- 

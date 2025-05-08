@@ -22,14 +22,17 @@ class ImportBook(
                     when {
                         fileName.endsWith(".epub", ignoreCase = true) -> {
                             importBookViewModel.processAndSaveBook(context, it.toString(), fileName)
+//                            importBookViewModel.test(context, it.toString())
                         }
 
                         fileName.endsWith(".pdf", ignoreCase = true) -> {
                             importBookViewModel.processAndSavePdf(context, it.toString(), fileName,specialIntent)
+//                            importBookViewModel.test(context, it.toString())
                         }
 
                         fileName.endsWith(".cbz", ignoreCase = true) -> {
                             importBookViewModel.processAndSaveCBZ(context, it.toString(), fileName)
+//                            importBookViewModel.test(context, it.toString())
                         }
 
                         else -> {

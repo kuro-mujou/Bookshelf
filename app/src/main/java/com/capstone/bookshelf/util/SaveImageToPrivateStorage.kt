@@ -42,6 +42,7 @@ fun saveImageToPrivateStorage(
 fun saveBitmapToPrivateStorage(
     context: Context,
     bitmap: Bitmap?,
+    quality: Int,
     filenameWithoutExtension: String
 ): String {
     if (bitmap == null) {
@@ -57,7 +58,7 @@ fun saveBitmapToPrivateStorage(
                 @Suppress("DEPRECATION")
                 Bitmap.CompressFormat.WEBP
             }
-            bitmap.compress(format, 100, outputStream)
+            bitmap.compress(format, quality, outputStream)
             outputStream.flush()
         }
         file.absolutePath

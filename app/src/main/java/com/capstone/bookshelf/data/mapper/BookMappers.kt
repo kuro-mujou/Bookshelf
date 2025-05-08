@@ -15,6 +15,7 @@ fun Book.toEntity(): BookEntity {
         totalChapter = totalChapter,
         currentChapter = currentChapter,
         currentParagraph = currentParagraph,
+        isRecentRead = isRecentRead,
         isFavorite = isFavorite,
         storagePath = storagePath,
         isEditable = isEditable,

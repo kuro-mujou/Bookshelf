@@ -27,6 +27,13 @@ interface BookDao {
 
     @Query("""
         UPDATE books
+        SET isRecentRead = isRecentRead - 1
+        WHERE isRecentRead > :deletedRank
+    """)
+    suspend fun compactRanksAfterDeletion(deletedRank: Int)
+
+    @Query("""
+        UPDATE books
         SET isRecentRead = isRecentRead + 1
         WHERE isRecentRead > 0 AND isRecentRead < :oldRank
     """)

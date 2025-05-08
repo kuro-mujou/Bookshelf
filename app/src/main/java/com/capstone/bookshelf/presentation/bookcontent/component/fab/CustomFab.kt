@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.presentation.bookcontent.component.fab
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,14 +22,9 @@ fun CustomFab(
     FilledIconButton(
         modifier = Modifier
             .padding(bottom = 12.dp)
-            .size(48.dp)
-            .border(
-                width = 2.dp,
-                color = colorPaletteState.textColor.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(10.dp)
-            ),
+            .size(48.dp),
         colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = colorPaletteState.containerColor
+            containerColor = colorPaletteState.textColor
         ),
         shape = RoundedCornerShape(10.dp),
         onClick = {
@@ -40,7 +34,7 @@ fun CustomFab(
         Icon(
             imageVector = ImageVector.vectorResource(id = R.drawable.ic_undo),
             contentDescription = null,
-            tint = colorPaletteState.textColor
+            tint = colorPaletteState.backgroundColor
         )
     }
 }

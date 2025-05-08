@@ -92,11 +92,18 @@ class BookRepositoryImpl(
     }
 
     override suspend fun deleteBooks(books: List<Book>) {
-        val bookEntities = books.map {
-            it.toEntity()
-        }
-        bookEntities.forEach { bookEntity ->
-            bookDao.deleteBooks(bookEntity)
+        val bookEntities = books.map { it.toEntity() }
+
+        val deletedRanks = bookEntities
+            .mapNotNull { entity ->
+                if (entity.isRecentRead > 0) entity.isRecentRead else null
+            }
+            .distinct()
+            .sorted()
+
+        bookEntities.forEach { bookDao.deleteBooks(it) }
+        deletedRanks.forEach { rank ->
+            bookDao.compactRanksAfterDeletion(rank)
         }
     }
     override suspend fun updateCurrentChapterIndexOnDelete(bookId: String, deleteIndex: Int) {

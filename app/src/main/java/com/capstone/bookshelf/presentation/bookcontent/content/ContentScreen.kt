@@ -589,7 +589,7 @@ fun ContentScreen(
                                     val event = awaitPointerEvent()
                                     var zoom = originalZoom
                                     zoom *= event.calculateZoom()
-                                    zoom = zoom.coerceIn(1f, 3f)
+                                    zoom = zoom.coerceIn(1f, 10f)
                                     originalZoom = zoom
                                     val pan = event.calculatePan()
                                     val currentOffset = if (zoom == 1f) {

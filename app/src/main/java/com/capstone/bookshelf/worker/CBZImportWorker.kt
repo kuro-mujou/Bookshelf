@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.core.uri.Uri
@@ -30,6 +31,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.readium.r2.shared.InternalReadiumApi
+import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.util.Url
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -37,6 +44,11 @@ import java.io.InputStream
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.zip.ZipFile
+
+data class ComicInfo(
+    val series: String? = null,
+    val writer: String? = null
+)
 
 class CBZImportWorker(
     private val appContext: Context,
@@ -64,6 +76,7 @@ class CBZImportWorker(
 
         private const val MAX_BITMAP_DIMENSION = 2048
         private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif", "avif", "bmp")
+        private const val COMIC_INFO_FILE_NAME = "ComicInfo.xml"
     }
 
     init {
@@ -132,7 +145,7 @@ class CBZImportWorker(
         val actualFileName = originalDisplayName
         val bookTitle = actualFileName.substringBeforeLast('.')
         var bookId: String? = null
-
+        val comicInfo: ComicInfo?
         try {
             bookId = BigInteger(1, md.digest(actualFileName.toByteArray())).toString(16)
                 .padStart(32, '0')
@@ -153,6 +166,9 @@ class CBZImportWorker(
             val groupedImageEntries = mutableMapOf<String, MutableList<String>>()
             val allSecondLevelDirs = mutableSetOf<String>()
             val naturalComparator = NaturalOrderComparator()
+            ZipFile(tempZipFile).use { zipFile ->
+                comicInfo = parseComicInfo(zipFile)
+            }
             ZipFile(tempZipFile).use { zipFile ->
                 val entries = zipFile.entries()
                 while (entries.hasMoreElements()) {
@@ -201,7 +217,12 @@ class CBZImportWorker(
                                 if (bitmap != null) {
                                     val coverFilename = "${bookId}_cover"
                                     coverImagePath =
-                                        saveBitmapToPrivateStorage(context, bitmap, coverFilename)
+                                        saveBitmapToPrivateStorage(
+                                            context = context,
+                                            bitmap = bitmap,
+                                            quality = 80,
+                                            filenameWithoutExtension = coverFilename
+                                        )
                                     bitmap.recycle()
                                 } else {
                                     coverImagePath = "decode_error"
@@ -225,7 +246,8 @@ class CBZImportWorker(
                 }
             saveBookInfo(
                 bookID = bookId,
-                title = bookTitle,
+                title = comicInfo?.series ?: bookTitle,
+                authors = listOf(comicInfo?.writer ?: "Unknown Author"),
                 coverImagePath = finalCoverPathForDb!!,
                 totalChapters = totalChapters,
                 cacheFilePath = tempZipFile.absolutePath
@@ -257,9 +279,10 @@ class CBZImportWorker(
                                     val chapterImageFilename =
                                         "${bookId}_${safeChapterName}_${safeImageName}"
                                     val savedPath = saveBitmapToPrivateStorage(
-                                        context,
-                                        bitmap,
-                                        chapterImageFilename
+                                        context = context,
+                                        bitmap = bitmap,
+                                        quality = 80,
+                                        filenameWithoutExtension = chapterImageFilename
                                     )
                                     if (!savedPath.startsWith("error")) {
                                         savedImagePathsInChapter.add(savedPath)
@@ -273,10 +296,10 @@ class CBZImportWorker(
                     }
                     if (savedImagePathsInChapter.isNotEmpty()) {
                         saveChapterInfo(
-                            bookId,
-                            chapterName,
-                            chapterIndex - 1,
-                            savedImagePathsInChapter
+                            bookId = bookId,
+                            chapterName = chapterName,
+                            chapterIndex = chapterIndex - 1,
+                            savedImagePaths = savedImagePathsInChapter
                         )
                     }
                 }
@@ -292,9 +315,67 @@ class CBZImportWorker(
         }
     }
 
+    // New helper function to parse ComicInfo.xml
+    private fun parseComicInfo(zipFile: ZipFile): ComicInfo? {
+        val entries = zipFile.entries()
+        var comicInfoEntryName: String? = null
+
+        // Find the ComicInfo.xml entry (case-insensitive check)
+        while (entries.hasMoreElements()) {
+            val entry = entries.nextElement()
+            if (!entry.isDirectory && entry.name.equals(COMIC_INFO_FILE_NAME, ignoreCase = true)) {
+                comicInfoEntryName = entry.name
+                break
+            }
+        }
+
+        if (comicInfoEntryName == null) {
+            return null // File not found
+        }
+
+        var series: String? = null
+        var writer: String? = null
+
+        try {
+            zipFile.getInputStream(zipFile.getEntry(comicInfoEntryName)).use { inputStream ->
+                val parserFactory = XmlPullParserFactory.newInstance()
+                parserFactory.isNamespaceAware = true
+                val parser = parserFactory.newPullParser()
+
+                parser.setInput(inputStream, null) // Null encoding lets parser determine it
+
+                var eventType = parser.eventType
+
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    when (eventType) {
+                        XmlPullParser.START_TAG -> {
+                            when (parser.name) {
+                                "Series" -> {
+                                    series = parser.nextText()?.trim()
+                                }
+
+                                "Writer" -> {
+                                    writer = parser.nextText()?.trim()
+                                }
+                                // Add other tags you might want to extract later (e.g., Summary, Year, etc.)
+                            }
+                        }
+                    }
+                    eventType = parser.next()
+                }
+            }
+            return ComicInfo(series, writer)
+        } catch (e: Exception) {
+            // Log parsing errors but don't fail the import, just return null
+            e.printStackTrace()
+            return null
+        }
+    }
+
     private suspend fun saveBookInfo(
         bookID: String,
         title: String,
+        authors: List<String>,
         coverImagePath: String,
         totalChapters: Int,
         cacheFilePath: String
@@ -303,7 +384,7 @@ class CBZImportWorker(
             bookId = bookID,
             title = title,
             coverImagePath = coverImagePath,
-            authors = listOf("Unknown"),
+            authors = authors,
             categories = emptyList(),
             description = null,
             totalChapter = totalChapters,
@@ -476,6 +557,52 @@ class CBZImportWorker(
             ForegroundInfo(notificationId, notification, FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
             ForegroundInfo(notificationId, notification)
+        }
+    }
+
+
+    @OptIn(InternalReadiumApi::class)
+    suspend fun readComicInfoXml(publication: Publication?) {
+        val comicInfoHref = "ComicInfo.xml"
+        val url = Url(comicInfoHref)
+
+        val resource = publication?.container?.get(url!!)
+        if (resource == null) {
+            Log.w("Publication", "ComicInfo.xml not found in container")
+            return
+        }
+
+        val result = resource.read()
+        result.onSuccess { byteArray ->
+            val parserFactory = XmlPullParserFactory.newInstance()
+            parserFactory.isNamespaceAware = true
+            val parser = parserFactory.newPullParser()
+
+            parser.setInput(ByteArrayInputStream(byteArray), null)
+
+            var eventType = parser.eventType
+            var series: String? = null
+            var writer: String? = null
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                when (eventType) {
+                    XmlPullParser.START_TAG -> {
+                        when (parser.name) {
+                            "Series","series" -> {
+                                series = parser.nextText()?.trim()
+                            }
+
+                            "writer","Writer" -> {
+                                writer = parser.nextText()?.trim()
+                            }
+                        }
+                    }
+                }
+                eventType = parser.next()
+            }
+            Log.d("Publication", "Series: $series")
+            Log.d("Publication", "Writer: $writer")
+        }.onFailure { error ->
+            Log.e("Publication", "Failed to read ComicInfo.xml: ${error.message}")
         }
     }
 }

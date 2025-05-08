@@ -40,11 +40,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_19
-        targetCompatibility = JavaVersion.VERSION_19
+        isCoreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = "19"
+        jvmTarget = "1.8"
     }
     buildFeatures {
         compose = true
@@ -78,6 +79,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     //data store
     implementation(libs.androidx.datastore.preferences)
     // Koin for Jetpack Compose
@@ -135,6 +137,12 @@ dependencies {
         exclude(group = "org.jetbrains.compose.material", module = "material")
         exclude(group = "org.jetbrains.compose.material3", module = "material3")
     }
+    //readium
+    implementation(libs.readium.streamer)
+    implementation(libs.readium.shared)
+    implementation(libs.readium.navigator)
+    implementation(libs.readium.opds)
+    implementation(libs.readium.lcp)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
