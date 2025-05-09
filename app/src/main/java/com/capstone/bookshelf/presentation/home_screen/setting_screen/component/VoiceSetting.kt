@@ -1,8 +1,9 @@
 package com.capstone.bookshelf.presentation.home_screen.setting_screen.component
 
 import android.speech.tts.TextToSpeech
-import android.speech.tts.Voice
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,7 +46,6 @@ import androidx.compose.ui.window.Dialog
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingAction
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingState
 import com.capstone.bookshelf.util.DataStoreManager
-import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,25 +60,31 @@ fun VoiceSetting(
 ) {
     var speedSliderValue by remember { mutableFloatStateOf(settingState.currentSpeed) }
     var pitchSliderValue by remember { mutableFloatStateOf(settingState.currentPitch) }
-    var currentLanguage by remember { mutableStateOf<Locale?>(settingState.currentLanguage) }
-    var currentVoice by remember { mutableStateOf<Voice?>(settingState.currentVoice) }
     val locales = tts?.availableLanguages?.toList()?.sortedBy { it.displayName }
     val voices = tts?.voices
         ?.filter { !it.isNetworkConnectionRequired }
         ?.sortedBy { it.name }
     var languageMenuExpanded by remember { mutableStateOf(false) }
     var voiceMenuExpanded by remember { mutableStateOf(false) }
-    val filteredVoices = voices?.filter { it.locale == currentLanguage }
+    val filteredVoices = voices?.filter { it.locale == settingState.currentLanguage }
     Dialog(
         onDismissRequest = {
             onDismiss()
         }
     ) {
+        val focusManager = LocalFocusManager.current
         Surface(
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentHeight(),
+                .wrapContentHeight()
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick = {
+                        focusManager.clearFocus()
+                    }
+                ),
         ) {
             Column(
                 modifier = Modifier.padding(8.dp),
@@ -115,9 +122,8 @@ fun VoiceSetting(
                     ) {
                         OutlinedTextField(
                             shape = RoundedCornerShape(8.dp),
-                            value = currentLanguage?.displayName.toString(),
+                            value = settingState.currentLanguage?.displayName.toString(),
                             onValueChange = {
-
                             },
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = languageMenuExpanded)
@@ -140,6 +146,9 @@ fun VoiceSetting(
                                     },
                                     onClick = {
                                         languageMenuExpanded = false
+                                        focusManager.clearFocus()
+                                        onAction(SettingAction.UpdateLanguage(locale))
+                                        onAction(SettingAction.UpdateVoice(null))
                                     },
                                 )
                             }
@@ -167,9 +176,8 @@ fun VoiceSetting(
                     ) {
                         OutlinedTextField(
                             shape = RoundedCornerShape(8.dp),
-                            value = currentVoice?.name.toString(),
+                            value = settingState.currentVoice?.name.toString(),
                             onValueChange = {
-
                             },
                             trailingIcon = {
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = voiceMenuExpanded)
@@ -195,6 +203,8 @@ fun VoiceSetting(
                                     },
                                     onClick = {
                                         voiceMenuExpanded = false
+                                        focusManager.clearFocus()
+                                        onAction(SettingAction.UpdateVoice(voice))
                                     },
                                 )
                             }

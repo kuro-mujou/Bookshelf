@@ -11,17 +11,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,41 +35,49 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.AutoScrollSetting
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.BookmarkMenu
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.MusicMenu
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.VoiceSetting
 import com.capstone.bookshelf.util.DataStoreManager
-import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingScreen(
     settingState: SettingState,
     dataStoreManager: DataStoreManager,
     onAction: (SettingAction) -> Unit,
 ) {
-    val tts by rememberTextToSpeech()
+    val context = LocalContext.current
+    val musicMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val bookmarkMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var openBackgroundMusicMenu by remember { mutableStateOf(false) }
+    var openBookmarkThemeMenu by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        tts?.let{
-            onAction(SettingAction.LoadTTSSetting(it))
+        if (settingState.tts == null) {
+            onAction(SettingAction.SetupTTS(context))
+        } else {
+            onAction(SettingAction.LoadTTSSetting)
         }
     }
     if (settingState.openTTSVoiceMenu) {
         VoiceSetting(
-            tts = tts,
+            tts = settingState.tts,
             settingState = settingState,
             dataStoreManager = dataStoreManager,
             onDismiss = {
                 onAction(SettingAction.OpenTTSVoiceMenu(false))
                 if(settingState.currentVoice == null) {
-                    tts?.let {
+                    settingState.tts?.let {
                         onAction(SettingAction.FixNullVoice(it))
                     }
                 }
             },
             testVoiceButtonClicked = {
-                tts?.language = settingState.currentLanguage
-                tts?.voice = settingState.currentVoice
-                settingState.currentPitch.let { tts?.setPitch(it) }
-                settingState.currentSpeed.let { tts?.setSpeechRate(it) }
-                tts?.speak("xin chào", TextToSpeech.QUEUE_FLUSH, null, "utteranceId")
+                settingState.tts?.language = settingState.currentLanguage
+                settingState.tts?.voice = settingState.currentVoice
+                settingState.currentPitch.let { settingState.tts?.setPitch(it) }
+                settingState.currentSpeed.let { settingState.tts?.setSpeechRate(it) }
+                settingState.tts?.speak("xin chào", TextToSpeech.QUEUE_FLUSH, null, "utteranceId")
             },
             onAction = onAction
         )
@@ -75,10 +85,10 @@ fun SettingScreen(
     if (settingState.openAutoScrollMenu) {
         AutoScrollSetting(
             settingState = settingState,
-            dataStoreManager = dataStoreManager,
             onDismissRequest = {
                 onAction(SettingAction.OpenAutoScrollMenu(false))
-            }
+            },
+            onAction = onAction,
         )
     }
     Column(
@@ -131,7 +141,7 @@ fun SettingScreen(
                 .fillMaxWidth()
                 .height(50.dp)
                 .clickable {
-
+                    openBackgroundMusicMenu = true
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -164,7 +174,7 @@ fun SettingScreen(
                 .fillMaxWidth()
                 .height(50.dp)
                 .clickable {
-
+                    openBookmarkThemeMenu = true
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -257,25 +267,29 @@ fun SettingScreen(
             )
         }
     }
-
-}
-
-@Composable
-fun rememberTextToSpeech(): MutableState<TextToSpeech?> {
-    val context = LocalContext.current
-    val tts = remember { mutableStateOf<TextToSpeech?>(null) }
-    DisposableEffect(context) {
-        val textToSpeech = TextToSpeech(context){
-            if(it == TextToSpeech.SUCCESS){
-                tts.value?.language = Locale.getDefault()
-                tts.value?.voice = tts.value?.defaultVoice
-            }
-        }
-        tts.value = textToSpeech
-        onDispose {
-            textToSpeech.stop()
-            textToSpeech.shutdown()
+    if (openBackgroundMusicMenu) {
+        ModalBottomSheet(
+            modifier = Modifier.fillMaxSize(),
+            sheetState = musicMenuSheetState,
+            onDismissRequest = { openBackgroundMusicMenu = false },
+        ) {
+            MusicMenu(
+                settingState = settingState,
+                onAction = onAction
+            )
         }
     }
-    return tts
+    if (openBookmarkThemeMenu) {
+        ModalBottomSheet(
+            modifier = Modifier.fillMaxSize(),
+            sheetState = bookmarkMenuSheetState,
+            onDismissRequest = { openBookmarkThemeMenu = false },
+        ) {
+            BookmarkMenu(
+                settingState = settingState,
+                onAction = onAction
+            )
+        }
+    }
 }
+

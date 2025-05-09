@@ -1,7 +1,7 @@
 package com.capstone.bookshelf.presentation.home_screen.setting_screen
 
+import android.content.Context
 import android.speech.tts.TextToSpeech
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.bookshelf.domain.repository.MusicPathRepository
@@ -30,17 +30,17 @@ class SettingViewModel(
         when (action) {
             is SettingAction.OpenTTSVoiceMenu -> {
                 _state.update {
-                    it.copy(
-                        openTTSVoiceMenu = action.open
-                    )
+                    it.copy(openTTSVoiceMenu = action.open)
                 }
+            }
+
+            is SettingAction.LoadTTSSetting -> {
+                loadTTSSetting()
             }
 
             is SettingAction.OpenAutoScrollMenu -> {
                 _state.update {
-                    it.copy(
-                        openAutoScrollMenu = action.open
-                    )
+                    it.copy(openAutoScrollMenu = action.open)
                 }
             }
 
@@ -49,42 +49,107 @@ class SettingViewModel(
                     dataStoreManager.setKeepScreenOn(action.keepScreenOn)
                 }
             }
+
+            is SettingAction.UpdateVoice -> {
+                viewModelScope.launch {
+                    if (action.voice != null) {
+                        dataStoreManager.setTTSVoice(action.voice.name)
+                    }
+                    _state.update {
+                        it.copy(currentVoice = action.voice)
+                    }
+                }
+            }
+
+            is SettingAction.UpdateLanguage -> {
+                viewModelScope.launch {
+                    dataStoreManager.setTTSLocale(action.language?.displayName.toString())
+                    _state.update {
+                        it.copy(currentLanguage = action.language)
+                    }
+                }
+            }
+
             is SettingAction.UpdateSpeed -> {
                 viewModelScope.launch {
                     dataStoreManager.setTTSSpeed(action.speed)
                 }
             }
+
             is SettingAction.UpdatePitch -> {
                 viewModelScope.launch {
                     dataStoreManager.setTTSPitch(action.pitch)
                 }
             }
+
             is SettingAction.FixNullVoice -> {
                 fixNullVoice(action.tts)
             }
-            is SettingAction.LoadTTSSetting -> {
-                loadTTSSetting(action.tts)
+
+            is SettingAction.SetupTTS -> {
+                setupTTS(action.context)
+            }
+
+            is SettingAction.UpdateSelectedBookmarkStyle -> {
+                viewModelScope.launch {
+                    dataStoreManager.setBookmarkStyle(action.style)
+                }
+            }
+
+            is SettingAction.OnEnableBackgroundMusicChange -> {
+                viewModelScope.launch {
+                    dataStoreManager.setEnableBackgroundMusic(action.enable)
+                }
+            }
+
+            is SettingAction.OnPlayerVolumeChange -> {
+                viewModelScope.launch {
+                    dataStoreManager.setPlayerVolume(action.volume)
+                }
+            }
+
+            is SettingAction.UpdateAutoResumeScrollMode -> {
+                viewModelScope.launch {
+                    dataStoreManager.setAutoScrollResumeMode(action.autoResume)
+                }
+            }
+
+            is SettingAction.UpdateDelayAtEnd -> {
+                viewModelScope.launch {
+                    dataStoreManager.setDelayTimeAtEnd(action.delay)
+                }
+            }
+
+            is SettingAction.UpdateDelayAtStart -> {
+                viewModelScope.launch {
+                    dataStoreManager.setDelayTimeAtStart(action.delay)
+                }
+            }
+
+            is SettingAction.UpdateDelayResumeMode -> {
+                viewModelScope.launch {
+                    dataStoreManager.setAutoScrollResumeDelayTime(action.delay)
+                }
+            }
+
+            is SettingAction.UpdateScrollSpeed -> {
+                viewModelScope.launch {
+                    dataStoreManager.setAutoScrollSpeed(action.speed)
+                }
             }
         }
     }
 
-    private fun loadTTSSetting(tts: TextToSpeech) {
-        Log.d("SettingViewModel", "loadTTSSetting called")
-        Log.d("SettingViewModel", "tts: $tts")
+    private fun loadTTSSetting() {
         viewModelScope.launch {
-            Log.d("SettingViewModel", "ttsLocale: ${dataStoreManager.ttsLocale.first()}")
-            Log.d("SettingViewModel", "ttsVoice: ${dataStoreManager.ttsVoice.first()}")
-            Log.d("SettingViewModel", "availableLanguages: ${tts.availableLanguages}")
-            val selectedLocale = tts.availableLanguages?.find {
+            val selectedLocale = _state.value.tts?.availableLanguages?.find {
                 it.displayName == dataStoreManager.ttsLocale.first()
             }
-            val selectedVoice = tts.voices?.find {
+            val selectedVoice = _state.value.tts?.voices?.find {
                 it.name == dataStoreManager.ttsVoice.first() && it.locale == selectedLocale
-            } ?: tts.voices?.firstOrNull {
+            } ?: _state.value.tts?.voices?.firstOrNull {
                 it.locale == selectedLocale
             }
-            Log.d("SettingViewModel", "selectedLocale: ${selectedLocale?.displayName}")
-            Log.d("SettingViewModel", "selectedVoice: ${selectedVoice?.name}")
             _state.update {
                 it.copy(
                     currentLanguage = selectedLocale,
@@ -111,6 +176,19 @@ class SettingViewModel(
         }
     }
 
+    fun setupTTS(context: Context) {
+        viewModelScope.launch {
+            val tts = TextToSpeech(context) {
+                if (it == TextToSpeech.SUCCESS) {
+                    loadTTSSetting()
+                }
+            }
+            _state.update {
+                it.copy(tts = tts)
+            }
+        }
+    }
+
     init {
         viewModelScope.launch {
             dataStoreManager.keepScreenOn.collectLatest { keepScreenOn ->
@@ -133,5 +211,60 @@ class SettingViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            dataStoreManager.bookmarkStyle.collectLatest { bookmarkStyle ->
+                _state.update {
+                    it.copy(selectedBookmarkStyle = bookmarkStyle)
+                }
+            }
+        }
+        viewModelScope.launch {
+            dataStoreManager.enableBackgroundMusic.collectLatest { enableBackgroundMusic ->
+                _state.update {
+                    it.copy(enableBackgroundMusic = enableBackgroundMusic)
+                }
+            }
+        }
+        viewModelScope.launch {
+            dataStoreManager.autoScrollSpeed.collectLatest { speed ->
+                _state.update {
+                    it.copy(currentScrollSpeed = speed)
+                }
+            }
+        }
+        viewModelScope.launch {
+            dataStoreManager.autoScrollResumeMode.collectLatest { autoScrollResumeMode ->
+                _state.update {
+                    it.copy(isAutoResumeScrollMode = autoScrollResumeMode)
+                }
+            }
+        }
+        viewModelScope.launch {
+            dataStoreManager.autoScrollResumeDelayTime.collectLatest { delay ->
+                _state.update {
+                    it.copy(delayResumeMode = delay)
+                }
+            }
+        }
+        viewModelScope.launch {
+            dataStoreManager.delayTimeAtEnd.collectLatest { delay ->
+                _state.update {
+                    it.copy(delayAtEnd = delay)
+                }
+            }
+        }
+        viewModelScope.launch {
+            dataStoreManager.delayTimeAtStart.collectLatest { delay ->
+                _state.update {
+                    it.copy(delayAtStart = delay)
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        _state.value.tts?.stop()
+        _state.value.tts?.shutdown()
     }
 }

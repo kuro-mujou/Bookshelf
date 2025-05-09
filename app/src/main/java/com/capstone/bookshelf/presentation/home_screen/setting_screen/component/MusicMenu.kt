@@ -1,4 +1,4 @@
-package com.capstone.bookshelf.presentation.bookcontent.component.music
+package com.capstone.bookshelf.presentation.home_screen.setting_screen.component
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,17 +29,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -58,25 +56,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.uri.Uri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
-import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
-import com.capstone.bookshelf.presentation.bookcontent.content.ContentAction
-import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
-import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
-import com.capstone.bookshelf.util.DataStoreManager
-import kotlinx.coroutines.flow.first
+import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicItem
+import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicListAction
+import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicViewModel
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingAction
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingState
 import org.koin.androidx.compose.koinViewModel
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
-@UnstableApi
 @Composable
 fun MusicMenu(
-    contentViewModel: ContentViewModel,
-    dataStoreManager: DataStoreManager,
-    colorPalette: ColorPalette,
-    contentState: ContentState
+    settingState: SettingState,
+    onAction: (SettingAction) -> Unit
 ) {
     val musicViewModel = koinViewModel<MusicViewModel>()
     val state by musicViewModel.state.collectAsStateWithLifecycle()
@@ -90,12 +83,7 @@ fun MusicMenu(
         }
     }
     var volumeSliderValue by remember { mutableFloatStateOf(state.playerVolume) }
-    LaunchedEffect(Unit) {
-        contentViewModel.onContentAction(ContentAction.UpdatePlayerVolume(dataStoreManager.playerVolume.first()))
-    }
-    Surface(
-        color = colorPalette.backgroundColor
-    ) {
+    Surface {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -108,8 +96,6 @@ fun MusicMenu(
                     text = "MUSIC MENU",
                     style = TextStyle(
                         fontSize = 20.sp,
-                        color = colorPalette.textColor,
-                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
                 )
                 IconButton(
@@ -121,7 +107,6 @@ fun MusicMenu(
                     Icon(
                         imageVector = ImageVector.vectorResource(R.drawable.ic_add_music),
                         contentDescription = null,
-                        tint = colorPalette.textColor
                     )
                 }
             }
@@ -132,28 +117,14 @@ fun MusicMenu(
                     text = "Enable background music",
                     style = TextStyle(
                         fontSize = 16.sp,
-                        color = colorPalette.textColor,
-                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Switch(
-                    checked = contentState.enableBackgroundMusic,
+                    checked = settingState.enableBackgroundMusic,
                     onCheckedChange = {
-                        contentViewModel.onContentAction(
-                            ContentAction.UpdateEnableBackgroundMusic(
-                                it
-                            )
-                        )
+                        onAction(SettingAction.OnEnableBackgroundMusicChange(it))
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = colorPalette.textColor,
-                        checkedTrackColor = colorPalette.textColor.copy(0.5f),
-                        checkedBorderColor = colorPalette.textColor,
-                        uncheckedThumbColor = colorPalette.textColor,
-                        uncheckedTrackColor = colorPalette.textColor.copy(0.5f),
-                        uncheckedBorderColor = colorPalette.textColor,
-                    )
                 )
             }
             Row(
@@ -167,16 +138,12 @@ fun MusicMenu(
                     text = "Volume",
                     style = TextStyle(
                         fontSize = 16.sp,
-                        color = colorPalette.textColor,
-                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
                 )
                 Text(
                     text = "%.2fx".format(volumeSliderValue),
                     style = TextStyle(
                         fontSize = 16.sp,
-                        color = colorPalette.textColor,
-                        fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
                     )
                 )
             }
@@ -189,24 +156,15 @@ fun MusicMenu(
                     volumeSliderValue = (value * 100).roundToInt() / 100f
                 },
                 onValueChangeFinished = {
-                    contentViewModel.onContentAction(
-                        ContentAction.UpdatePlayerVolume(
-                            volumeSliderValue
-                        )
-                    )
-                    musicViewModel.onEvent(MusicListAction.OnVolumeChange(volumeSliderValue))
+                    onAction(SettingAction.OnPlayerVolumeChange(volumeSliderValue))
                 },
-                colors = SliderDefaults.colors(
-                    activeTrackColor = colorPalette.textColor,
-                    inactiveTrackColor = colorPalette.textColor.copy(alpha = 0.5f)
-                ),
                 valueRange = 0f..1f,
                 thumb = {
                     Box(
                         modifier = Modifier
                             .size(24.dp)
                             .background(
-                                color = colorPalette.textColor,
+                                color = MaterialTheme.colorScheme.primary,
                                 shape = CircleShape
                             )
                     )
@@ -224,8 +182,6 @@ fun MusicMenu(
                     ) { listItem ->
                         MusicItemView(
                             music = listItem,
-                            colorPalette = colorPalette,
-                            contentState = contentState,
                             onFavoriteClick = { musicItem ->
                                 musicViewModel.onEvent(MusicListAction.OnFavoriteClick(musicItem))
                             },
@@ -243,12 +199,9 @@ fun MusicMenu(
     }
 }
 
-@UnstableApi
 @Composable
 fun MusicItemView(
     music: MusicItem,
-    colorPalette: ColorPalette,
-    contentState: ContentState,
     onFavoriteClick: (MusicItem) -> Unit,
     onItemClick: (MusicItem) -> Unit,
     onDelete: (MusicItem) -> Unit
@@ -301,7 +254,6 @@ fun MusicItemView(
             )
             Box(
                 modifier = Modifier
-                    .background(colorPalette.containerColor)
                     .clickable(
                         onClick = {
                             onItemClick(music)
@@ -326,15 +278,11 @@ fun MusicItemView(
                             ),
                         imageVector = ImageVector.vectorResource(R.drawable.ic_music_disk),
                         contentDescription = null,
-                        tint = if (music.isSelected) Color.Red else colorPalette.textColor
+                        tint = if (music.isSelected) Color.Red else Color.Gray
                     )
                     music.name?.let {
                         Text(
                             text = it,
-                            style = TextStyle(
-                                color = colorPalette.textColor,
-                                fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
-                            ),
                             modifier = Modifier
                                 .weight(1f)
                                 .basicMarquee(
@@ -354,7 +302,7 @@ fun MusicItemView(
                             imageVector = ImageVector.vectorResource(R.drawable.ic_favourite_music),
                             contentDescription = null,
                             tint = if (music.isFavorite) Color.Red else
-                                colorPalette.textColor
+                                Color.Gray
                         )
                     }
                 }

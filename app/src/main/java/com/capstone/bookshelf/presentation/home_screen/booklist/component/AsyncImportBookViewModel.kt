@@ -71,7 +71,6 @@ class AsyncImportBookViewModel(
             Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
             val inputData = Data.Builder()
                 .putString(CBZImportWorker.INPUT_URI_KEY, filePath)
-                .putString(CBZImportWorker.ORIGINAL_FILENAME_KEY, fileName)
                 .build()
             val workRequest = OneTimeWorkRequest.Builder(CBZImportWorker::class.java)
                 .setInputData(inputData)

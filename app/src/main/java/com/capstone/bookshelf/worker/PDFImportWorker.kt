@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.worker
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -62,7 +63,7 @@ sealed class PageContentElement {
     data class Image(val path: String) : PageContentElement()
 }
 
-
+@SuppressLint("NewApi")
 class PDFImportWorker(
     private val appContext: Context,
     workerParams: WorkerParameters
@@ -288,6 +289,7 @@ class PDFImportWorker(
                         saveBitmapToPrivateStorage(
                             context = context,
                             bitmap = bitmap,
+                            compressType = Bitmap.CompressFormat.WEBP_LOSSY,
                             quality = 80,
                             filenameWithoutExtension = coverFilename
                         ).also {
@@ -407,6 +409,7 @@ class PDFImportWorker(
                     saveBitmapToPrivateStorage(
                         context = context,
                         bitmap = bitmap,
+                        compressType = Bitmap.CompressFormat.WEBP_LOSSY,
                         quality = 80,
                         filenameWithoutExtension = baseFileName
                     )
@@ -496,6 +499,7 @@ class PDFImportWorker(
                             pageImagePath = saveBitmapToPrivateStorage(
                                 context = context,
                                 bitmap = bitmap,
+                                compressType = Bitmap.CompressFormat.WEBP_LOSSLESS,
                                 quality = 100,
                                 filenameWithoutExtension = "${bookId}_page_${pageNumber}"
                             ).also { bitmap.recycle() }

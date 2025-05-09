@@ -1,15 +1,14 @@
 package com.capstone.bookshelf.worker
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.provider.OpenableColumns
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.core.uri.Uri
@@ -24,36 +23,40 @@ import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
-import com.capstone.bookshelf.util.NaturalOrderComparator
-import com.capstone.bookshelf.util.calculateInSampleSize
+import com.capstone.bookshelf.util.decodeSampledBitmapFromStream
 import com.capstone.bookshelf.util.saveBitmapToPrivateStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.readium.r2.shared.ExperimentalReadiumApi
 import org.readium.r2.shared.InternalReadiumApi
 import org.readium.r2.shared.publication.Publication
+import org.readium.r2.shared.publication.services.cover
 import org.readium.r2.shared.util.Url
+import org.readium.r2.shared.util.asset.AssetRetriever
+import org.readium.r2.shared.util.http.DefaultHttpClient
+import org.readium.r2.shared.util.resource.buffered
+import org.readium.r2.shared.util.toAbsoluteUrl
+import org.readium.r2.shared.util.use
+import org.readium.r2.streamer.PublicationOpener
+import org.readium.r2.streamer.parser.DefaultPublicationParser
+import org.readium.r2.streamer.parser.audio.AudioParser
+import org.readium.r2.streamer.parser.epub.EpubParser
+import org.readium.r2.streamer.parser.image.ImageParser
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.ByteArrayInputStream
-import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
 import java.math.BigInteger
 import java.security.MessageDigest
-import java.util.zip.ZipFile
+import kotlin.Result as ImportResult
 
-data class ComicInfo(
-    val series: String? = null,
-    val writer: String? = null
-)
-
+@SuppressLint("NewApi")
 class CBZImportWorker(
-    private val appContext: Context,
+    private val context: Context,
     workerParams: WorkerParameters
-) : CoroutineWorker(appContext, workerParams), KoinComponent {
+) : CoroutineWorker(context, workerParams), KoinComponent {
 
     private val bookRepository: BookRepository by inject()
     private val tableOfContentsRepository: TableOfContentRepository by inject()
@@ -62,314 +65,252 @@ class CBZImportWorker(
 
     private val md = MessageDigest.getInstance("MD5")
     private val notificationManager =
-        appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private val notificationId = System.currentTimeMillis().toInt()
     private val completionNotificationId = notificationId + 1
+    private var finalBookTitle: String = ""
+    private var finalBookId: String = ""
 
     companion object {
         const val INPUT_URI_KEY = "input_uri"
-        const val ORIGINAL_FILENAME_KEY = "original_filename"
-        private const val TAG = "CBZImportWorker"
-
         private const val PROGRESS_CHANNEL_ID = "book_import_progress_channel"
         private const val COMPLETION_CHANNEL_ID = "book_import_completion_channel"
-
+        private const val TAG = "CBZImportWorker"
         private const val MAX_BITMAP_DIMENSION = 2048
-        private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif", "avif", "bmp")
         private const val COMIC_INFO_FILE_NAME = "ComicInfo.xml"
     }
 
     init {
-        createNotificationChannelIfNeeded(
+        createNotificationChannel(
             PROGRESS_CHANNEL_ID,
             "Book Import Progress"
         )
-        createNotificationChannelIfNeeded(
+        createNotificationChannel(
             COMPLETION_CHANNEL_ID,
             "Book Import Completion"
         )
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        val cbzUriString = inputData.getString(INPUT_URI_KEY)
-        val originalFileName = inputData.getString(ORIGINAL_FILENAME_KEY) ?: getDisplayNameFromUri(
-            appContext,
-            cbzUriString?.toUri()
-        ) ?: "Unknown CBZ"
-
-        if (cbzUriString == null) {
-            return@withContext Result.failure()
-        }
-        val cbzUri = cbzUriString.toUri()
         val initialNotification = createProgressNotificationBuilder(
-            originalFileName, "Starting import..."
+            fileName = finalBookTitle,
+            message = "Starting import..."
         ).build()
-        try {
-            setForeground(getForegroundInfoCompat(initialNotification))
-        } catch (e: Exception) {
-            // Non-fatal error if setForeground fails (e.g., app in background on older APIs)
-        }
-        val processingResult = processCbzAndSaveData(
-            appContext,
-            cbzUri,
-            originalFileName,
-            onProgress = { currentChapter, totalChapters, chapterName ->
-                val progressPercent =
-                    ((currentChapter.toFloat() / totalChapters.toFloat()) * 100).toInt()
+        setForeground(getForegroundInfoCompat(initialNotification))
+
+        val processingResult = processEPUB(
+            onProgress = { progress, chapterName ->
                 updateProgressNotification(
-                    originalFileName,
-                    "Processing: $chapterName ($currentChapter/$totalChapters)",
-                    progressPercent
+                    fileName = finalBookTitle,
+                    message = "Processing: $chapterName",
+                    progress = progress
                 )
             }
         )
+
         val isSuccess = processingResult.isSuccess
         val failureReason = if (!isSuccess) processingResult.exceptionOrNull()?.message else null
-        val displayTitle = processingResult.getOrNull()
-            ?: originalFileName.substringBeforeLast('.')
-        sendCompletionNotification(isSuccess, displayTitle, failureReason)
-        return@withContext if (isSuccess) Result.success() else Result.failure()
+
+        sendCompletionNotification(isSuccess, finalBookTitle, failureReason)
+        Result.success()
     }
 
-    /**
-     * The core processing logic. Copies to cache, extracts info, saves images, updates DB.
-     * Returns Result.success(bookTitle) or Result.failure(exception).
-     */
-    private suspend fun processCbzAndSaveData(
-        context: Context,
-        zipFileUri: Uri,
-        originalDisplayName: String,
-        onProgress: suspend (currentChapter: Int, totalChapters: Int, chapterName: String) -> Unit
-    ): kotlin.Result<String> {
-        var tempZipFile: File? = null
-        val actualFileName = originalDisplayName
-        val bookTitle = actualFileName.substringBeforeLast('.')
-        var bookId: String? = null
-        val comicInfo: ComicInfo?
-        try {
-            bookId = BigInteger(1, md.digest(actualFileName.toByteArray())).toString(16)
-                .padStart(32, '0')
-            if (bookRepository.isBookExist(bookTitle)) {
-                return kotlin.Result.failure(IOException("Book already imported"))
-            }
-            updateProgressNotification(originalDisplayName, "Copying file...", null)
-            tempZipFile = File.createTempFile("cbz_import_", ".zip", context.cacheDir)
-            context.contentResolver.openInputStream(zipFileUri)?.use { inputStream ->
-                FileOutputStream(tempZipFile).use { outputStream ->
-                    inputStream.copyTo(outputStream, 8192) // 8KB buffer
-                }
-            } ?: run {
-                tempZipFile?.delete() // Clean up temp file
-                return kotlin.Result.failure(IOException("Failed to open InputStream"))
-            }
-            updateProgressNotification(originalDisplayName, "Analyzing archive...", null)
-            val groupedImageEntries = mutableMapOf<String, MutableList<String>>()
-            val allSecondLevelDirs = mutableSetOf<String>()
-            val naturalComparator = NaturalOrderComparator()
-            ZipFile(tempZipFile).use { zipFile ->
-                comicInfo = parseComicInfo(zipFile)
-            }
-            ZipFile(tempZipFile).use { zipFile ->
-                val entries = zipFile.entries()
-                while (entries.hasMoreElements()) {
-                    val entry = entries.nextElement()
-                    val entryName = entry.name
-                    if (entry.isDirectory || entryName.startsWith("__MACOSX/") || entryName.contains(
-                            "/.DS_Store"
-                        )
-                    ) continue
-                    val pathSegments = entryName.split('/').filter { it.isNotEmpty() }
-                    if (pathSegments.size >= 2) {
-                        val secondLevelName = pathSegments[1]
-                        allSecondLevelDirs.add(secondLevelName)
+    private suspend fun processEPUB(
+        onProgress: suspend (progress: Int?, chapterName: String) -> Unit
+    ): ImportResult<String> {
+        val httpClient = DefaultHttpClient()
+        val assetRetriever = AssetRetriever(
+            contentResolver = context.contentResolver,
+            httpClient = httpClient
+        )
+        val publicationOpener = PublicationOpener(
+            publicationParser = DefaultPublicationParser(
+                context = context,
+                httpClient = httpClient,
+                assetRetriever = assetRetriever,
+                pdfFactory = null,
+                additionalParsers = listOf(
+                    EpubParser(),
+                    AudioParser(
+                        assetSniffer = assetRetriever
+                    ),
+                    ImageParser(
+                        assetRetriever = assetRetriever
+                    ),
+                )
+            )
+        )
+        val epubUriString = inputData.getString(EPUBImportWorker.Companion.INPUT_URI_KEY) ?: return ImportResult.failure(
+            IOException("Fail to get input uri")
+        )
+        val uri = epubUriString.toUri()
+        val url = uri.toAbsoluteUrl()
+        val asset = assetRetriever.retrieve(url!!).getOrNull()
+        if (asset == null) {
+            return ImportResult.failure(IOException("Fail to load ebook"))
+        }
+        val publication = publicationOpener.open(asset, allowUserInteraction = true).getOrNull()
+        if (publication == null) {
+            return ImportResult.failure(IOException("Fail to open ebook"))
+        }
+        onProgress(null, "Processing Book info...")
 
-                        val fileName = pathSegments.last()
-                        val extension = fileName.substringAfterLast('.', "").lowercase()
-                        if (extension in IMAGE_EXTENSIONS) {
-                            val imageList =
-                                groupedImageEntries.getOrPut(secondLevelName) { mutableListOf() }
-                            imageList.add(entryName)
-                        }
-                    }
-                }
-            }
+        val (title,authors) = readComicInfoXml(publication)
+        finalBookTitle = title ?: publication.metadata.title ?: getDisplayNameFromUri(context, uri) ?: "Untitled"
 
-            val finalDirNames = allSecondLevelDirs.filter { groupedImageEntries.containsKey(it) }
-            val sortedDirNames = finalDirNames.toList().sortedWith(naturalComparator)
-            val totalChapters = sortedDirNames.size
-
-            if (totalChapters == 0) {
-                return kotlin.Result.failure(IOException("No valid image entries found in file"))
-            }
-            updateProgressNotification(originalDisplayName, "Extracting cover image...", null)
-            var coverImagePath = "no_cover_extracted"
-            val firstChapterName = sortedDirNames.first()
-            val imagePathsInFirstChapter = groupedImageEntries[firstChapterName]
-                ?.sortedWith(naturalComparator)
-            if (!imagePathsInFirstChapter.isNullOrEmpty()) {
-                val firstImageEntryPath = imagePathsInFirstChapter.first()
-                try {
-                    ZipFile(tempZipFile).use { coverZipFile ->
-                        val coverEntry = coverZipFile.getEntry(firstImageEntryPath)
-                        if (coverEntry != null) {
-                            coverZipFile.getInputStream(coverEntry).use { imageStream ->
-                                val bitmap = decodeSampledBitmapFromStream(imageStream)
-                                if (bitmap != null) {
-                                    val coverFilename = "${bookId}_cover"
-                                    coverImagePath =
-                                        saveBitmapToPrivateStorage(
-                                            context = context,
-                                            bitmap = bitmap,
-                                            quality = 80,
-                                            filenameWithoutExtension = coverFilename
-                                        )
-                                    bitmap.recycle()
-                                } else {
-                                    coverImagePath = "decode_error"
-                                }
-                            }
-                        } else {
-                            coverImagePath = "entry_not_found"
-                        }
-                    }
-                } catch (e: Exception) {
-                    coverImagePath = "extraction_error"
-                }
-            } else {
-                coverImagePath = "no_images_in_first_chapter"
-            }
-            val finalCoverPathForDb =
-                if (coverImagePath.startsWith("error_") || coverImagePath.startsWith("no_")) {
-                    null
+        var currentChapter = ""
+        val chapterMap = mutableMapOf<String, MutableList<String>>()
+        val imageExtensions = listOf(".jpg", ".jpeg", ".png", ".gif", ".webp")
+        publication.readingOrder.forEach { link ->
+            val href = link.href.toString().trimStart('/')
+            if (imageExtensions.any { href.endsWith(it, ignoreCase = true) }) {
+                val parts = href.split("/")
+                val chapterName = if (parts.size < 2) {
+                    finalBookTitle
                 } else {
-                    coverImagePath
+                    parts[parts.size - 2]
                 }
-            saveBookInfo(
-                bookID = bookId,
-                title = comicInfo?.series ?: bookTitle,
-                authors = listOf(comicInfo?.writer ?: "Unknown Author"),
-                coverImagePath = finalCoverPathForDb!!,
-                totalChapters = totalChapters,
-                cacheFilePath = tempZipFile.absolutePath
-            ).run {
-                bookRepository.updateRecentRead(bookId)
-            }
-            var chapterIndex = 0
-            ZipFile(tempZipFile).use { chapterZipFile ->
-                for (chapterName in sortedDirNames) {
-                    chapterIndex++
-                    onProgress(chapterIndex, totalChapters, chapterName)
-
-                    val imageEntryPaths = groupedImageEntries[chapterName] ?: continue
-                    val sortedImageEntryPaths = imageEntryPaths.sortedWith(naturalComparator)
-                    val savedImagePathsInChapter = mutableListOf<String>()
-
-                    for (imageEntryPath in sortedImageEntryPaths) {
-                        val entry = chapterZipFile.getEntry(imageEntryPath) ?: continue
-                        val originalImageName = entry.name.substringAfterLast('/')
-
-                        try {
-                            chapterZipFile.getInputStream(entry).use { imageStream ->
-                                val bitmap = decodeSampledBitmapFromStream(imageStream)
-                                if (bitmap != null) {
-                                    val safeChapterName =
-                                        chapterName.replace(Regex("[^A-Za-z0-9_-]"), "_")
-                                    val safeImageName = originalImageName.substringBeforeLast('.')
-                                        .replace(Regex("[^A-Za-z0-9_-]"), "_")
-                                    val chapterImageFilename =
-                                        "${bookId}_${safeChapterName}_${safeImageName}"
-                                    val savedPath = saveBitmapToPrivateStorage(
-                                        context = context,
-                                        bitmap = bitmap,
-                                        quality = 80,
-                                        filenameWithoutExtension = chapterImageFilename
-                                    )
-                                    if (!savedPath.startsWith("error")) {
-                                        savedImagePathsInChapter.add(savedPath)
-                                    }
-                                    bitmap.recycle()
-                                }
-                            }
-                        } catch (oom: OutOfMemoryError) {
-                        } catch (e: Exception) {
-                        }
-                    }
-                    if (savedImagePathsInChapter.isNotEmpty()) {
-                        saveChapterInfo(
-                            bookId = bookId,
-                            chapterName = chapterName,
-                            chapterIndex = chapterIndex - 1,
-                            savedImagePaths = savedImagePathsInChapter
-                        )
-                    }
+                if (chapterName != currentChapter) {
+                    currentChapter = chapterName.replace("%20", " ")
                 }
-            }
-            return kotlin.Result.success(bookTitle)
-
-        } catch (e: Exception) {
-            return kotlin.Result.failure(e)
-        } finally {
-            if (tempZipFile != null && tempZipFile.exists()) {
-                tempZipFile.delete()
+                val list = chapterMap.getOrPut(currentChapter) { mutableListOf() }
+                list.add(href)
             }
         }
+        val sortedChapterMap = chapterMap.entries
+            .sortedBy { entry ->
+                Regex("(\\d+)(?!.*\\d)").find(entry.key)?.value?.toIntOrNull() ?: Int.MAX_VALUE
+            }
+            .associate { it.toPair() }
+        val processBookResult = processAndSaveBookInfo(
+            epubUriString = epubUriString,
+            publication = publication,
+            tableOfContentSize = sortedChapterMap.size,
+            author = authors,
+        )
+        if (processBookResult.isFailure) {
+            return processBookResult
+        }
+
+        onProgress(null, "Processing Book content...")
+        val processContentResult = processAndSaveBookContent(
+            publication = publication,
+            chapterMap = sortedChapterMap,
+            onProgress = onProgress
+        )
+        if (processContentResult.isFailure) {
+            return processContentResult
+        }
+
+        return ImportResult.success(finalBookTitle)
     }
 
-    // New helper function to parse ComicInfo.xml
-    private fun parseComicInfo(zipFile: ZipFile): ComicInfo? {
-        val entries = zipFile.entries()
-        var comicInfoEntryName: String? = null
+    private suspend fun processAndSaveBookContent(
+        publication: Publication,
+        chapterMap: Map<String, List<String>>,
+        onProgress: suspend (progress: Int?, chapterName: String) -> Unit
+    ): ImportResult<String> {
+        var overallChapterIndex = 0
+        val contentList = mutableListOf<String>()
+        chapterMap.forEach { (chapterName, imagePaths) ->
+            val progress = ((overallChapterIndex + 1).toFloat() / chapterMap.size * 100).toInt()
+            onProgress(progress, chapterName)
 
-        // Find the ComicInfo.xml entry (case-insensitive check)
-        while (entries.hasMoreElements()) {
-            val entry = entries.nextElement()
-            if (!entry.isDirectory && entry.name.equals(COMIC_INFO_FILE_NAME, ignoreCase = true)) {
-                comicInfoEntryName = entry.name
-                break
-            }
-        }
-
-        if (comicInfoEntryName == null) {
-            return null // File not found
-        }
-
-        var series: String? = null
-        var writer: String? = null
-
-        try {
-            zipFile.getInputStream(zipFile.getEntry(comicInfoEntryName)).use { inputStream ->
-                val parserFactory = XmlPullParserFactory.newInstance()
-                parserFactory.isNamespaceAware = true
-                val parser = parserFactory.newPullParser()
-
-                parser.setInput(inputStream, null) // Null encoding lets parser determine it
-
-                var eventType = parser.eventType
-
-                while (eventType != XmlPullParser.END_DOCUMENT) {
-                    when (eventType) {
-                        XmlPullParser.START_TAG -> {
-                            when (parser.name) {
-                                "Series" -> {
-                                    series = parser.nextText()?.trim()
-                                }
-
-                                "Writer" -> {
-                                    writer = parser.nextText()?.trim()
-                                }
-                                // Add other tags you might want to extract later (e.g., Summary, Year, etc.)
-                            }
-                        }
-                    }
-                    eventType = parser.next()
+            imagePaths.forEach { href->
+                val imagePath = saveImageFromPublication(
+                    imageElementHref = href,
+                    publication = publication,
+                    tocIndex = overallChapterIndex,
+                    paragraphIndex = imagePaths.indexOf(href)
+                )
+                if (!imagePath.startsWith("error")) {
+                    contentList.add(imagePath)
                 }
             }
-            return ComicInfo(series, writer)
-        } catch (e: Exception) {
-            // Log parsing errors but don't fail the import, just return null
-            e.printStackTrace()
-            return null
+            imagePathRepository.saveImagePath(finalBookId, contentList)
+            saveChapterInfo(finalBookId, chapterName, overallChapterIndex, contentList)
+            contentList.clear()
+            overallChapterIndex++
         }
+        return ImportResult.success(finalBookTitle)
+    }
+
+    @OptIn(ExperimentalReadiumApi::class)
+    private suspend fun saveImageFromPublication(
+        imageElementHref: String,
+        publication: Publication,
+        tocIndex: Int,
+        paragraphIndex: Int,
+    ): String {
+        var imagePath = "error"
+        publication.get(Url(imageElementHref)!!)?.buffered()?.use { buffering ->
+            buffering.read().onSuccess { byteArray ->
+                byteArray.inputStream().use {
+                    val bitmap = decodeSampledBitmapFromStream(
+                        it,
+                        MAX_BITMAP_DIMENSION,
+                        MAX_BITMAP_DIMENSION
+                    )
+                    if (bitmap != null) {
+                        imagePath = saveBitmapToPrivateStorage(
+                            context = context,
+                            bitmap = bitmap,
+                            compressType = Bitmap.CompressFormat.WEBP_LOSSY,
+                            quality = 80,
+                            filenameWithoutExtension = "image_${finalBookId}_${tocIndex}_${paragraphIndex}"
+                        )
+                        bitmap.recycle()
+                    }
+                }
+            }
+        }
+        return imagePath
+    }
+
+    private suspend fun processAndSaveBookInfo(
+        epubUriString: String,
+        publication: Publication,
+        tableOfContentSize: Int,
+        author: String?,
+    ): ImportResult<String> {
+        finalBookId = BigInteger(1, md.digest(finalBookTitle.toByteArray())).toString(16)
+            .padStart(32, '0')
+        if (bookRepository.isBookExist(finalBookTitle)) {
+            return ImportResult.failure(IOException("Book already imported"))
+        }
+        var coverImagePath = ""
+        val coverImageBitmap = publication.cover()
+        coverImagePath = coverImageBitmap?.let { bitmap ->
+            saveBitmapToPrivateStorage(
+                context = context,
+                bitmap = bitmap,
+                compressType = Bitmap.CompressFormat.WEBP_LOSSY,
+                quality = 80,
+                filenameWithoutExtension = "cover_$finalBookId"
+            )
+        } ?: "error"
+        val authors = author?.split(",") ?: publication.metadata.authors.map { it.name.toString() }
+        bookRepository.insertBook(
+            BookEntity(
+                bookId = finalBookId,
+                title = finalBookTitle,
+                coverImagePath = coverImagePath,
+                authors = authors,
+                categories = emptyList(),
+                description = publication.metadata.description,
+                totalChapter = tableOfContentSize,
+                currentChapter = 0,
+                currentParagraph = 0,
+                isFavorite = false,
+                storagePath = epubUriString,
+                isEditable = false,
+                fileType = "cbz"
+            )
+        ).run {
+            bookRepository.updateRecentRead(finalBookId)
+        }
+        imagePathRepository.saveImagePath(finalBookId, listOf(coverImagePath))
+        return ImportResult.success(finalBookTitle)
     }
 
     private suspend fun saveBookInfo(
@@ -418,115 +359,6 @@ class CBZImportWorker(
         chapterRepository.saveChapterContent(chapterEntity)
     }
 
-    private fun createNotificationChannelIfNeeded(channelId: String, channelName: String) {
-        if (notificationManager.getNotificationChannel(channelId) == null) {
-            val importance =
-                if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(channelId, channelName, importance).apply {
-                if (channelId == PROGRESS_CHANNEL_ID) {
-                    setSound(null, null)
-                }
-            }
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-
-    /** Creates the base builder for progress notifications. */
-    private fun createProgressNotificationBuilder(
-        fileName: String,
-        message: String
-    ): NotificationCompat.Builder {
-        val displayFileName = fileName.substringBeforeLast(".")
-        return NotificationCompat.Builder(appContext, PROGRESS_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Importing: ${displayFileName.take(40)}${if (displayFileName.length > 40) "..." else ""}")
-            .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-    }
-
-    /** Updates the ongoing progress notification. */
-    private suspend fun updateProgressNotification(
-        fileName: String,
-        message: String,
-        progress: Int?
-    ) {
-        val builder = createProgressNotificationBuilder(fileName, message)
-        if (progress != null) {
-            builder.setProgress(100, progress.coerceIn(0, 100), false) // Determinate
-        } else {
-            builder.setProgress(0, 0, true) // Indeterminate
-        }
-        try {
-            setForeground(getForegroundInfoCompat(builder.build()))
-        } catch (e: Exception) {
-            notificationManager.notify(notificationId, builder.build())
-        }
-    }
-
-
-    /** Sends the final completion notification. */
-    private fun sendCompletionNotification(
-        isSuccess: Boolean,
-        bookTitle: String?,
-        failureReason: String? = null
-    ) {
-        val title = if (isSuccess) "Import Successful" else "Import Failed"
-        val defaultTitle = bookTitle ?: "File"
-        val userFriendlyReason = when {
-            failureReason == null -> null
-            failureReason.contains("Book already imported") -> "This book is already in your library."
-            failureReason.contains("No valid image entries found") -> "No images could be found in this file."
-            failureReason.contains("Failed to open InputStream") -> "Could not read the selected file."
-            failureReason.contains("OutOfMemoryError") -> "Ran out of memory processing images. Try importing smaller files."
-            else -> "An unexpected error occurred."
-        }
-
-        val text = when {
-            isSuccess -> "'$defaultTitle' added to your library."
-            userFriendlyReason != null -> "Failed to import '$defaultTitle': $userFriendlyReason"
-            else -> "Import failed for '$defaultTitle'."
-        }
-        val builder = NotificationCompat.Builder(appContext, COMPLETION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-        notificationManager.notify(completionNotificationId, builder.build())
-        notificationManager.cancel(notificationId)
-    }
-
-    /** Decodes bitmap with sampling to prevent OOM errors. */
-    private fun decodeSampledBitmapFromStream(
-        stream: InputStream,
-        reqWidth: Int = MAX_BITMAP_DIMENSION,
-        reqHeight: Int = MAX_BITMAP_DIMENSION
-    ): Bitmap? {
-        try {
-            if (!stream.markSupported()) {
-                return BitmapFactory.decodeStream(stream)
-            }
-            stream.mark(1024 * 1024)
-            val options = BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-            }
-            BitmapFactory.decodeStream(stream, null, options)
-            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
-            options.inJustDecodeBounds = false
-            stream.reset()
-            return BitmapFactory.decodeStream(stream, null, options)
-        } catch (e: IOException) {
-            return null
-        } catch (oom: OutOfMemoryError) {
-            return null
-        } catch (e: Exception) {
-            return null
-        }
-    }
-
     /** Gets display name from content URI. */
     private fun getDisplayNameFromUri(context: Context, uri: Uri?): String? {
         if (uri == null) return null
@@ -551,6 +383,87 @@ class CBZImportWorker(
         return displayName
     }
 
+    private fun createNotificationChannel(channelId: String, channelName: String) {
+        if (notificationManager.getNotificationChannel(channelId) == null) {
+            val importance =
+                if (channelId == PROGRESS_CHANNEL_ID) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                if (channelId == PROGRESS_CHANNEL_ID) {
+                    setSound(null, null)
+                }
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    /** Creates the base builder for progress notifications. */
+    private fun createProgressNotificationBuilder(
+        fileName: String,
+        message: String
+    ): NotificationCompat.Builder {
+        val displayFileName = fileName.substringBeforeLast(".")
+        return NotificationCompat.Builder(context, PROGRESS_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Importing: ${displayFileName.take(40)}${if (displayFileName.length > 40) "..." else ""}")
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+    }
+
+    /** Updates the ongoing progress notification. */
+    private suspend fun updateProgressNotification(
+        fileName: String,
+        message: String,
+        progress: Int?
+    ) {
+        val builder = createProgressNotificationBuilder(fileName, message)
+        if (progress != null) {
+            builder.setProgress(100, progress.coerceIn(0, 100), false)
+        } else {
+            builder.setProgress(0, 0, true)
+        }
+        try {
+            setForeground(getForegroundInfoCompat(builder.build()))
+        } catch (e: Exception) {
+            notificationManager.notify(notificationId, builder.build())
+        }
+    }
+
+
+    /** Sends the final completion notification. */
+    private fun sendCompletionNotification(
+        isSuccess: Boolean,
+        bookTitle: String?,
+        failureReason: String? = null
+    ) {
+        val title = if (isSuccess) "Import Successful" else "Import Failed"
+        val defaultTitle = bookTitle ?: "File"
+        val userFriendlyReason = when {
+            failureReason == null -> null
+            failureReason.contains("Book already imported") -> "This book is already in your library."
+            failureReason.contains("No valid image entries found") -> "No images could be found in this file."
+            failureReason.contains("Failed to open InputStream") -> "Could not read the selected file."
+            failureReason.contains("OutOfMemoryError") -> "Ran out of memory processing images. Try importing smaller files."
+            else -> failureReason
+        }
+
+        val text = when {
+            isSuccess -> "'$defaultTitle' added to your library."
+            userFriendlyReason != null -> "Failed to import '$defaultTitle': $userFriendlyReason"
+            else -> "Import failed for '$defaultTitle'."
+        }
+        val builder = NotificationCompat.Builder(context, COMPLETION_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+        notificationManager.notify(completionNotificationId, builder.build())
+        notificationManager.cancel(notificationId)
+    }
+
     /** Provides ForegroundInfo, handling platform differences. */
     private fun getForegroundInfoCompat(notification: Notification): ForegroundInfo {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -562,14 +475,13 @@ class CBZImportWorker(
 
 
     @OptIn(InternalReadiumApi::class)
-    suspend fun readComicInfoXml(publication: Publication?) {
+    suspend fun readComicInfoXml(publication: Publication?):Pair<String?,String?> {
         val comicInfoHref = "ComicInfo.xml"
         val url = Url(comicInfoHref)
 
         val resource = publication?.container?.get(url!!)
         if (resource == null) {
-            Log.w("Publication", "ComicInfo.xml not found in container")
-            return
+            return Pair(null,null)
         }
 
         val result = resource.read()
@@ -599,10 +511,10 @@ class CBZImportWorker(
                 }
                 eventType = parser.next()
             }
-            Log.d("Publication", "Series: $series")
-            Log.d("Publication", "Writer: $writer")
+            return Pair(series,writer)
         }.onFailure { error ->
-            Log.e("Publication", "Failed to read ComicInfo.xml: ${error.message}")
+            return Pair(null,null)
         }
+        return Pair(null,null)
     }
 }

@@ -1,14 +1,19 @@
 package com.capstone.bookshelf.presentation.home_screen.setting_screen.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -17,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,28 +30,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingAction
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingState
-import com.capstone.bookshelf.util.DataStoreManager
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutoScrollSetting(
     settingState: SettingState,
-    dataStoreManager: DataStoreManager,
     onDismissRequest: () -> Unit,
+    onAction: (SettingAction) -> Unit,
 ) {
     Dialog(
         onDismissRequest = {
             onDismissRequest()
         }
     ) {
-        var speedSliderValue by remember { mutableIntStateOf(0) }
-        var delayAtStart by remember { mutableIntStateOf(0) }
-        var delayAtEnd by remember { mutableIntStateOf(0) }
-        var delayResumeMode by remember { mutableIntStateOf(0) }
-        val scope = rememberCoroutineScope()
+        var speedSliderValue by remember { mutableIntStateOf(settingState.currentScrollSpeed) }
+        var delayAtStart by remember { mutableIntStateOf(settingState.delayAtStart) }
+        var delayAtEnd by remember { mutableIntStateOf(settingState.delayAtEnd) }
+        var delayResumeMode by remember { mutableIntStateOf(settingState.delayResumeMode) }
         Surface(
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
@@ -85,18 +87,20 @@ fun AutoScrollSetting(
                         speedSliderValue = (value * 10000).roundToInt()
                     },
                     onValueChangeFinished = {
-                        scope.launch {
-                            dataStoreManager.setAutoScrollSpeed(speedSliderValue)
-                        }
+                        onAction(SettingAction.UpdateScrollSpeed(speedSliderValue))
                     },
                     valueRange = 0.1f..2f,
                     steps = 18,
-//                    thumb = {
-//                        Box(
-//                            modifier = Modifier
-//                                .size(24.dp)
-//                        )
-//                    },
+                    thumb = {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                )
+                        )
+                    },
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -113,22 +117,20 @@ fun AutoScrollSetting(
                         delayAtStart = (value * 1000).roundToInt()
                     },
                     onValueChangeFinished = {
-                        scope.launch {
-                            dataStoreManager.setDelayTimeAtStart(delayAtStart)
-                        }
+                        onAction(SettingAction.UpdateDelayAtStart(delayAtStart))
                     },
                     valueRange = 1f..10f,
                     steps = 8,
-//                    thumb = {
-//                        Box(
-//                            modifier = Modifier
-//                                .size(24.dp)
-//                                .background(
-//                                    color = colorPaletteState.textColor,
-//                                    shape = CircleShape
-//                                )
-//                        )
-//                    },
+                    thumb = {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                )
+                        )
+                    },
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -145,22 +147,20 @@ fun AutoScrollSetting(
                         delayAtEnd = (value * 1000).roundToInt()
                     },
                     onValueChangeFinished = {
-                        scope.launch {
-                            dataStoreManager.setDelayTimeAtEnd(delayAtEnd)
-                        }
+                        onAction(SettingAction.UpdateDelayAtEnd(delayAtEnd))
                     },
                     valueRange = 1f..10f,
                     steps = 8,
-//                    thumb = {
-//                        Box(
-//                            modifier = Modifier
-//                                .size(24.dp)
-//                                .background(
-//                                    color = colorPaletteState.textColor,
-//                                    shape = CircleShape
-//                                )
-//                        )
-//                    }
+                    thumb = {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                )
+                        )
+                    }
                 )
                 HorizontalDivider(thickness = 1.dp)
                 Row(
@@ -172,9 +172,7 @@ fun AutoScrollSetting(
                     Switch(
                         checked = settingState.isAutoResumeScrollMode,
                         onCheckedChange = {
-                            scope.launch {
-                                dataStoreManager.setAutoScrollResumeMode(it)
-                            }
+                            onAction(SettingAction.UpdateAutoResumeScrollMode(it))
                         },
                     )
                 }
@@ -194,22 +192,20 @@ fun AutoScrollSetting(
                             delayResumeMode = (value * 1000).roundToInt()
                         },
                         onValueChangeFinished = {
-                            scope.launch {
-                                dataStoreManager.setAutoScrollResumeDelayTime(delayResumeMode)
-                            }
+                            onAction(SettingAction.UpdateDelayResumeMode(delayResumeMode))
                         },
                         valueRange = 1f..5f,
                         steps = 3,
-//                        thumb = {
-//                            Box(
-//                                modifier = Modifier
-//                                    .size(24.dp)
-//                                    .background(
-//                                        color = colorPaletteState.textColor,
-//                                        shape = CircleShape
-//                                    )
-//                            )
-//                        },
+                        thumb = {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = CircleShape
+                                    )
+                            )
+                        },
                     )
                 }
             }

@@ -396,6 +396,7 @@ class ContentViewModel(
 
             is ContentAction.UpdateEnableBackgroundMusic -> {
                 viewModelScope.launch {
+                    dataStoreManager.setEnableBackgroundMusic(action.enable)
                     val selectedTrack = musicPathRepository.getSelectedMusicPaths()
                     val silentMediaItem = Builder()
                         .setUri("asset:///silent.mp3".toUri())

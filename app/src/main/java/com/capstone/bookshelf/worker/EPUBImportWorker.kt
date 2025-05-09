@@ -1,10 +1,12 @@
 package com.capstone.bookshelf.worker
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+import android.graphics.Bitmap
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -20,12 +22,10 @@ import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.ChapterRepository
 import com.capstone.bookshelf.domain.repository.ImagePathRepository
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
+import com.capstone.bookshelf.util.cleanHtmlForJsoup
 import com.capstone.bookshelf.util.decodeSampledBitmapFromStream
 import com.capstone.bookshelf.util.saveBitmapToPrivateStorage
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -57,6 +57,7 @@ import java.security.MessageDigest
 import kotlin.Result as ImportResult
 
 @OptIn(InternalReadiumApi::class, ExperimentalReadiumApi::class)
+@SuppressLint("NewApi")
 class EPUBImportWorker(
     private val context: Context,
     params: WorkerParameters,
@@ -81,8 +82,8 @@ class EPUBImportWorker(
     private val imagePathRepository: ImagePathRepository by inject()
     private var finalBookTitle: String = ""
     private var finalBookId: String = ""
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    init{
+
+    init {
         createNotificationChannel(PROGRESS_CHANNEL_ID, "Book Import Progress")
         createNotificationChannel(COMPLETION_CHANNEL_ID, "Book Import Completion")
     }
@@ -109,13 +110,12 @@ class EPUBImportWorker(
         val failureReason = if (!isSuccess) processingResult.exceptionOrNull()?.message else null
 
         sendCompletionNotification(isSuccess, finalBookTitle, failureReason)
-        scope.cancel()
         Result.success()
     }
 
     suspend fun processEPUB(
         onProgress: suspend (progress: Int?, chapterName: String) -> Unit
-    ): ImportResult<String>{
+    ): ImportResult<String> {
         val httpClient = DefaultHttpClient()
         val assetRetriever = AssetRetriever(
             contentResolver = context.contentResolver,
@@ -138,7 +138,9 @@ class EPUBImportWorker(
                 )
             )
         )
-        val epubUriString = inputData.getString(INPUT_URI_KEY)?: return ImportResult.failure(IOException("Fail to get input uri"))
+        val epubUriString = inputData.getString(INPUT_URI_KEY) ?: return ImportResult.failure(
+            IOException("Fail to get input uri")
+        )
         val uri = epubUriString.toUri()
         val url = uri.toAbsoluteUrl()
         val asset = assetRetriever.retrieve(url!!).getOrNull()
@@ -184,7 +186,8 @@ class EPUBImportWorker(
         actualTocToProcess: List<Link>,
         onProgress: suspend (progress: Int?, chapterName: String) -> Unit
     ): ImportResult<String> {
-        val tocGroupedByResource = actualTocToProcess.groupBy { it.href.toString().substringBefore('#') }
+        val tocGroupedByResource =
+            actualTocToProcess.groupBy { it.href.toString().substringBefore('#') }
 
         var overallChapterIndex = 0
         val totalTocEntriesForProgress = actualTocToProcess.size
@@ -193,35 +196,23 @@ class EPUBImportWorker(
                 continue
             }
             val mainResourceLink = Url(resourceBaseHref)
-            var document: Document? = null
             var resourceFetchError: String? = null
-
+            var rawHtml = ""
             try {
                 publication.get(mainResourceLink!!)?.buffered().use {
                     it?.read()?.onSuccess { byteArray ->
-                        document = Jsoup.parse(byteArray.inputStream(),"UTF-8", resourceBaseHref)
+                        rawHtml = cleanHtmlForJsoup(byteArray.decodeToString())
                     }
                 }
             } catch (e: Exception) {
                 resourceFetchError = "[ERR: Load/Parse Resource Exception]"
             }
 
-            if (document == null) {
-                tocLinksInResource.forEach { link ->
-                    val chapterTitle = link.title ?: "Chapter ${overallChapterIndex + 1}"
-                    val progress = ((overallChapterIndex + 1).toFloat() / totalTocEntriesForProgress * 100).toInt()
-                    onProgress(progress, "Error loading ${chapterTitle.take(30)}...")
-                    saveTableOfContentEntry(finalBookId, chapterTitle, overallChapterIndex)
-                    saveErrorChapterContent(finalBookId, chapterTitle, overallChapterIndex, resourceFetchError ?: "[ERR: Unknown resource load error]")
-                    overallChapterIndex++
-                }
-                continue
-            }
+            val needsSplitting = tocLinksInResource.any {
+                it.href.toString().contains('#')
+            } && tocLinksInResource.size > 1
 
-            val needsSplitting = tocLinksInResource.any { it.href.toString().contains('#') } && tocLinksInResource.size > 1
-            val script = document.selectFirst("script")
-            val innerHtml = script?.data() ?: document.html()
-            val realDoc = Jsoup.parse(innerHtml)
+            val realDoc = Jsoup.parse(rawHtml)
             if (!needsSplitting) {
                 val representativeTocLink = tocLinksInResource.first()
                 val chapterTitle = representativeTocLink.title
@@ -230,9 +221,10 @@ class EPUBImportWorker(
                         ?.text()
                     ?: realDoc.head()
                         .selectFirst("title")
-                        ?.text()
+                        ?.text()?.let { "$it - Chapter ${overallChapterIndex + 1}" }
                     ?: "Chapter ${overallChapterIndex + 1}"
-                val progress = ((overallChapterIndex + 1).toFloat() / totalTocEntriesForProgress * 100).toInt()
+                val progress =
+                    ((overallChapterIndex + 1).toFloat() / totalTocEntriesForProgress * 100).toInt()
                 onProgress(progress, chapterTitle)
 
                 saveTableOfContentEntry(finalBookId, chapterTitle, overallChapterIndex)
@@ -253,11 +245,18 @@ class EPUBImportWorker(
                     segmentError = "[ERR: Parse Full Segment]"
                 }
 
-                val contentToSave = parsedContent?.first ?: (if (segmentError != null) listOf(segmentError) else emptyList())
+                val contentToSave = parsedContent?.first ?: (if (segmentError != null) listOf(
+                    segmentError
+                ) else emptyList())
                 val imagePathsFound = parsedContent?.second ?: emptyList()
 
                 if (contentToSave.isNotEmpty()) {
-                    saveChapterContent(finalBookId, chapterTitle, overallChapterIndex, contentToSave)
+                    saveChapterContent(
+                        finalBookId,
+                        chapterTitle,
+                        overallChapterIndex,
+                        contentToSave
+                    )
                 } else {
                     saveEmptyChapterContent(finalBookId, chapterTitle, overallChapterIndex)
                 }
@@ -284,9 +283,10 @@ class EPUBImportWorker(
                             ?.text()
                         ?: realDoc.head()
                             .selectFirst("title")
-                            ?.text()
+                            ?.text()?.let { "$it - Chapter ${overallChapterIndex + 1}" }
                         ?: "Chapter ${overallChapterIndex + 1}"
-                    val progress = ((overallChapterIndex + 1).toFloat() / totalTocEntriesForProgress * 100).toInt()
+                    val progress =
+                        ((overallChapterIndex + 1).toFloat() / totalTocEntriesForProgress * 100).toInt()
                     onProgress(progress, chapterTitle)
 
                     saveTableOfContentEntry(finalBookId, chapterTitle, overallChapterIndex)
@@ -296,10 +296,23 @@ class EPUBImportWorker(
 
                     if (idxInResource == 0) {
                         actualStartAnchorForParsing = null
-                        actualEndAnchorForParsing = tocLinksInResource.getOrNull(1)?.href?.toString()?.substringAfterLast('#', "")?.takeIf { it.isNotBlank() && tocLinksInResource[1].href.toString().contains('#') }
+                        actualEndAnchorForParsing =
+                            tocLinksInResource.getOrNull(1)?.href?.toString()
+                                ?.substringAfterLast('#', "")?.takeIf {
+                                it.isNotBlank() && tocLinksInResource[1].href.toString()
+                                    .contains('#')
+                            }
                     } else {
-                        actualStartAnchorForParsing = currentLink.href.toString().substringAfterLast('#', "").takeIf { it.isNotBlank() && currentLink.href.toString().contains('#') }
-                        actualEndAnchorForParsing = tocLinksInResource.getOrNull(idxInResource + 1)?.href?.toString()?.substringAfterLast('#', "")?.takeIf { it.isNotBlank() && tocLinksInResource[idxInResource + 1].href.toString().contains('#') }
+                        actualStartAnchorForParsing =
+                            currentLink.href.toString().substringAfterLast('#', "").takeIf {
+                                it.isNotBlank() && currentLink.href.toString().contains('#')
+                            }
+                        actualEndAnchorForParsing =
+                            tocLinksInResource.getOrNull(idxInResource + 1)?.href?.toString()
+                                ?.substringAfterLast('#', "")?.takeIf {
+                                it.isNotBlank() && tocLinksInResource[idxInResource + 1].href.toString()
+                                    .contains('#')
+                            }
                     }
                     var parsedContent: Pair<List<String>, List<String>>? = null
                     var segmentError: String? = null
@@ -318,11 +331,18 @@ class EPUBImportWorker(
                         segmentError = "[ERR: Parse Segment]"
                     }
 
-                    val contentToSave = parsedContent?.first ?: (if (segmentError != null) listOf(segmentError) else emptyList())
+                    val contentToSave = parsedContent?.first ?: (if (segmentError != null) listOf(
+                        segmentError
+                    ) else emptyList())
                     val imagePathsFound = parsedContent?.second ?: emptyList()
 
                     if (contentToSave.isNotEmpty()) {
-                        saveChapterContent(finalBookId, chapterTitle, overallChapterIndex, contentToSave)
+                        saveChapterContent(
+                            finalBookId,
+                            chapterTitle,
+                            overallChapterIndex,
+                            contentToSave
+                        )
                     } else {
                         saveEmptyChapterContent(finalBookId, chapterTitle, overallChapterIndex)
                     }
@@ -353,10 +373,18 @@ class EPUBImportWorker(
         var currentParagraph = StringBuilder()
 
         val startElement = if (!startAnchorId.isNullOrBlank()) {
-            try { document.selectFirst("[id=$startAnchorId], [name=$startAnchorId]") } catch (e: Exception) { null }
+            try {
+                document.selectFirst("[id=$startAnchorId], [name=$startAnchorId]")
+            } catch (e: Exception) {
+                null
+            }
         } else null
         val endElement = if (!endAnchorId.isNullOrBlank()) {
-            try { document.selectFirst("[id=$endAnchorId], [name=$endAnchorId]") } catch (e: Exception) { null }
+            try {
+                document.selectFirst("[id=$endAnchorId], [name=$endAnchorId]")
+            } catch (e: Exception) {
+                null
+            }
         } else null
 
         var processingActive = startAnchorId.isNullOrBlank() || startElement == null
@@ -385,13 +413,7 @@ class EPUBImportWorker(
                     is TextNode -> {
                         val text = node.text()
                         var textToAppend = text.replace(Regex("\\s+"), " ")
-                        if (currentParagraph.isEmpty() && textToAppend.startsWith(" ")) {
-                            textToAppend = textToAppend.trimStart()
-                        }
-                        if (currentParagraph.isNotEmpty() && currentParagraph.endsWith(" ") && textToAppend.startsWith(" ")) {
-                            textToAppend = textToAppend.trimStart()
-                        }
-                        if (textToAppend.isNotEmpty()) {
+                        if (textToAppend.isNotBlank()) {
                             currentParagraph.append(textToAppend)
                         }
                     }
@@ -399,7 +421,7 @@ class EPUBImportWorker(
                     is Element -> {
                         val tagName = node.tagName().lowercase()
                         when (tagName) {
-                            "body" -> { }
+
                             "p", "div", "ul", "ol", "li", "table", "blockquote", "hr",
                             "h1", "h2", "h3", "h4", "h5", "h6",
                             "figure", "figcaption", "details", "summary", "main", "header",
@@ -412,8 +434,13 @@ class EPUBImportWorker(
 
                             "br" -> {
                                 val parentNode = node.parentNode()
-                                if (parentNode is Element && parentNode.tagName().lowercase().startsWith("h")) {
-                                    if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(" ")) {
+                                if (parentNode is Element && parentNode.tagName().lowercase()
+                                        .startsWith("h")
+                                ) {
+                                    if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(
+                                            " "
+                                        )
+                                    ) {
                                         currentParagraph.append(" ")
                                     }
                                 } else {
@@ -424,7 +451,6 @@ class EPUBImportWorker(
                             "b", "strong", "i", "em", "u", "s", "strike", "del", "sup", "sub", "code" -> {
                                 currentParagraph.append("<$tagName>")
                             }
-                            "span" -> { }
 
                             "td", "th" -> {
                                 if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
@@ -444,9 +470,8 @@ class EPUBImportWorker(
                                     contentList.add(cleanHref)
                                 }
                             }
-                            "tbody", "thead", "tfoot", "tr" -> { }
-                            "style", "script", "head", "meta", "link", "title" -> { }
-                             else -> { }
+
+                            else -> {}
                         }
                     }
                 }
@@ -459,15 +484,16 @@ class EPUBImportWorker(
                 if (node is Element) {
                     val tagName = node.tagName().lowercase()
                     when (tagName) {
-                        "body" -> { }
                         "b", "strong", "i", "em", "u", "s", "strike", "del", "sup", "sub", "code" -> {
                             if (currentParagraph.isNotEmpty())
                                 currentParagraph.append("</$tagName>")
                         }
-                        "span" -> { }
+
                         "h1", "h2", "h3", "h4", "h5", "h6" -> {
                             if (currentParagraph.isNotEmpty()) {
-                                if (currentParagraph.toString().endsWith("<$tagName>")) { // Empty heading like <h1/>
+                                if (currentParagraph.toString()
+                                        .endsWith("<$tagName>")
+                                ) {
                                     currentParagraph.setLength(currentParagraph.length - "<$tagName>".length)
                                 } else {
                                     currentParagraph.append("</$tagName>")
@@ -475,18 +501,20 @@ class EPUBImportWorker(
                                 flushParagraphWithFormatting(currentParagraph, contentList)
                             }
                         }
+
                         "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "tr",
-                        "figure", "figcaption", "details", "summary", "main", "header", "footer", "nav", "aside", "article", "section" -> {
+                        "figure", "figcaption", "details", "summary", "main", "header",
+                        "footer", "nav", "aside", "article", "section" -> {
                             flushParagraphWithFormatting(currentParagraph, contentList)
                         }
+
                         "td", "th" -> {
                             if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(' ')) {
                                 currentParagraph.append(" ")
                             }
                         }
-                        "tbody", "thead", "tfoot" -> { }
-                        "style", "script", "head", "meta", "link", "title" -> { }
-                        else -> { }
+
+                        else -> {}
                     }
                 }
                 if (endElement != null && node == endElement) {
@@ -500,10 +528,12 @@ class EPUBImportWorker(
             flushParagraphWithFormatting(currentParagraph, contentList)
         }
 
-        val imageRegex = Regex("""(?i)\b[\w./-]+?\.(jpg|jpeg|png|gif|webp|bmp|svg)\b""", RegexOption.IGNORE_CASE)
+        val imageRegex =
+            Regex("""(?i)\b[\w./-]+?\.(jpg|jpeg|png|gif|webp|bmp|svg)\b""", RegexOption.IGNORE_CASE)
         val fixedContentList = contentList.mapNotNull {
             if (imageRegex.containsMatchIn(it)) {
-                val imagePath = saveImageFromPublication(it, publication, chapterIndex, contentList.indexOf(it))
+                val imagePath =
+                    saveImageFromPublication(it, publication, chapterIndex, contentList.indexOf(it))
                 if (imagePath.startsWith("error")) {
                     null
                 } else {
@@ -569,10 +599,11 @@ class EPUBImportWorker(
         tocIndex: Int,
         paragraphIndex: Int,
     ): String {
-        val match = publication.resources.firstOrNull { it.href.toString().endsWith(imageElementHref) }
+        val match =
+            publication.resources.firstOrNull { it.href.toString().endsWith(imageElementHref) }
         var imagePath = "error"
-        publication.get(match!!)?.buffered()?.use{ buffering->
-            buffering.read().onSuccess { byteArray->
+        publication.get(match!!)?.buffered()?.use { buffering ->
+            buffering.read().onSuccess { byteArray ->
                 byteArray.inputStream().use {
                     val bitmap = decodeSampledBitmapFromStream(
                         it,
@@ -583,6 +614,7 @@ class EPUBImportWorker(
                         imagePath = saveBitmapToPrivateStorage(
                             context = context,
                             bitmap = bitmap,
+                            compressType = Bitmap.CompressFormat.WEBP_LOSSY,
                             quality = 80,
                             filenameWithoutExtension = "image_${finalBookId}_${tocIndex}_${paragraphIndex}"
                         )
@@ -593,7 +625,6 @@ class EPUBImportWorker(
         }
         return imagePath
     }
-
 
     private suspend fun processAndSaveBookInfo(
         epubUriString: String,
@@ -609,14 +640,15 @@ class EPUBImportWorker(
         }
         var coverImagePath = ""
         val coverImageBitmap = publication.cover()
-        coverImagePath = coverImageBitmap?.let{ bitmap->
+        coverImagePath = coverImageBitmap?.let { bitmap ->
             saveBitmapToPrivateStorage(
                 context = context,
                 bitmap = bitmap,
+                compressType = Bitmap.CompressFormat.WEBP_LOSSY,
                 quality = 80,
                 filenameWithoutExtension = "cover_$finalBookId"
             )
-        }?:"error"
+        } ?: "error"
         val authors = publication.metadata.authors.map { it.name.toString() }
         bookRepository.insertBook(
             BookEntity(
@@ -634,7 +666,9 @@ class EPUBImportWorker(
                 isEditable = false,
                 fileType = "epub"
             )
-        )
+        ).run {
+            bookRepository.updateRecentRead(finalBookId)
+        }
         imagePathRepository.saveImagePath(finalBookId, listOf(coverImagePath))
         return ImportResult.success(finalBookTitle)
     }

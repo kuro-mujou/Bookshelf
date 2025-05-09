@@ -42,6 +42,7 @@ fun saveImageToPrivateStorage(
 fun saveBitmapToPrivateStorage(
     context: Context,
     bitmap: Bitmap?,
+    compressType : Bitmap.CompressFormat,
     quality: Int,
     filenameWithoutExtension: String
 ): String {
@@ -53,7 +54,7 @@ fun saveBitmapToPrivateStorage(
     return try {
         FileOutputStream(file).use { outputStream ->
             val format = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                Bitmap.CompressFormat.WEBP_LOSSLESS
+                compressType
             } else {
                 @Suppress("DEPRECATION")
                 Bitmap.CompressFormat.WEBP

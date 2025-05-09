@@ -6,6 +6,7 @@ import androidx.core.uri.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.bookshelf.domain.repository.MusicPathRepository
+import com.capstone.bookshelf.util.DataStoreManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
@@ -17,7 +18,8 @@ import java.io.FileOutputStream
 import java.io.InputStream
 
 class MusicViewModel(
-    private val musicRepository: MusicPathRepository
+    private val musicRepository: MusicPathRepository,
+    private val dataStoreManager: DataStoreManager
 ) : ViewModel() {
     private val _state = MutableStateFlow(MusicState())
     val state = _state
@@ -37,6 +39,15 @@ class MusicViewModel(
                         )
                     }
                 }
+        }
+        viewModelScope.launch {
+            dataStoreManager.playerVolume.collectLatest { volume ->
+                _state.update {
+                    it.copy(
+                        playerVolume = volume
+                    )
+                }
+            }
         }
     }
 
@@ -93,17 +104,8 @@ class MusicViewModel(
                             playerVolume = event.volume
                         )
                     }
+                    dataStoreManager.setPlayerVolume(event.volume)
                 }
-            }
-        }
-    }
-
-    fun updateState(volume: Float) {
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    playerVolume = volume
-                )
             }
         }
     }

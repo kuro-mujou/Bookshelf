@@ -202,12 +202,15 @@ fun BookDetailScreenRoot(
                             },
                         ) {
                             Icon(
-                                imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
+                                imageVector = if(state.isSortedByFavorite)
+                                    ImageVector.vectorResource(R.drawable.ic_bookmark_filled)
+                                else
+                                    ImageVector.vectorResource(R.drawable.ic_bookmark),
                                 contentDescription = null,
                                 tint = if (state.isSortedByFavorite)
                                     Color(155, 212, 161)
                                 else
-                                    Color.Gray,
+                                    Color.White,
                             )
                         }
                     }
@@ -227,7 +230,6 @@ fun BookDetailScreenRoot(
                                         bottomEnd = 8.dp
                                     )
                                 )
-                                .background(MaterialTheme.colorScheme.primaryContainer.copy(0.5f))
                         ) {
                             AsyncImage(
                                 model = if (state.book?.coverImagePath == "error")
@@ -237,7 +239,6 @@ fun BookDetailScreenRoot(
                                 contentDescription = null,
                                 contentScale = ContentScale.FillWidth,
                                 modifier = Modifier
-                                    .padding(2.dp)
                                     .fillMaxWidth()
                                     .wrapContentHeight()
                                     .clip(
