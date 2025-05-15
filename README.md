@@ -2,11 +2,11 @@
 A powerful offline eBook reader supporting multiple formats with additional media features.
 
 # 🚀 Features
-- 📚Import EPUB, PDF, and CBZ files
+- 📚 Import EPUB, PDF, and CBZ files
 - 🎵 Background music playback
 - 🔊 Built-in audiobook support
 - 📜 Smooth auto-scrolling feature
-- ✍️ Write your own novel (under development)
+- ✍️ Write your own novel
 
 # 📷 Screenshots
 (Screenshots coming soon!)
