@@ -656,7 +656,6 @@ class EPUBImportWorker(
                 title = finalBookTitle,
                 coverImagePath = coverImagePath,
                 authors = authors,
-                categories = emptyList(),
                 description = publication.metadata.description,
                 totalChapter = tableOfContentSize,
                 currentChapter = 0,

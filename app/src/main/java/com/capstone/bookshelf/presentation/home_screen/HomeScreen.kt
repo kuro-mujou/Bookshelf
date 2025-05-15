@@ -3,6 +3,7 @@ package com.capstone.bookshelf.presentation.home_screen
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -42,6 +43,7 @@ import com.capstone.bookshelf.util.DataStoreManager
 import com.capstone.bookshelf.util.ImportBook
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun HomeScreen(
     mainNavController: NavHostController,
@@ -49,6 +51,7 @@ fun HomeScreen(
     val bottomNavController = rememberNavController()
     var showDriveInputLinkDialog by remember { mutableStateOf(false) }
     var fabExpanded by remember { mutableStateOf(false) }
+    var showFab by remember { mutableStateOf(true) }
     var paddingForFab by remember { mutableStateOf(PaddingValues()) }
     var specialIntent by remember { mutableStateOf("null") }
     val navBackStackEntry by bottomNavController.currentBackStackEntryAsState()
@@ -179,6 +182,9 @@ fun HomeScreen(
                     bookListViewModel = bookListViewModel,
                     importBookViewModel = importBookViewModel,
                     dataStoreManager = dataStoreManager,
+                    controlFabVisible = {
+                        showFab = it
+                    },
                     onAction = { action ->
                         when (action) {
                             is BookListAction.OnBookClick -> {
@@ -189,11 +195,9 @@ fun HomeScreen(
                                 mainNavController.navigate(Route.BookDetail(action.book.id))
                             }
 
-                            is BookListAction.UpdateBookListType -> {
+                            else -> {
                                 bookListViewModel.onAction(action)
                             }
-
-                            else -> Unit
                         }
                     }
                 )
@@ -225,7 +229,7 @@ fun HomeScreen(
         )
     }
     AnimatedVisibility(
-        visible = currentDestination?.route == Route.BookList::class.qualifiedName,
+        visible = currentDestination?.route == Route.BookList::class.qualifiedName && showFab,
         enter = fadeIn(),
         exit = fadeOut()
     ) {

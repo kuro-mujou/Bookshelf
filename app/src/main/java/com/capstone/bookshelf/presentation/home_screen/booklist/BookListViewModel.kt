@@ -34,25 +34,43 @@ class BookListViewModel(
 
     init {
         viewModelScope.launch {
-            _state.collectLatest { favorite ->
-                if (favorite.isSortedByFavorite) {
-                    bookRepository.readAllBooksSortByFavorite()
-                        .collectLatest { sortedBooks ->
-                            _state.update {
-                                it.copy(
-                                    bookList = sortedBooks
-                                )
-                            }
+            _state.collectLatest { state ->
+                val selectedCategoryId = state.categories.filter { it.isSelected }.map { it.id!! }
+                if (selectedCategoryId.isNotEmpty()) {
+                    bookRepository.getBooksMatchingAnySelectedCategory(selectedCategoryId).collectLatest { sortedBooks ->
+                        _state.update {
+                            it.copy(
+                                bookList = sortedBooks
+                            )
                         }
+                    }
                 } else {
-                    bookRepository.readAllBooks()
-                        .collectLatest { sortedBooks ->
-                            _state.update {
-                                it.copy(
-                                    bookList = sortedBooks
-                                )
+                    if (state.isSortedByFavorite) {
+                        bookRepository.readAllBooksSortByFavorite()
+                            .collectLatest { sortedBooks ->
+                                _state.update {
+                                    it.copy(
+                                        bookList = sortedBooks
+                                    )
+                                }
                             }
-                        }
+                    } else {
+                        bookRepository.readAllBooks()
+                            .collectLatest { sortedBooks ->
+                                _state.update {
+                                    it.copy(
+                                        bookList = sortedBooks
+                                    )
+                                }
+                            }
+                    }
+                }
+            }
+        }
+        viewModelScope.launch {
+            bookRepository.getBookCategory().collectLatest { categories->
+                _state.update {
+                    it.copy( categories = categories)
                 }
             }
         }
@@ -71,8 +89,8 @@ class BookListViewModel(
             is BookListAction.OnBookLongClick -> {
                 _state.update {
                     it.copy(
+                        isOpenBottomSheet = action.isOpenBottomSheet,
                         selectedBook = action.book,
-                        isOpenBottomSheet = action.isOpenBottomSheet
                     )
                 }
             }
@@ -183,6 +201,30 @@ class BookListViewModel(
                             dataStoreManager.setBookListView(1)
                         }
                     }
+                }
+            }
+
+            is BookListAction.ChangeChipState -> {
+                _state.update {
+                    it.copy(
+                        categories = it.categories.map { chip ->
+                            if (chip.id == action.chip.id) {
+                                chip.copy(isSelected = !chip.isSelected)
+                            } else {
+                                chip
+                            }
+                        }
+                    )
+                }
+            }
+
+            is BookListAction.ResetChipState -> {
+                _state.update {
+                    it.copy(
+                        categories = it.categories.map { chip ->
+                            chip.copy(isSelected = false)
+                        }
+                    )
                 }
             }
         }

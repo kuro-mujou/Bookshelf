@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.AutoScrollSetting
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.BookCategoryMenu
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.BookmarkMenu
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.MusicMenu
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.VoiceSetting
@@ -50,8 +51,10 @@ fun SettingScreen(
     val context = LocalContext.current
     val musicMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val bookmarkMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val categoryMenuSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var openBackgroundMusicMenu by remember { mutableStateOf(false) }
     var openBookmarkThemeMenu by remember { mutableStateOf(false) }
+    var openCategoryMenu by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (settingState.tts == null) {
             onAction(SettingAction.SetupTTS(context))
@@ -66,7 +69,7 @@ fun SettingScreen(
             dataStoreManager = dataStoreManager,
             onDismiss = {
                 onAction(SettingAction.OpenTTSVoiceMenu(false))
-                if(settingState.currentVoice == null) {
+                if (settingState.currentVoice == null) {
                     settingState.tts?.let {
                         onAction(SettingAction.FixNullVoice(it))
                     }
@@ -266,6 +269,38 @@ fun SettingScreen(
                 contentDescription = "auto scroll up"
             )
         }
+        HorizontalDivider(thickness = 1.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .clickable {
+                    openCategoryMenu = true
+                },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
+                    .size(24.dp),
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_grid_view),
+                contentDescription = "book category"
+            )
+            Text(
+                text = "Book Category",
+                style = TextStyle(
+                    fontSize = 16.sp,
+                )
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
+                    .size(30.dp),
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                contentDescription = "auto scroll up"
+            )
+        }
     }
     if (openBackgroundMusicMenu) {
         ModalBottomSheet(
@@ -286,6 +321,21 @@ fun SettingScreen(
             onDismissRequest = { openBookmarkThemeMenu = false },
         ) {
             BookmarkMenu(
+                settingState = settingState,
+                onAction = onAction
+            )
+        }
+    }
+    if (openCategoryMenu) {
+        ModalBottomSheet(
+            modifier = Modifier.fillMaxSize(),
+            sheetState = categoryMenuSheetState,
+            onDismissRequest = {
+                openCategoryMenu = false
+                onAction(SettingAction.ResetChipState)
+            },
+        ) {
+            BookCategoryMenu(
                 settingState = settingState,
                 onAction = onAction
             )

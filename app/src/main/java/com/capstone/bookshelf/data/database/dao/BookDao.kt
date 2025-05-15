@@ -6,7 +6,10 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.capstone.bookshelf.data.database.entity.BookCategoryCrossRef
 import com.capstone.bookshelf.data.database.entity.BookEntity
+import com.capstone.bookshelf.data.database.entity.BookWithCategories
+import com.capstone.bookshelf.data.database.entity.CategoryEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -100,4 +103,47 @@ interface BookDao {
     @Transaction
     @Delete
     suspend fun deleteBooks(bookEntity: BookEntity)
+
+    @Transaction
+    @Query("SELECT * FROM books WHERE bookId = :bookId")
+    fun getFlowBookWithCategories(bookId: String): Flow<BookWithCategories>
+
+    @Transaction
+    @Query("SELECT * FROM books WHERE bookId = :bookId")
+    suspend fun getBookWithCategories(bookId: String): BookWithCategories?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertCategory(category: CategoryEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBookCategoryCrossRef(crossRef: BookCategoryCrossRef)
+
+    @Delete
+    suspend fun deleteCategory(category: CategoryEntity)
+
+    @Query("SELECT * FROM categories WHERE name = :name LIMIT 1")
+    suspend fun getCategoryByName(name: String): CategoryEntity?
+
+    @Transaction
+    suspend fun addCategoryToBook(bookId: String, category: Int) {
+        insertBookCategoryCrossRef(BookCategoryCrossRef(bookId, category))
+    }
+
+    @Query("DELETE FROM book_category_cross_ref WHERE bookId = :bookId")
+    suspend fun deleteAllCategoryFromBook(bookId: String)
+
+    @Query("DELETE FROM book_category_cross_ref WHERE bookId = :bookId AND categoryId = :categoryId")
+    suspend fun deleteCategoryFromBook(bookId: String, categoryId: Int)
+
+    @Transaction
+    @Query("SELECT * FROM categories")
+    fun getBookCategory(): Flow<List<CategoryEntity>>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT b.* FROM books b
+        INNER JOIN book_category_cross_ref bc ON b.bookId = bc.bookId
+        WHERE bc.categoryId IN (:categoryIds)
+    """)
+    fun getBooksByAnyCategory(categoryIds: List<Int>): Flow<List<BookEntity>>
 }

@@ -3,6 +3,7 @@ package com.capstone.bookshelf.presentation.home_screen.setting_screen
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
+import com.capstone.bookshelf.domain.wrapper.Category
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkStyle
 import java.util.Locale
 
@@ -25,4 +26,9 @@ sealed interface SettingAction {
     data class UpdateSelectedBookmarkStyle(val style: BookmarkStyle) : SettingAction
     data class OnEnableBackgroundMusicChange(val enable: Boolean) : SettingAction
     data class OnPlayerVolumeChange(val volume: Float) : SettingAction
+    data class ChangeChipState(val chip: Category) : SettingAction
+    data class AddCategory(val category: Category) : SettingAction
+    data object DeleteCategory : SettingAction
+    data object ResetChipState : SettingAction
+
 }

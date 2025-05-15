@@ -12,8 +12,6 @@ data class BookEntity(
     val coverImagePath: String,
     @TypeConverters(StringListTypeConverter::class)
     val authors: List<String>,
-    @TypeConverters(StringListTypeConverter::class)
-    val categories: List<String>,
     val description: String?,
     val totalChapter: Int,
     val currentChapter: Int,

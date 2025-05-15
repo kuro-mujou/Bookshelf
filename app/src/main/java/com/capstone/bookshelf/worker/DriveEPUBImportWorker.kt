@@ -7,10 +7,10 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import androidx.core.app.NotificationCompat
-import androidx.core.uri.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -805,7 +805,6 @@ class DriveEPUBImportWorker(
             title = title,
             coverImagePath = coverImagePath!!,
             authors = normalizedAuthors,
-            categories = emptyList(),
             description = description?.joinToString("\n") ?: "",
             totalChapter = totalChapters,
             currentChapter = 0,

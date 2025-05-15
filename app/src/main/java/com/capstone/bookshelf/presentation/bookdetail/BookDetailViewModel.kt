@@ -7,9 +7,12 @@ import androidx.navigation.toRoute
 import com.capstone.bookshelf.app.Route
 import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.TableOfContentRepository
+import com.capstone.bookshelf.domain.wrapper.Category
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -45,18 +48,21 @@ class BookDetailViewModel(
                 .getBookAsFlow(bookId)
                 .collectLatest { book ->
                     _state.update {
-                        it.copy(
-                            isSortedByFavorite = book.isFavorite
-                        )
+                        it.copy( isSortedByFavorite = book.isFavorite )
                     }
                 }
         }
         viewModelScope.launch {
-            bookRepository.getBook(bookId).let { book ->
+            bookRepository.getFlowBookWithCategories(bookId).collectLatest { book ->
                 _state.update {
-                    it.copy(
-                        book = book
-                    )
+                    it.copy( bookWithCategories = book )
+                }
+            }
+        }
+        viewModelScope.launch {
+            val finalList = getSelectableCategoriesForBook(bookId).collectLatest { categories ->
+                _state.update {
+                    it.copy( categories = categories )
                 }
             }
         }
@@ -75,6 +81,44 @@ class BookDetailViewModel(
                 viewModelScope.launch {
                     bookRepository.setBookAsFavorite(bookId, !_state.value.isSortedByFavorite)
                 }
+            }
+
+            is BookDetailAction.ChangeChipState ->{
+                _state.update {
+                    it.copy(
+                        categories = it.categories.map { chip ->
+                            if (chip.id == action.category.id) {
+                                chip.copy(isSelected = !chip.isSelected)
+                            } else {
+                                chip
+                            }
+                        }
+                    )
+                }
+                viewModelScope.launch {
+                    bookRepository.updateBookCategory(
+                        bookId = bookId,
+                        categories = _state.value.categories
+                    )
+                }
+            }
+        }
+    }
+
+    fun getSelectableCategoriesForBook(bookId: String): Flow<List<Category>> {
+        val bookWithCategoriesFlow = bookRepository.getFlowBookWithCategories(bookId)
+        val allCategoriesFlow = bookRepository.getBookCategory()
+
+        return combine(bookWithCategoriesFlow, allCategoriesFlow) { bookWithCategories, allCategories ->
+            val bookCategoryIds = bookWithCategories.categories.map { it.categoryId }.toSet()
+
+            allCategories.map { categoryEntity ->
+                Category(
+                    id = categoryEntity.id,
+                    name = categoryEntity.name,
+                    color = categoryEntity.color,
+                    isSelected = categoryEntity.id in bookCategoryIds
+                )
             }
         }
     }

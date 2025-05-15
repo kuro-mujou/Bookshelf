@@ -9,7 +9,9 @@ import com.capstone.bookshelf.data.database.dao.ImagePathDao
 import com.capstone.bookshelf.data.database.dao.MusicPathDao
 import com.capstone.bookshelf.data.database.dao.NoteDao
 import com.capstone.bookshelf.data.database.dao.TableOfContentDao
+import com.capstone.bookshelf.data.database.entity.BookCategoryCrossRef
 import com.capstone.bookshelf.data.database.entity.BookEntity
+import com.capstone.bookshelf.data.database.entity.CategoryEntity
 import com.capstone.bookshelf.data.database.entity.ChapterContentEntity
 import com.capstone.bookshelf.data.database.entity.ImagePathEntity
 import com.capstone.bookshelf.data.database.entity.MusicPathEntity
@@ -23,10 +25,12 @@ import com.capstone.bookshelf.data.database.entity.TableOfContentEntity
         ChapterContentEntity::class,
         ImagePathEntity::class,
         MusicPathEntity::class,
-        NoteEntity::class
+        NoteEntity::class,
+        CategoryEntity::class,
+        BookCategoryCrossRef::class
     ],
     exportSchema = false,
-    version = 6
+    version = 7
 )
 @TypeConverters(StringListTypeConverter::class)
 abstract class LocalBookDatabase : RoomDatabase() {
@@ -41,4 +45,3 @@ abstract class LocalBookDatabase : RoomDatabase() {
         const val DATABASE_NAME = "local_book_database"
     }
 }
-

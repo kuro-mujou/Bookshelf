@@ -75,7 +75,11 @@ fun saveBitmapToPrivateStorage(
 /**
  * Calculates `inSampleSize` to decode bitmaps efficiently.
  * */
-fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+fun calculateInSampleSize(
+    options: BitmapFactory.Options,
+    reqWidth: Int,
+    reqHeight: Int
+): Int {
     val (height: Int, width: Int) = options.outHeight to options.outWidth
     var inSampleSize = 1
     if (height > reqHeight || width > reqWidth) {

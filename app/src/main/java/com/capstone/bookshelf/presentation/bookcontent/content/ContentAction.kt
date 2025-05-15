@@ -1,8 +1,8 @@
 package com.capstone.bookshelf.presentation.bookcontent.content
 
 import android.content.Context
+import android.net.Uri
 import android.speech.tts.Voice
-import androidx.core.uri.Uri
 import com.capstone.bookshelf.domain.wrapper.Book
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkStyle
 import java.util.Locale

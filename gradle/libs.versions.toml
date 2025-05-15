@@ -1,33 +1,35 @@
 [versions]
 agp = "8.10.0"
 koin = "4.0.4"
-kotlin = "2.0.21"
+kotlin = "2.1.20"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 activityCompose = "1.10.1"
-composeBom = "2025.04.01"
+composeBom = "2025.05.00"
 richeditorCompose = "1.0.0-rc12"
 roomRuntime = "2.7.1"
 slf4jAndroid = "1.7.36"
 lottieCompose = "6.6.6"
 gson = "2.13.1"
-navigationCompose = "2.8.0-alpha12"
+navigationCompose = "2.9.0"
 coilCompose = "2.7.0"
 kotlinxSerializationJson = "1.8.1"
 hazeMaterials = "1.5.4"
 paletteKtx = "1.0.0"
-datastorePreferences = "1.1.4"
+datastorePreferences = "1.1.6"
 workRuntimeKtx = "2.10.1"
-lifecycle = "2.9.0-rc01"
+lifecycle = "2.9.0"
 media = "1.7.0"
 media3 = "1.5.1"
 pdfboxAndroid = "2.0.27.0"
 ktorClient = "3.1.3"
 readium = "3.1.0"
 desugar_jdk_libs = "2.1.5"
-readiumAdapterPdfium = "3.1.0"
+ksp = "2.1.20-2.0.1"
+testManifest = "1.8.1"
+animation = "1.9.0-alpha02"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,7 +46,7 @@ androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version = "1.8.0" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "testManifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
@@ -63,7 +65,7 @@ jsoup = { group = "org.jsoup", name = "jsoup", version = "1.20.1" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 
-navigation-compose = { group = "org.jetbrains.androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
 
@@ -101,10 +103,12 @@ readium-opds = { group = "org.readium.kotlin-toolkit", name = "readium-opds", ve
 readium-lcp = { group = "org.readium.kotlin-toolkit", name = "readium-lcp", version.ref = "readium" }
 
 desugar_jdk_libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
+androidx-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "animation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 

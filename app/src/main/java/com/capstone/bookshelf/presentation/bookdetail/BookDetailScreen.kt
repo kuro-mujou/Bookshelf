@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookdetail
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
@@ -9,8 +10,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,17 +26,22 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -70,14 +78,18 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
-import com.capstone.bookshelf.presentation.bookdetail.component.BookChip
+import com.capstone.bookshelf.presentation.component.BookChip
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
 
-@OptIn(ExperimentalHazeMaterialsApi::class, ExperimentalLayoutApi::class)
+@SuppressLint("ConfigurationScreenWidthHeight")
+@OptIn(
+    ExperimentalHazeMaterialsApi::class,
+    ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class,
+)
 @Composable
 fun BookDetailScreenRoot(
     viewModel: BookDetailViewModel,
@@ -100,6 +112,7 @@ fun BookDetailScreenRoot(
     var searchInput by remember { mutableStateOf("") }
     var flag by remember { mutableStateOf(false) }
     var enableSearch by remember { mutableStateOf(false) }
+    var showCategoryMenu by remember { mutableStateOf(false) }
     val isImeVisible = WindowInsets.isImeVisible
     val htmlTagPattern = Regex(pattern = """<[^>]+>""")
     LaunchedEffect(flag) {
@@ -144,10 +157,10 @@ fun BookDetailScreenRoot(
                     .clip(RoundedCornerShape(bottomEnd = 30.dp, bottomStart = 30.dp))
             ) {
                 AsyncImage(
-                    model = if (state.book?.coverImagePath == "error")
+                    model = if (state.bookWithCategories?.book?.coverImagePath == "error")
                         R.mipmap.book_cover_not_available
                     else
-                        state.book?.coverImagePath,
+                        state.bookWithCategories?.book?.coverImagePath,
                     contentDescription = null,
                     contentScale = ContentScale.FillWidth,
                     modifier = Modifier
@@ -163,7 +176,7 @@ fun BookDetailScreenRoot(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
+                        .background(Color.Black.copy(alpha = 0.75f))
                 )
             }
             Box(
@@ -202,7 +215,7 @@ fun BookDetailScreenRoot(
                             },
                         ) {
                             Icon(
-                                imageVector = if(state.isSortedByFavorite)
+                                imageVector = if (state.isSortedByFavorite)
                                     ImageVector.vectorResource(R.drawable.ic_bookmark_filled)
                                 else
                                     ImageVector.vectorResource(R.drawable.ic_bookmark),
@@ -232,10 +245,10 @@ fun BookDetailScreenRoot(
                                 )
                         ) {
                             AsyncImage(
-                                model = if (state.book?.coverImagePath == "error")
+                                model = if (state.bookWithCategories?.book?.coverImagePath == "error")
                                     R.mipmap.book_cover_not_available
                                 else
-                                    state.book?.coverImagePath,
+                                    state.bookWithCategories?.book?.coverImagePath,
                                 contentDescription = null,
                                 contentScale = ContentScale.FillWidth,
                                 modifier = Modifier
@@ -278,7 +291,7 @@ fun BookDetailScreenRoot(
                         ) {
                             Text(
                                 modifier = Modifier.padding(4.dp),
-                                text = state.book?.title ?: "",
+                                text = state.bookWithCategories?.book?.title ?: "",
                                 maxLines = 4,
                                 overflow = TextOverflow.Ellipsis,
                                 style = TextStyle(
@@ -289,7 +302,8 @@ fun BookDetailScreenRoot(
                             )
                             Text(
                                 modifier = Modifier.padding(4.dp),
-                                text = state.book?.authors?.joinToString(",") ?: "",
+                                text = state.bookWithCategories?.book?.authors?.joinToString(",")
+                                    ?: "",
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                                 style = TextStyle(
@@ -309,43 +323,62 @@ fun BookDetailScreenRoot(
             state = tocLazyColumnState,
         ) {
             item {
-                Text(
-                    text = "Category",
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 4.dp, start = 8.dp, end = 8.dp),
-                    style = TextStyle(
-                        textAlign = TextAlign.Center,
-                        fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    if (state.book?.categories?.isNotEmpty() == true) {
-                        state.book?.categories?.forEach {
-                            BookChip {
-                                Text(text = it)
-                            }
+                    Text(
+                        text = "Category",
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        style = TextStyle(
+                            textAlign = TextAlign.Center,
+                            fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                    IconButton(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd),
+                        onClick = {
+                            showCategoryMenu = true
                         }
-                    } else {
-                        Text(
-                            text = "no category available",
-                            modifier = Modifier.padding(
-                                top = 4.dp,
-                                bottom = 4.dp,
-                                start = 8.dp,
-                                end = 8.dp
-                            ),
-                            style = TextStyle(
-                                textIndent = TextIndent(firstLine = 20.sp),
-                                textAlign = TextAlign.Justify,
-                                fontSize = MaterialTheme.typography.bodyMedium.fontSize
-                            )
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_add_music),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
+                }
+                if (state.bookWithCategories?.categories?.isNotEmpty() == true) {
+                    FlowRow(
+                        modifier = Modifier
+                            .padding(horizontal = 8.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        state.bookWithCategories?.categories?.forEach {
+                            BookChip(
+                                selected = false,
+                                onClick = {},
+                                color = Color(it.color)
+                            ) {
+                                Text(text = it.name)
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "no category available",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = TextStyle(
+                            textIndent = TextIndent(firstLine = 20.sp),
+                            textAlign = TextAlign.Justify,
+                            fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                        )
+                    )
                 }
                 Text(
                     text = "Description",
@@ -359,7 +392,7 @@ fun BookDetailScreenRoot(
                     )
                 )
                 Text(
-                    text = state.book?.description?.let {
+                    text = state.bookWithCategories?.book?.description?.let {
                         htmlTagPattern.replace(it, replacement = "")
                     } ?: "no description available",
                     modifier = Modifier.padding(
@@ -511,6 +544,48 @@ fun BookDetailScreenRoot(
                     fontWeight = FontWeight.Medium
                 )
             )
+        }
+    }
+    if (showCategoryMenu) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(
+            onDismissRequest = { showCategoryMenu = false },
+            sheetState = sheetState,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.5f)
+                    .padding(8.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "BOOK CATEGORY",
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    style = TextStyle(
+                        textAlign = TextAlign.Center,
+                        fontSize = 20.sp,
+                    )
+                )
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    state.categories.forEach { categoryChip ->
+                        BookChip(
+                            selected = categoryChip.isSelected,
+                            color = Color(categoryChip.color),
+                            onClick = {
+                                viewModel.onAction(BookDetailAction.ChangeChipState(categoryChip))
+                            }
+                        ) {
+                            Text(text = categoryChip.name)
+                        }
+                    }
+                }
+            }
         }
     }
 }

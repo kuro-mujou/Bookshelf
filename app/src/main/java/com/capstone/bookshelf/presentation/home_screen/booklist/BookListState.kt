@@ -1,6 +1,7 @@
 package com.capstone.bookshelf.presentation.home_screen.booklist
 
 import com.capstone.bookshelf.domain.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.Category
 
 data class BookListState(
     val isSortedByFavorite: Boolean = false,
@@ -11,5 +12,6 @@ data class BookListState(
     val isLoading: Boolean = true,
     val isSavingBook: Boolean = false,
     val listViewType: Int = -1,
-    val selectedBookList: List<Book> = emptyList()
+    val selectedBookList: List<Book> = emptyList(),
+    val categories: List<Category> = emptyList()
 )

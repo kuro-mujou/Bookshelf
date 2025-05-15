@@ -1,8 +1,8 @@
 package com.capstone.bookshelf.util
 
 import android.content.Context
+import android.net.Uri
 import android.widget.Toast
-import androidx.core.uri.Uri
 import com.capstone.bookshelf.presentation.home_screen.booklist.component.AsyncImportBookViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -21,18 +21,15 @@ class ImportBook(
                 scope.launch {
                     when {
                         fileName.endsWith(".epub", ignoreCase = true) -> {
-                            importBookViewModel.processAndSaveBook(context, it.toString(), fileName)
-//                            importBookViewModel.test(context, it.toString())
+                            importBookViewModel.processAndSaveBook(context, it.toString())
                         }
 
                         fileName.endsWith(".pdf", ignoreCase = true) -> {
                             importBookViewModel.processAndSavePdf(context, it.toString(), fileName,specialIntent)
-//                            importBookViewModel.test(context, it.toString())
                         }
 
                         fileName.endsWith(".cbz", ignoreCase = true) -> {
-                            importBookViewModel.processAndSaveCBZ(context, it.toString(), fileName)
-//                            importBookViewModel.test(context, it.toString())
+                            importBookViewModel.processAndSaveCBZ(context, it.toString())
                         }
 
                         else -> {

@@ -2,6 +2,7 @@ package com.capstone.bookshelf.presentation.home_screen.setting_screen
 
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
+import com.capstone.bookshelf.domain.wrapper.Category
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.BookmarkStyle
 import java.util.Locale
 
@@ -22,4 +23,5 @@ data class SettingState(
     val delayResumeMode: Int = 1000,
     val enableBackgroundMusic : Boolean = false,
     val selectedBookmarkStyle: BookmarkStyle = BookmarkStyle.WAVE_WITH_BIRDS,
+    val bookCategories: List<Category> = emptyList()
 )

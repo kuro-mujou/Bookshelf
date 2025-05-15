@@ -10,13 +10,13 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
+import android.net.Uri
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.provider.OpenableColumns
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
-import androidx.core.uri.Uri
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -585,7 +585,6 @@ class PDFImportWorker(
             title = title,
             coverImagePath = coverImagePath!!,
             authors = authors,
-            categories = emptyList(),
             description = null,
             totalChapter = totalChapters,
             currentChapter = 0,

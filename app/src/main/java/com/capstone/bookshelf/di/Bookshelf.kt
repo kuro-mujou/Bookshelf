@@ -13,7 +13,6 @@ class Bookshelf : Application() {
         startKoin {
             androidContext(this@Bookshelf)
             modules(
-                singleModule,
                 networkModule,
                 databaseModule,
                 repositoryModule,

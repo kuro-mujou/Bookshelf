@@ -1,7 +1,9 @@
 package com.capstone.bookshelf.domain.repository
 
 import com.capstone.bookshelf.data.database.entity.BookEntity
+import com.capstone.bookshelf.data.database.entity.BookWithCategories
 import com.capstone.bookshelf.domain.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.Category
 import kotlinx.coroutines.flow.Flow
 
 interface BookRepository {
@@ -21,4 +23,11 @@ interface BookRepository {
     suspend fun saveBookInfoAuthors(bookId: String, authors: List<String>)
     suspend fun deleteBooks(books: List<Book>)
     suspend fun updateCurrentChapterIndexOnDelete(bookId: String, deleteIndex: Int)
+    suspend fun addCategoryToBook(bookId: String, category: Category)
+    suspend fun insertCategory(category: Category): Long
+    suspend fun deleteCategory(categories: List<Category>)
+    fun getBookCategory(): Flow<List<Category>>
+    fun getFlowBookWithCategories(bookId: String): Flow<BookWithCategories>
+    suspend fun updateBookCategory(bookId: String,categories: List<Category>)
+    fun getBooksMatchingAnySelectedCategory(selectedCategoryIds: List<Int>): Flow<List<Book>>
 }

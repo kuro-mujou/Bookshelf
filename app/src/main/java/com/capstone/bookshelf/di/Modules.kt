@@ -30,17 +30,21 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-val singleModule = module {
-    single {
-        Room.databaseBuilder(get(), LocalBookDatabase::class.java, LocalBookDatabase.DATABASE_NAME)
-            .fallbackToDestructiveMigration(false).build()
-    }
-}
 val networkModule = module {
     single<HttpClientEngine> { Android.create {} }
     single<HttpClient> { HttpClientFactory.create(get()) }
 }
 val databaseModule = module {
+    single {
+        Room
+            .databaseBuilder(
+                context = get(),
+                klass = LocalBookDatabase::class.java,
+                name = LocalBookDatabase.DATABASE_NAME
+            )
+            .fallbackToDestructiveMigration(false)
+            .build()
+    }
     single { get<LocalBookDatabase>().bookDao }
     single { get<LocalBookDatabase>().chapterDao }
     single { get<LocalBookDatabase>().tableOfContentDao }

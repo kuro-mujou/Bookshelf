@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookwriter.component
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -16,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
-import androidx.core.uri.Uri
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterAction
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterState

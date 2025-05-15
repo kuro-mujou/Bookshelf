@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinx.serialization)
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.ksp)
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
@@ -17,8 +17,8 @@ android {
         applicationId = "com.capstone.bookshelf"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "2.4"
+        versionCode = 11
+        versionName = "2.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -50,7 +50,6 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
-
     }
     composeCompiler {
         featureFlags = setOf(
@@ -79,6 +78,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.animation)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     //data store
     implementation(libs.androidx.datastore.preferences)

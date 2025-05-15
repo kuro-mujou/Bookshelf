@@ -4,6 +4,7 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.repository.MusicPathRepository
 import com.capstone.bookshelf.util.DataStoreManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SettingViewModel(
+    private val bookRepository: BookRepository,
     private val musicPathRepository: MusicPathRepository,
     private val dataStoreManager: DataStoreManager,
 ) : ViewModel() {
@@ -137,6 +139,48 @@ class SettingViewModel(
                     dataStoreManager.setAutoScrollSpeed(action.speed)
                 }
             }
+
+            is SettingAction.ChangeChipState -> {
+                _state.update {
+                    it.copy(
+                        bookCategories = it.bookCategories.map { chip ->
+                            if (chip.id == action.chip.id) {
+                                chip.copy(isSelected = !chip.isSelected)
+                            } else {
+                                chip
+                            }
+                        }
+                    )
+                }
+            }
+
+            is SettingAction.AddCategory -> {
+                viewModelScope.launch {
+                    bookRepository.insertCategory(action.category)
+                }
+            }
+
+            is SettingAction.DeleteCategory -> {
+                viewModelScope.launch {
+                    bookRepository.deleteCategory(
+                        _state.value.bookCategories.filter {
+                            it.isSelected
+                        }
+                    )
+                }
+            }
+
+            is SettingAction.ResetChipState -> {
+                viewModelScope.launch {
+                    _state.update {
+                        it.copy(
+                            bookCategories = it.bookCategories.map { category ->
+                                category.copy(isSelected = false)
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -257,6 +301,13 @@ class SettingViewModel(
             dataStoreManager.delayTimeAtStart.collectLatest { delay ->
                 _state.update {
                     it.copy(delayAtStart = delay)
+                }
+            }
+        }
+        viewModelScope.launch {
+            bookRepository.getBookCategory().collectLatest { categories ->
+                _state.update {
+                    it.copy(bookCategories = categories)
                 }
             }
         }

@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.speech.tts.TextToSpeech
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
@@ -11,7 +12,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.TextMeasurer
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import androidx.core.uri.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

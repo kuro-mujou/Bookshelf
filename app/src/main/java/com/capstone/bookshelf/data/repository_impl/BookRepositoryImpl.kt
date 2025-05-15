@@ -2,10 +2,12 @@ package com.capstone.bookshelf.data.repository_impl
 
 import com.capstone.bookshelf.data.database.dao.BookDao
 import com.capstone.bookshelf.data.database.entity.BookEntity
+import com.capstone.bookshelf.data.database.entity.BookWithCategories
 import com.capstone.bookshelf.data.mapper.toDataClass
 import com.capstone.bookshelf.data.mapper.toEntity
 import com.capstone.bookshelf.domain.repository.BookRepository
 import com.capstone.bookshelf.domain.wrapper.Book
+import com.capstone.bookshelf.domain.wrapper.Category
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -60,11 +62,9 @@ class BookRepositoryImpl(
         val currentRank = bookDao.getRecentRank(bookId) ?: 0
 
         if (currentRank == 0) {
-            // New book
             bookDao.shiftRanksForNew()
             bookDao.clearOldest()
         } else if (currentRank > 1) {
-            // Existing recent book, shift only books before it
             bookDao.shiftRanksBefore(currentRank)
         }
 
@@ -106,7 +106,56 @@ class BookRepositoryImpl(
             bookDao.compactRanksAfterDeletion(rank)
         }
     }
+
     override suspend fun updateCurrentChapterIndexOnDelete(bookId: String, deleteIndex: Int) {
         bookDao.updateCurrentChapterIndexOnDelete(bookId, deleteIndex)
+    }
+
+    override suspend fun addCategoryToBook(bookId: String, category: Category) {
+        bookDao.addCategoryToBook(bookId, category.toEntity().categoryId)
+    }
+
+    override suspend fun insertCategory(category: Category): Long {
+        return bookDao.insertCategory(category.toEntity())
+    }
+
+    override suspend fun deleteCategory(categories: List<Category>) {
+        categories.forEach {
+            bookDao.deleteCategory(it.toEntity())
+        }
+    }
+
+    override fun getBookCategory(): Flow<List<Category>> {
+        return bookDao.getBookCategory().map { categoryEntity ->
+            categoryEntity.map { it.toDataClass() }
+        }
+    }
+
+    override fun getFlowBookWithCategories(bookId: String): Flow<BookWithCategories> {
+        return bookDao.getFlowBookWithCategories(bookId)
+    }
+
+    override suspend fun updateBookCategory(bookId: String, categories: List<Category>) {
+        val currentCategories = bookDao.getBookWithCategories(bookId)?.categories.orEmpty()
+
+        val currentCategoryIds = currentCategories.map { it.categoryId }.toSet()
+        val selectedCategoryIds = categories.filter { it.isSelected }.map { it.id }.toSet()
+
+        val categoriesToRemove = currentCategoryIds - selectedCategoryIds
+        val categoriesToAdd = selectedCategoryIds - currentCategoryIds
+
+        categoriesToRemove.forEach { categoryId ->
+            bookDao.deleteCategoryFromBook(bookId, categoryId!!)
+        }
+
+        categoriesToAdd.forEach { categoryId ->
+            bookDao.addCategoryToBook(bookId, categoryId!!)
+        }
+    }
+
+    override fun getBooksMatchingAnySelectedCategory(selectedCategoryIds: List<Int>): Flow<List<Book>> {
+        return bookDao.getBooksByAnyCategory(selectedCategoryIds).map {
+            it.map { it.toDataClass() }
+        }
     }
 }

@@ -44,8 +44,8 @@ class TableOfContentRepositoryImpl(
         tableOfContentDao.updateTableOfContentFavoriteStatus(bookId, index, isFavorite)
     }
 
-    override suspend fun updateTableOfContentTitle(bookId: String, index: Int, title: String) {
-        tableOfContentDao.updateTableOfContentTitle(bookId, index, title)
+    override suspend fun updateTableOfContentTitle(bookId: String, index: Int, chapterTitle: String) {
+        tableOfContentDao.updateTableOfContentTitle(bookId, index, chapterTitle)
     }
 
     override suspend fun deleteTableOfContent(bookId: String, tocId: Int) {

@@ -1,8 +1,8 @@
 package com.capstone.bookshelf.presentation.bookcontent.component.music
 
 import android.content.Context
+import android.net.Uri
 import android.provider.OpenableColumns
-import androidx.core.uri.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capstone.bookshelf.domain.repository.MusicPathRepository

@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -31,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.home_screen.component.PagerIndicator
 import com.capstone.bookshelf.presentation.home_screen.component.RecentBookCard
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(
@@ -41,6 +43,7 @@ fun MainScreen(
 ) {
     val state by mainViewModel.state.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(pageCount = { state.recentBooks.size })
+    val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         pagerState.animateScrollToPage(0)
     }
@@ -69,10 +72,20 @@ fun MainScreen(
                     pagerState = pagerState,
                     pageIndex = pageIndex,
                     onClick = {
-                        onClick(state.recentBooks[pageIndex].id)
+                        scope.launch {
+                            if (pageIndex == pagerState.currentPage)
+                                onClick(state.recentBooks[pageIndex].id)
+                            else
+                                pagerState.animateScrollToPage(pageIndex)
+                        }
                     },
                     onDoubleClick = {
-                        onDoubleClick(state.recentBooks[pageIndex].id)
+                        scope.launch {
+                            if (pageIndex == pagerState.currentPage)
+                                onDoubleClick(state.recentBooks[pageIndex].id)
+                            else
+                                pagerState.animateScrollToPage(pageIndex)
+                        }
                     }
                 )
             }

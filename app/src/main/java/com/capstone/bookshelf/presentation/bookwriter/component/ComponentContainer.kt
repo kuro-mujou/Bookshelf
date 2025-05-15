@@ -1,5 +1,6 @@
 package com.capstone.bookshelf.presentation.bookwriter.component
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -48,7 +49,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
-import androidx.core.uri.Uri
 import coil.compose.AsyncImage
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookwriter.BookWriterState

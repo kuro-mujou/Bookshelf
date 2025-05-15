@@ -22,7 +22,6 @@ class AsyncImportBookViewModel(
     fun processAndSaveBook(
         context: Context,
         filePath: String,
-        fileName: String
     ) = viewModelScope.launch {
         try {
             Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
@@ -65,7 +64,6 @@ class AsyncImportBookViewModel(
     fun processAndSaveCBZ(
         context: Context,
         filePath: String,
-        fileName: String
     ) = viewModelScope.launch {
         try {
             Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
@@ -90,21 +88,5 @@ class AsyncImportBookViewModel(
             .setInputData(inputData)
             .build()
         WorkManager.getInstance(context).enqueue(importWorkRequest)
-    }
-
-    fun test(context: Context, uri: String) = viewModelScope.launch {
-        try {
-            Toast.makeText(context, "Importing...", Toast.LENGTH_SHORT).show()
-            val inputData = workDataOf(
-                EPUBImportWorker.INPUT_URI_KEY to uri,
-            )
-            val workRequest = OneTimeWorkRequest.Builder(EPUBImportWorker::class.java)
-                .setInputData(inputData)
-                .build()
-            WorkManager.getInstance(context).enqueue(workRequest)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(context, "Can't open ebook file", Toast.LENGTH_SHORT).show()
-        }
     }
 }

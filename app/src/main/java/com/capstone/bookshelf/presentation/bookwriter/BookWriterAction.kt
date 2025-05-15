@@ -1,7 +1,8 @@
 package com.capstone.bookshelf.presentation.bookwriter
 
 import android.content.Context
-import androidx.core.uri.Uri
+import android.net.Uri
+
 import com.capstone.bookshelf.presentation.bookwriter.component.Paragraph
 
 sealed interface BookWriterAction {

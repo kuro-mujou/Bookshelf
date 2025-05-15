@@ -70,6 +70,7 @@ fun BookMenuBottomSheet(
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
+                    onDismiss()
                     onViewBookDetails()
                 }
             ) {
@@ -83,6 +84,7 @@ fun BookMenuBottomSheet(
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
+                    onDismiss()
                     onDeleteBook()
                 }
             ) {

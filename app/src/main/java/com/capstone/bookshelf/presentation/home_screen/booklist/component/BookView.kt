@@ -306,7 +306,10 @@ fun ListBookView(
                 }
             ) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(R.drawable.ic_bookmark),
+                    imageVector = if(book.isFavorite)
+                        ImageVector.vectorResource(R.drawable.ic_bookmark_filled)
+                    else
+                        ImageVector.vectorResource(R.drawable.ic_bookmark),
                     contentDescription = null,
                     tint = if (book.isFavorite)
                         if (isSystemInDarkTheme())
