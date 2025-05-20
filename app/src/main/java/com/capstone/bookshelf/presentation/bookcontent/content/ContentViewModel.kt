@@ -96,6 +96,7 @@ class ContentViewModel(
                         ttsServiceHandler.isTracksNull = false
                         mediaController?.apply {
                             if (_state.value.enableBackgroundMusic) {
+                                mediaItemList.shuffle()
                                 setMediaItems(mediaItemList)
                                 prepare()
                                 play()
@@ -439,6 +440,7 @@ class ContentViewModel(
                                 if (_state.value.isSpeaking) {
                                     volume = 0.3f
                                 }
+                                mediaItemList.shuffle()
                                 setMediaItems(mediaItemList, true)
                                 prepare()
                                 play()
