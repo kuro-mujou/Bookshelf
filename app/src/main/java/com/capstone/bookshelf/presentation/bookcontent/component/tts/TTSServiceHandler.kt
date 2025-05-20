@@ -212,6 +212,7 @@ class TTSServiceHandler(
     fun stopReading() {
         if (!enableBackgroundMusic || isTracksNull) {
             player?.stop()
+            player?.clearMediaItems()
         } else {
             player?.volume = 1f
         }

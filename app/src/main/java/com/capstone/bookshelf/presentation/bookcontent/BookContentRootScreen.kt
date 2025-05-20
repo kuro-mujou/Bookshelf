@@ -268,7 +268,8 @@ fun BookContentScreenRoot(
                     viewModel.initialize(
                         context,
                         textMeasurer,
-                        dataStoreManager.enableBackgroundMusic.first()
+                        dataStoreManager.enableBackgroundMusic.first(),
+                        contentState.book?.currentChapter!!
                     )
                     viewModel.onContentAction(ContentAction.UpdateKeepScreenOn(dataStoreManager.keepScreenOn.first()))
                 } else {

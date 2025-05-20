@@ -95,8 +95,8 @@ class ContentViewModel(
                     if (mediaItemList.isNotEmpty()) {
                         ttsServiceHandler.isTracksNull = false
                         mediaController?.apply {
-                            setMediaItems(mediaItemList)
                             if (_state.value.enableBackgroundMusic) {
+                                setMediaItems(mediaItemList)
                                 prepare()
                                 play()
                             }
@@ -177,15 +177,18 @@ class ContentViewModel(
                     }
                     if (mediaController?.isPlaying == true) {
                         mediaController?.apply {
-                            val chapter = chapterRepository.getChapterContent(bookId, action.index)
-                            val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
-                                ?.setArtist(chapter?.chapterTitle)?.build()!!
-                            val updatedMediaItem =
-                                currentMediaItem?.buildUpon()?.setMediaMetadata(updatedMetadata)
-                                    ?.build()!!
-                            replaceMediaItem(currentMediaItemIndex, updatedMediaItem)
-                            prepare()
-                            play()
+                            if (_state.value.isSpeaking) {
+                                val chapter = chapterRepository.getChapterContent(bookId, action.index)
+                                val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
+                                    ?.setArtist(chapter?.chapterTitle)?.build()
+                                val updatedMediaItem = updatedMetadata?.let{
+                                    currentMediaItem?.buildUpon()?.setMediaMetadata(updatedMetadata)
+                                        ?.build()
+                                }
+                                updatedMediaItem?.let { replaceMediaItem(0, it) }
+                                prepare()
+                                play()
+                            }
                         }
                     }
                     ttsServiceHandler.updateCurrentChapterIndex(action.index)
@@ -397,6 +400,7 @@ class ContentViewModel(
             is ContentAction.UpdateEnableBackgroundMusic -> {
                 viewModelScope.launch {
                     dataStoreManager.setEnableBackgroundMusic(action.enable)
+                    val chapter = chapterRepository.getChapterContent(bookId, _state.value.currentChapterIndex)
                     val selectedTrack = musicPathRepository.getSelectedMusicPaths()
                     val silentMediaItem = Builder()
                         .setUri("asset:///silent.mp3".toUri())
@@ -404,7 +408,7 @@ class ContentViewModel(
                             MediaMetadata.Builder()
                                 .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
                                 .setTitle(_state.value.book?.title)
-                                .setArtist(_state.value.chapterHeader)
+                                .setArtist(chapter?.chapterTitle)
                                 .build()
                         )
                         .build()
@@ -414,8 +418,8 @@ class ContentViewModel(
                         )
                     }
                     ttsServiceHandler.enableBackgroundMusic = action.enable
-                    mediaItemList.clear()
                     if (action.enable) {
+                        mediaItemList.clear()
                         if (selectedTrack.isNotEmpty()) {
                             ttsServiceHandler.isTracksNull = false
                             selectedTrack.forEach { track ->
@@ -425,7 +429,7 @@ class ContentViewModel(
                                         MediaMetadata.Builder()
                                             .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
                                             .setTitle(_state.value.book?.title)
-                                            .setArtist(_state.value.chapterHeader)
+                                            .setArtist(chapter?.chapterTitle)
                                             .build()
                                     )
                                     .build()
@@ -652,7 +656,8 @@ class ContentViewModel(
     fun initialize(
         context: Context,
         textMeasurer: TextMeasurer,
-        enableBackgroundMusic: Boolean
+        enableBackgroundMusic: Boolean,
+        initChapterIndex: Int
     ) {
         if (mediaController != null) {
             return
@@ -688,6 +693,7 @@ class ContentViewModel(
             ttsServiceHandler.fontFamilyTTS =
                 _state.value.fontFamilies[_state.value.selectedFontFamilyIndex]
             ttsServiceHandler.textIndentTTS = _state.value.textIndent
+            ttsServiceHandler.updateCurrentChapterIndex(_state.value.currentChapterIndex)
             coroutineScope {
                 serviceJob += launch {
                     ttsServiceHandler.currentParagraphIndex.collectLatest { currentReadingParagraph ->
@@ -704,8 +710,7 @@ class ContentViewModel(
                     ttsServiceHandler.currentChapterIndex.collectLatest { currentChapterIndex ->
                         _state.update { it.copy(currentChapterIndex = currentChapterIndex) }
                         bookRepository.saveBookInfoChapterIndex(bookId, currentChapterIndex)
-                        val chapter =
-                            chapterRepository.getChapterContent(bookId, currentChapterIndex)
+                        val chapter = chapterRepository.getChapterContent(bookId, currentChapterIndex)
                         val htmlTagPattern = Regex(pattern = """<[^>]+>""")
                         val linkPattern = Regex("""\.capstone\.bookshelf/files/[^ ]*""")
                         ttsServiceHandler.currentChapterParagraphs = chapter?.content?.map { raw ->
@@ -719,11 +724,12 @@ class ContentViewModel(
                         mediaController?.apply {
                             if (_state.value.isSpeaking) {
                                 val updatedMetadata = currentMediaItem?.mediaMetadata?.buildUpon()
-                                    ?.setArtist(chapter?.chapterTitle)?.build()!!
-                                val updatedMediaItem =
+                                    ?.setArtist(chapter?.chapterTitle)?.build()
+                                val updatedMediaItem = updatedMetadata?.let{
                                     currentMediaItem?.buildUpon()?.setMediaMetadata(updatedMetadata)
-                                        ?.build()!!
-                                replaceMediaItem(0, updatedMediaItem)
+                                        ?.build()
+                                }
+                                updatedMediaItem?.let { replaceMediaItem(0, it) }
                                 prepare()
                                 play()
                             }
