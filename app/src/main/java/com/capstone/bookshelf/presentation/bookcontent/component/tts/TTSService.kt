@@ -36,15 +36,21 @@ class TTSService : MediaSessionService() {
                 }
 
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                    serviceHandler.pauseReading()
+                    serviceHandler.pauseReading(
+                        isByAudioFocus = true
+                    )
                 }
 
                 AudioManager.AUDIOFOCUS_LOSS -> {
-                    serviceHandler.pauseReading()
+                    serviceHandler.pauseReading(
+                        isByAudioFocus = true
+                    )
                 }
 
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
-                    serviceHandler.pauseReading()
+                    serviceHandler.pauseReading(
+                        isByAudioFocus = true
+                    )
                 }
             }
         }

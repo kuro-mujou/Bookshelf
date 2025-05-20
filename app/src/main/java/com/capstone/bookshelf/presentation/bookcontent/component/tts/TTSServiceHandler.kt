@@ -45,6 +45,8 @@ class TTSServiceHandler(
     val scrollTimes = _scrollTimes.asStateFlow()
     private val _flagTriggerScroll = MutableStateFlow(false)
     val flagTriggerScroll = _flagTriggerScroll.asStateFlow()
+    private val _enableBackgroundMusic = MutableStateFlow(false)
+    val enableBackgroundMusic = _enableBackgroundMusic.asStateFlow()
     private var player: Player? = null
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
@@ -67,7 +69,7 @@ class TTSServiceHandler(
     var currentChapterParagraphs by mutableStateOf<List<String>>(emptyList())
     var textIndentTTS by mutableStateOf(false)
     var textAlignTTS by mutableStateOf(false)
-    var enableBackgroundMusic by mutableStateOf(false)
+//    var enableBackgroundMusic by mutableStateOf(false)
     var isTracksNull by mutableStateOf(false)
     fun onTtsPlayerEvent(event: TtsPlayerEvent) {
         when (event) {
@@ -81,7 +83,7 @@ class TTSServiceHandler(
 
             is TtsPlayerEvent.PlayPause -> {
                 if (event.isPaused) {
-                    pauseReading()
+                    pauseReading(false)
                 } else {
                     resumeReading()
                 }
@@ -166,7 +168,7 @@ class TTSServiceHandler(
                 resumeReading()
             } else {
                 _isPaused.value = true
-                pauseReading()
+                pauseReading(false)
             }
         }
     }
@@ -193,42 +195,60 @@ class TTSServiceHandler(
         }
     }
 
-    fun pauseReading() {
-        if (textToSpeech?.isSpeaking == true) {
-            if (!enableBackgroundMusic) {
-                player?.pause()
-            } else {
-                player?.volume = 1f
-            }
+    fun pauseReading(
+        isByAudioFocus: Boolean
+    ) {
+        if(isByAudioFocus){
             textToSpeech?.stop()
+            player?.pause()
+        } else {
+            if (_isSpeaking.value == true) {
+                if (!_enableBackgroundMusic.value || isTracksNull) {
+                    player?.pause()
+                } else {
+                    player?.volume = 1f
+                }
+                textToSpeech?.stop()
+            } else {
+                if (_enableBackgroundMusic.value) {
+                    player?.pause()
+                }
+            }
         }
     }
 
-    fun resumeReading() {
-        if (!enableBackgroundMusic) {
-            player?.play()
-        } else {
-            player?.volume = 0.3f
+    fun resumeReading(){
+        player?.play()
+        if (_isSpeaking.value == true) {
+            if (!_enableBackgroundMusic.value || isTracksNull) {
+                startSpeakCurrentParagraph()
+            } else {
+                player?.volume = 0.3f
+                startSpeakCurrentParagraph()
+            }
         }
-        startSpeakCurrentParagraph()
     }
 
     fun stopReading() {
-        if (!enableBackgroundMusic || isTracksNull) {
+        if (!_enableBackgroundMusic.value || isTracksNull) {
             player?.stop()
             player?.clearMediaItems()
         } else {
-            player?.volume = 1f
+            if(_isSpeaking.value)
+                player?.volume = 1f
+            else{
+                _enableBackgroundMusic.value = false
+            }
         }
         _isSpeaking.value = false
         _isPaused.value = false
         textToSpeech?.stop()
         _currentParagraphIndex.value = -1
         currentReadingPositionInParagraph = 0
-        audioFocusRequestResult = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
     }
 
     fun shutdown() {
+        audioFocusRequestResult = audioManager?.abandonAudioFocusRequest(focusRequest!!)!!
         stopReading()
         textToSpeech?.shutdown()
         textToSpeech = null
@@ -400,5 +420,9 @@ class TTSServiceHandler(
 
     fun updateCurrentChapterIndex(index: Int) {
         _currentChapterIndex.value = index
+    }
+
+    fun updateEnableBackgroundMusic(value: Boolean){
+        _enableBackgroundMusic.value = value
     }
 }

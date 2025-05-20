@@ -47,6 +47,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -418,7 +419,7 @@ class ContentViewModel(
                             enableBackgroundMusic = action.enable
                         )
                     }
-                    ttsServiceHandler.enableBackgroundMusic = action.enable
+                    ttsServiceHandler.updateEnableBackgroundMusic(action.enable)
                     if (action.enable) {
                         mediaItemList.clear()
                         if (selectedTrack.isNotEmpty()) {
@@ -457,6 +458,7 @@ class ContentViewModel(
                             }
                         } else {
                             mediaController?.apply {
+                                clearMediaItems()
                                 pause()
                                 stop()
                             }
@@ -768,38 +770,46 @@ class ContentViewModel(
                         _state.update { it.copy(flagTriggerScrolling = flagTriggerScroll) }
                     }
                 }
+                serviceJob += launch {
+                    ttsServiceHandler.enableBackgroundMusic.drop(1).collectLatest { flag ->
+                        onContentAction(ContentAction.UpdateEnableBackgroundMusic(flag))
+                    }
+                }
             }
         }
     }
 
     fun play() {
-        val mediaItem = Builder()
-            .setUri("asset:///silent.mp3".toUri())
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
-                    .setTitle(_state.value.book?.title)
-                    .setArtist(_state.value.chapterHeader)
-                    .build()
-            )
-            .build()
-        if (mediaController?.isPlaying!!) {
-            mediaController?.apply {
-                volume = 0.3f
-            }
-            ttsServiceHandler.startReading(
-                paragraphIndex = _state.value.firstVisibleItemIndex,
-                chapterIndex = _state.value.currentChapterIndex
-            )
-        } else {
-            mediaController?.apply {
-                setMediaItems(listOf(mediaItem))
-                prepare()
-                play()
+        viewModelScope.launch {
+            val chapter = chapterRepository.getChapterContent(bookId, _state.value.currentChapterIndex)
+            val mediaItem = Builder()
+                .setUri("asset:///silent.mp3".toUri())
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setArtworkUri(_state.value.book?.coverImagePath!!.toUri())
+                        .setTitle(_state.value.book?.title)
+                        .setArtist(chapter?.chapterTitle)
+                        .build()
+                )
+                .build()
+            if (mediaController?.isPlaying!!) {
+                mediaController?.apply {
+                    volume = 0.3f
+                }
                 ttsServiceHandler.startReading(
                     paragraphIndex = _state.value.firstVisibleItemIndex,
                     chapterIndex = _state.value.currentChapterIndex
                 )
+            } else {
+                mediaController?.apply {
+                    setMediaItems(listOf(mediaItem))
+                    prepare()
+                    play()
+                    ttsServiceHandler.startReading(
+                        paragraphIndex = _state.value.firstVisibleItemIndex,
+                        chapterIndex = _state.value.currentChapterIndex
+                    )
+                }
             }
         }
     }
