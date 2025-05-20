@@ -171,6 +171,10 @@ class TTSServiceHandler(
         }
     }
 
+    override fun onEvents(player: Player, events: Player.Events) {
+        super.onEvents(player, events)
+    }
+
     fun startReading(paragraphIndex: Int, chapterIndex: Int) {
         if (!isTtsInitialized) {
             stopReading()
@@ -308,6 +312,8 @@ class TTSServiceHandler(
             } else {
                 stopReading()
             }
+        } else {
+            player?.seekToNextMediaItem()
         }
     }
 
@@ -325,6 +331,8 @@ class TTSServiceHandler(
             } else {
                 stopReading()
             }
+        } else {
+            player?.seekToPreviousMediaItem()
         }
     }
 
