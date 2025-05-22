@@ -37,7 +37,7 @@ fun SpecialCodeDialog(
     onDismiss: () -> Unit,
     onSuccess: () -> Unit,
 ) {
-    val couponCode = "123456"
+    val couponCode = "GARDEN OF DICK"
     var inputText by remember { mutableStateOf("") }
     Dialog(
         onDismissRequest = onDismiss,
