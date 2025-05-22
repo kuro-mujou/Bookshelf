@@ -90,11 +90,11 @@ fun BookContentScreenRoot(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_DESTROY) {
-                viewModel.onContentAction(
-                    ContentAction.UpdateBookInfoCurrentChapterIndex(
-                        contentState.currentChapterIndex
-                    )
-                )
+                if (contentState.book?.isEditable == false) {
+                    viewModel.stopTTSService(context)
+                    viewModel.stopTTS()
+                }
+            } else if (event == Lifecycle.Event.ON_STOP) {
                 if (contentState.isSpeaking) {
                     viewModel.onContentAction(
                         ContentAction.UpdateBookInfoFirstParagraphIndex(
@@ -108,19 +108,9 @@ fun BookContentScreenRoot(
                         )
                     )
                 }
-                if (contentState.book?.isEditable == false) {
-                    viewModel.stopTTSService(context)
-                    viewModel.stopTTS()
-                }
-            } else if (event == Lifecycle.Event.ON_STOP) {
                 viewModel.onContentAction(
                     ContentAction.UpdateBookInfoCurrentChapterIndex(
                         contentState.currentChapterIndex
-                    )
-                )
-                viewModel.onContentAction(
-                    ContentAction.UpdateBookInfoFirstParagraphIndex(
-                        contentState.firstVisibleItemIndex
                     )
                 )
             }
