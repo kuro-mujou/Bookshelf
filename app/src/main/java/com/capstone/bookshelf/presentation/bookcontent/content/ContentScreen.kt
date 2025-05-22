@@ -64,6 +64,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.Col
 import com.capstone.bookshelf.presentation.bookcontent.content.content_component.Content
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerState
 import com.capstone.bookshelf.presentation.bookcontent.drawer.DrawerContainerViewModel
+import com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmark.SpecialArt
 import com.capstone.bookshelf.presentation.component.LoadingAnimation
 import com.capstone.bookshelf.util.DataStoreManager
 import dev.chrisbanes.haze.HazeState
@@ -121,6 +122,12 @@ fun ContentScreen(
             ),
         color = colorPaletteState.backgroundColor
     ) {
+        if (contentState.unlockSpecialCodeStatus){
+            SpecialArt(
+                baseColor = colorPaletteState.specialArtColor,
+                backgroundColor = colorPaletteState.backgroundColor,
+            )
+        }
         LaunchedEffect(pagerState.currentPage) {
             val currentPage = pagerState.currentPage
             lazyListStates.keys.filter { pageIndex ->

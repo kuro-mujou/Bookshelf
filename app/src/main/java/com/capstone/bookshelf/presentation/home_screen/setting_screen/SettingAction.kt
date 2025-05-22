@@ -30,5 +30,5 @@ sealed interface SettingAction {
     data class AddCategory(val category: Category) : SettingAction
     data object DeleteCategory : SettingAction
     data object ResetChipState : SettingAction
-
+    data object OpenSpecialCodeSuccess : SettingAction
 }

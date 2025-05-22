@@ -552,6 +552,12 @@ class ContentViewModel(
                     bookRepository.updateRecentRead(bookId)
                 }
             }
+
+            is ContentAction.UpdateUnlockSpecialCodeStatus -> {
+                _state.update {
+                    it.copy( unlockSpecialCodeStatus = action.status )
+                }
+            }
         }
     }
 

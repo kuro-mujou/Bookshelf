@@ -27,7 +27,8 @@ class ColorPaletteViewModel : ViewModel() {
             backgroundColor = it,
             tocTextColor = generateTOCTextColor(it),
             textBackgroundColor = generateTextSelectionColor(it, _colorPalette.value.textColor),
-            containerColor = generateContainerColor(it)
+            containerColor = generateContainerColor(it),
+            specialArtColor = generateSpecialArtColor(it),
         )
     }
 
@@ -53,6 +54,14 @@ class ColorPaletteViewModel : ViewModel() {
             backgroundColor.lighten(0.05f)
         } else {
             backgroundColor.darken(0.05f)
+        }
+    }
+
+    private fun generateSpecialArtColor(backgroundColor: Color): Color {
+        return if (backgroundColor.isDark()) {
+            backgroundColor.lighten(0.1f)
+        } else {
+            backgroundColor.darken(0.1f)
         }
     }
 

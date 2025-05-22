@@ -9,6 +9,7 @@ data class ColorPalette(
     val tocTextColor: Color = Color(0xFF001F2B),
     val textColor: Color = Color(0xFF181C20),
     val containerColor: Color = Color(0xFFC8C8C8),
+    val specialArtColor: Color = Color(0xFFC8C8C8),
     val selectedColorSet: Int = 5,
 
     val colorSamples: List<ColorSample> = listOf(

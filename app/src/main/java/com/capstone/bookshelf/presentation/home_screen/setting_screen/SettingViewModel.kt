@@ -181,6 +181,12 @@ class SettingViewModel(
                     }
                 }
             }
+
+            is SettingAction.OpenSpecialCodeSuccess -> {
+                viewModelScope.launch {
+                    dataStoreManager.setUnlockSpecialCodeStatus(true)
+                }
+            }
         }
     }
 

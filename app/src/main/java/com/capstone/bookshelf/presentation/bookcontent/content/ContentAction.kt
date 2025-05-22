@@ -53,4 +53,5 @@ sealed interface ContentAction {
     data class UpdateSelectedBookmarkStyle(val style: BookmarkStyle) : ContentAction
 
     data class GetChapterContent(val index: Int) : ContentAction
+    data class UpdateUnlockSpecialCodeStatus(val status: Boolean) : ContentAction
 }

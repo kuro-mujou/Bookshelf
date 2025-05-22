@@ -141,6 +141,7 @@ fun BookContentScreenRoot(
         viewModel.onContentAction(ContentAction.UpdateSelectedFontFamilyIndex(dataStoreManager.fontFamily.first()))
         viewModel.onContentAction(ContentAction.UpdateImagePaddingState(dataStoreManager.imagePaddingState.first()))
         viewModel.onContentAction(ContentAction.UpdateSelectedBookmarkStyle(dataStoreManager.bookmarkStyle.first()))
+        viewModel.onContentAction(ContentAction.UpdateUnlockSpecialCodeStatus(dataStoreManager.unlockSpecialCodeStatus.first()))
         yield()
     }
     DrawerScreen(

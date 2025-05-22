@@ -43,6 +43,7 @@ object PreferencesKeys {
     val BOOK_LIST_VIEW = intPreferencesKey("BOOK_LIST_VIEW")
     val IMAGE_PADDING_STATE = booleanPreferencesKey("IMAGE_PADDING_STATE")
     val BOOKMARK_STYLE = stringPreferencesKey("BOOKMARK_STYLE")
+    val UNLOCK_SPECIAL_CODE_STATUS = booleanPreferencesKey("UNLOCK_SPECIAL_CODE_STATUS")
 }
 
 class DataStoreManager(val context: Context) {
@@ -123,6 +124,9 @@ class DataStoreManager(val context: Context) {
         } catch (e: IllegalArgumentException) {
             BookmarkStyle.WAVE_WITH_BIRDS
         }
+    }
+    val unlockSpecialCodeStatus: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.UNLOCK_SPECIAL_CODE_STATUS] == true
     }
 
     suspend fun setKeepScreenOn(value: Boolean) {
@@ -266,6 +270,12 @@ class DataStoreManager(val context: Context) {
     suspend fun setBookmarkStyle(bookmarkStyle: BookmarkStyle) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.BOOKMARK_STYLE] = bookmarkStyle.name
+        }
+    }
+
+    suspend fun setUnlockSpecialCodeStatus(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.UNLOCK_SPECIAL_CODE_STATUS] = value
         }
     }
 }

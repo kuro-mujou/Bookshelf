@@ -78,4 +78,5 @@ data class ContentState(
     val selectedFontFamilyIndex: Int = 0,
     val keepScreenOn: Boolean = false,
     val selectedBookmarkStyle: BookmarkStyle = BookmarkStyle.WAVE_WITH_BIRDS,
+    val unlockSpecialCodeStatus: Boolean = false,
 )

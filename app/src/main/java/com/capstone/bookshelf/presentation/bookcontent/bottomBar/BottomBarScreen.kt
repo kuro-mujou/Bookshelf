@@ -3,9 +3,14 @@ package com.capstone.bookshelf.presentation.bookcontent.bottomBar
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.component.BottomBarAutoScroll
 import com.capstone.bookshelf.presentation.bookcontent.bottomBar.component.BottomBarDefault
@@ -255,6 +261,16 @@ fun BottomBarManager(
     if (openBackgroundMusicMenu) {
         ModalBottomSheet(
             modifier = Modifier.fillMaxSize(),
+            dragHandle = {
+                Surface(
+                    modifier = Modifier
+                        .padding(vertical = 22.dp),
+                    color = colorPaletteState.textColor,
+                    shape = MaterialTheme.shapes.extraLarge
+                ) {
+                    Box(Modifier.size(width = 32.dp, height = 4.dp))
+                }
+            },
             sheetState = musicMenuSheetState,
             onDismissRequest = { openBackgroundMusicMenu = false },
             containerColor = colorPaletteState.backgroundColor
@@ -270,6 +286,16 @@ fun BottomBarManager(
     if (openBookmarkThemeMenu) {
         ModalBottomSheet(
             modifier = Modifier.fillMaxSize(),
+            dragHandle = {
+                Surface(
+                    modifier = Modifier
+                        .padding(vertical = 22.dp),
+                    color = colorPaletteState.textColor,
+                    shape = MaterialTheme.shapes.extraLarge
+                ) {
+                    Box(Modifier.size(width = 32.dp, height = 4.dp))
+                }
+            },
             sheetState = bookmarkMenuSheetState,
             onDismissRequest = { openBookmarkThemeMenu = false },
             containerColor = colorPaletteState.backgroundColor

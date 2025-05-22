@@ -135,9 +135,9 @@ fun ColorPicker(
                         onClick = {
                             try {
                                 Color("#$inputHex".toColorInt()).toHsl().let {
-                                    hue = it[1]
-                                    saturation = it[2]
-                                    lightness = it[3]
+                                    hue = it[0]
+                                    saturation = it[1]
+                                    lightness = it[2]
                                 }
                                 focusManager.clearFocus()
                             } catch (e: Exception) {

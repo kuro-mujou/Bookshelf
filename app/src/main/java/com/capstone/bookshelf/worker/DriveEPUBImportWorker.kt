@@ -1,6 +1,5 @@
 package com.capstone.bookshelf.worker
 
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -65,7 +64,6 @@ import java.math.BigInteger
 import java.security.MessageDigest
 import kotlin.Result as ImportResult
 
-@SuppressLint("NewApi")
 class DriveEPUBImportWorker(
     private val appContext: Context,
     params: WorkerParameters,
@@ -305,7 +303,7 @@ class DriveEPUBImportWorker(
                         coverImagePath = saveBitmapToPrivateStorage(
                             context = context,
                             bitmap = bitmap,
-                            compressType = Bitmap.CompressFormat.WEBP_LOSSY,
+                            compressType = Bitmap.CompressFormat.JPEG,
                             quality = 80,
                             filenameWithoutExtension = coverFilename
                         )
@@ -671,7 +669,7 @@ class DriveEPUBImportWorker(
                                                     savedImagePath = saveBitmapToPrivateStorage(
                                                         context = context,
                                                         bitmap = bitmap,
-                                                        compressType = Bitmap.CompressFormat.WEBP_LOSSY,
+                                                        compressType = Bitmap.CompressFormat.JPEG,
                                                         quality = 80,
                                                         filenameWithoutExtension = name
                                                     )

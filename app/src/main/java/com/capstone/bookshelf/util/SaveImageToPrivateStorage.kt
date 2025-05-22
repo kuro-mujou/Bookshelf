@@ -49,8 +49,14 @@ fun saveBitmapToPrivateStorage(
     if (bitmap == null) {
         return "error_null_bitmap"
     }
+    val extension = when (compressType) {
+        Bitmap.CompressFormat.PNG -> "png"
+        Bitmap.CompressFormat.JPEG -> "jpg"
+        Bitmap.CompressFormat.WEBP -> "webp"
+        else -> "img"
+    }
     val safeFilename = filenameWithoutExtension.replace(Regex("[^A-Za-z0-9._-]"), "_")
-    val file = File(context.filesDir, "$safeFilename.webp")
+    val file = File(context.filesDir, "$safeFilename.$extension")
     return try {
         FileOutputStream(file).use { outputStream ->
             val format = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

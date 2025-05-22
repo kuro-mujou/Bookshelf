@@ -2,16 +2,21 @@ package com.capstone.bookshelf.presentation.bookcontent.drawer.component.bookmar
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
@@ -107,6 +113,16 @@ fun BookmarkList(
     if (openBookmarkThemeMenu) {
         ModalBottomSheet(
             modifier = Modifier.fillMaxSize(),
+            dragHandle = {
+                Surface(
+                    modifier = Modifier
+                        .padding(vertical = 22.dp),
+                    color = colorPaletteState.textColor,
+                    shape = MaterialTheme.shapes.extraLarge
+                ) {
+                    Box(Modifier.size(width = 32.dp, height = 4.dp))
+                }
+            },
             sheetState = bookmarkMenuSheetState,
             onDismissRequest = { openBookmarkThemeMenu = false },
             containerColor = colorPaletteState.backgroundColor

@@ -38,6 +38,7 @@ import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.BookCategoryMenu
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.BookmarkMenu
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.MusicMenu
+import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.SpecialCodeDialog
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.component.VoiceSetting
 import com.capstone.bookshelf.util.DataStoreManager
 
@@ -55,6 +56,7 @@ fun SettingScreen(
     var openBackgroundMusicMenu by remember { mutableStateOf(false) }
     var openBookmarkThemeMenu by remember { mutableStateOf(false) }
     var openCategoryMenu by remember { mutableStateOf(false) }
+    var openSpecialCodeDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (settingState.tts == null) {
             onAction(SettingAction.SetupTTS(context))
@@ -113,7 +115,10 @@ fun SettingScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
+                .height(50.dp)
+                .clickable {
+                    onAction(SettingAction.KeepScreenOn(!settingState.keepScreenOn))
+                },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -122,7 +127,7 @@ fun SettingScreen(
                     .padding(start = 8.dp, end = 8.dp)
                     .size(24.dp),
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_keep_screen_on),
-                contentDescription = "background music"
+                contentDescription = "keep screen on"
             )
             Text(
                 text = "Keep Screen On",
@@ -168,7 +173,7 @@ fun SettingScreen(
                     .padding(start = 8.dp, end = 8.dp)
                     .size(30.dp),
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = "background music"
+                contentDescription = null
             )
         }
         HorizontalDivider(thickness = 1.dp)
@@ -201,7 +206,7 @@ fun SettingScreen(
                     .padding(start = 8.dp, end = 8.dp)
                     .size(30.dp),
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = "Bookmark theme"
+                contentDescription = null
             )
         }
         HorizontalDivider(thickness = 1.dp)
@@ -234,7 +239,7 @@ fun SettingScreen(
                     .padding(start = 8.dp, end = 8.dp)
                     .size(30.dp),
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = "text to speech"
+                contentDescription = null
             )
         }
         HorizontalDivider(thickness = 1.dp)
@@ -266,7 +271,7 @@ fun SettingScreen(
                     .padding(start = 8.dp, end = 8.dp)
                     .size(30.dp),
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = "auto scroll up"
+                contentDescription = null
             )
         }
         HorizontalDivider(thickness = 1.dp)
@@ -298,7 +303,39 @@ fun SettingScreen(
                     .padding(start = 8.dp, end = 8.dp)
                     .size(30.dp),
                 imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = "auto scroll up"
+                contentDescription = null
+            )
+        }
+        HorizontalDivider(thickness = 1.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .clickable {
+                    openSpecialCodeDialog = true
+                },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
+                    .size(24.dp),
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_favourite_music),
+                contentDescription = "special code"
+            )
+            Text(
+                text = "Coupon Code",
+                style = TextStyle(
+                    fontSize = 16.sp,
+                )
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                modifier = Modifier
+                    .padding(start = 8.dp, end = 8.dp)
+                    .size(30.dp),
+                imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                contentDescription = null
             )
         }
     }
@@ -340,6 +377,16 @@ fun SettingScreen(
                 onAction = onAction
             )
         }
+    }
+    if (openSpecialCodeDialog) {
+        SpecialCodeDialog(
+            onSuccess = {
+                onAction(SettingAction.OpenSpecialCodeSuccess)
+            },
+            onDismiss = {
+                openSpecialCodeDialog = false
+            }
+        )
     }
 }
 
