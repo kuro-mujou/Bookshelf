@@ -369,7 +369,8 @@ class EPUBImportWorker(
         val contentList = mutableListOf<String>()
         val imagePaths = mutableListOf<String>()
         var currentParagraph = StringBuilder()
-
+        var insideHeading = false
+        var spaceAddedInHeading = false
         val startElement = if (!startAnchorId.isNullOrBlank()) {
             try {
                 document.selectFirst("[id=$startAnchorId], [name=$startAnchorId]")
@@ -394,7 +395,9 @@ class EPUBImportWorker(
 
                 if (endElement != null && node == endElement) {
                     hitEndAnchor = true
-                    flushParagraphWithFormatting(currentParagraph, contentList)
+                    if (!insideHeading) {
+                        flushParagraphWithFormatting(currentParagraph, contentList)
+                    }
                     return
                 }
 
@@ -421,27 +424,24 @@ class EPUBImportWorker(
                         when (tagName) {
 
                             "p", "div", "ul", "ol", "li", "table", "blockquote", "hr",
-                            "h1", "h2", "h3", "h4", "h5", "h6",
                             "figure", "figcaption", "details", "summary", "main", "header",
                             "footer", "nav", "aside", "article", "section" -> {
-                                flushParagraphWithFormatting(currentParagraph, contentList)
-                                if (tagName.startsWith("h")) {
-                                    currentParagraph.append("<$tagName>")
+                                if (!insideHeading) {
+                                    flushParagraphWithFormatting(currentParagraph, contentList)
                                 }
                             }
 
+                            "h1", "h2", "h3", "h4", "h5", "h6" -> {
+                                currentParagraph.append("<$tagName>")
+                                insideHeading = true
+                                spaceAddedInHeading = false
+                            }
+
                             "br" -> {
-                                val parentNode = node.parentNode()
-                                if (parentNode is Element && parentNode.tagName().lowercase()
-                                        .startsWith("h")
-                                ) {
-                                    if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(
-                                            " "
-                                        )
-                                    ) {
-                                        currentParagraph.append(" ")
-                                    }
-                                } else {
+                                if (insideHeading && !spaceAddedInHeading) {
+                                    currentParagraph.append(" ")
+                                    spaceAddedInHeading = true
+                                } else if (!insideHeading) {
                                     flushParagraphWithFormatting(currentParagraph, contentList)
                                 }
                             }
@@ -457,7 +457,9 @@ class EPUBImportWorker(
                             }
 
                             "img", "image" -> {
-                                flushParagraphWithFormatting(currentParagraph, contentList)
+                                if (!insideHeading) {
+                                    flushParagraphWithFormatting(currentParagraph, contentList)
+                                }
                                 val srcAttr = when (tagName) {
                                     "img" -> node.attr("src").ifEmpty { node.attr("data-src") }
                                     "image" -> node.attr("xlink:href").ifEmpty { node.attr("href") }
@@ -489,21 +491,21 @@ class EPUBImportWorker(
 
                         "h1", "h2", "h3", "h4", "h5", "h6" -> {
                             if (currentParagraph.isNotEmpty()) {
-                                if (currentParagraph.toString()
-                                        .endsWith("<$tagName>")
-                                ) {
-                                    currentParagraph.setLength(currentParagraph.length - "<$tagName>".length)
-                                } else {
-                                    currentParagraph.append("</$tagName>")
+                                currentParagraph.append("</$tagName>")
+                                if (!insideHeading) {
+                                    flushParagraphWithFormatting(currentParagraph, contentList)
                                 }
-                                flushParagraphWithFormatting(currentParagraph, contentList)
                             }
+                            insideHeading = false
+                            spaceAddedInHeading = false
                         }
 
                         "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "tr",
                         "figure", "figcaption", "details", "summary", "main", "header",
                         "footer", "nav", "aside", "article", "section" -> {
-                            flushParagraphWithFormatting(currentParagraph, contentList)
+                            if (!insideHeading) {
+                                flushParagraphWithFormatting(currentParagraph, contentList)
+                            }
                         }
 
                         "td", "th" -> {
@@ -516,14 +518,18 @@ class EPUBImportWorker(
                     }
                 }
                 if (endElement != null && node == endElement) {
-                    flushParagraphWithFormatting(currentParagraph, contentList)
+                    if (!insideHeading) {
+                        flushParagraphWithFormatting(currentParagraph, contentList)
+                    }
                     hitEndAnchor = true
                 }
             }
         })
 
         if (processingActive && !hitEndAnchor) {
-            flushParagraphWithFormatting(currentParagraph, contentList)
+            if (!insideHeading) {
+                flushParagraphWithFormatting(currentParagraph, contentList)
+            }
         }
 
         val imageRegex =

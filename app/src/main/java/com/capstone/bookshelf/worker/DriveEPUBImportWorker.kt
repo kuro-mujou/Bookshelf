@@ -567,6 +567,8 @@ class DriveEPUBImportWorker(
         val contentList = mutableListOf<String>()
         val imagePaths = mutableListOf<String>()
         var currentParagraph = StringBuilder()
+        var insideHeading = false
+        var spaceAddedInHeading = false
         var imageCounter = 0
         val startElement = if (!startAnchorId.isNullOrBlank()) {
             try {
@@ -588,11 +590,15 @@ class DriveEPUBImportWorker(
         document.body().traverse(object : NodeVisitor {
             override fun head(node: Node, depth: Int) {
                 if (hitEndAnchor) return
+
                 if (endElement != null && node == endElement) {
                     hitEndAnchor = true
-                    flushParagraphWithFormatting(currentParagraph, contentList)
+                    if (!insideHeading) {
+                        flushParagraphWithFormatting(currentParagraph, contentList)
+                    }
                     return
                 }
+
                 var isStartAnchorNode = false
                 if (!passedStartAnchor && startElement != null && node == startElement) {
                     passedStartAnchor = true
@@ -614,28 +620,30 @@ class DriveEPUBImportWorker(
                     is Element -> {
                         val tagName = node.tagName().lowercase()
                         when (tagName) {
-                            "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "h1", "h2", "h3", "h4", "h5", "h6" -> {
-                                flushParagraphWithFormatting(currentParagraph, contentList)
-                                if (tagName.startsWith("h"))
-                                    currentParagraph.append("<$tagName>")
-                            }
-
-                            "br" -> {
-                                val parentNode = node.parentNode()
-                                if (parentNode is Element && parentNode.tagName().lowercase()
-                                        .startsWith("h")
-                                ) {
-                                    if (currentParagraph.isNotEmpty() && !currentParagraph.endsWith(
-                                            " "
-                                        )
-                                    )
-                                        currentParagraph.append(" ")
-                                } else {
+                            "p", "div", "ul", "ol", "li", "table", "blockquote", "hr",
+                            "figure", "figcaption", "details", "summary", "main", "header",
+                            "footer", "nav", "aside", "article", "section" -> {
+                                if (!insideHeading) {
                                     flushParagraphWithFormatting(currentParagraph, contentList)
                                 }
                             }
 
-                            "b", "strong", "i", "em", "u" -> {
+                            "h1", "h2", "h3", "h4", "h5", "h6" -> {
+                                currentParagraph.append("<$tagName>")
+                                insideHeading = true
+                                spaceAddedInHeading = false
+                            }
+
+                            "br" -> {
+                                if (insideHeading && !spaceAddedInHeading) {
+                                    currentParagraph.append(" ")
+                                    spaceAddedInHeading = true
+                                } else if (!insideHeading) {
+                                    flushParagraphWithFormatting(currentParagraph, contentList)
+                                }
+                            }
+
+                            "b", "strong", "i", "em", "u", "s", "strike", "del", "sup", "sub", "code" -> {
                                 currentParagraph.append("<$tagName>")
                             }
 
@@ -690,8 +698,7 @@ class DriveEPUBImportWorker(
                                 }
                                 currentParagraph.setLength(0)
                             }
-
-                            "tbody", "thead", "tfoot" -> {}
+                            else -> {}
                         }
                     }
                 }
@@ -709,23 +716,28 @@ class DriveEPUBImportWorker(
                 if (node is Element) {
                     val tagName = node.tagName().lowercase()
                     when (tagName) {
-                        "b", "strong", "i", "em", "u" -> {
-                            if (currentParagraph.isNotEmpty()) currentParagraph.append("</$tagName>")
+                        "b", "strong", "i", "em", "u", "s", "strike", "del", "sup", "sub", "code" -> {
+                            if (currentParagraph.isNotEmpty())
+                                currentParagraph.append("</$tagName>")
                         }
 
                         "h1", "h2", "h3", "h4", "h5", "h6" -> {
-                            if (currentParagraph.isNotEmpty() && currentParagraph.toString()
-                                    .endsWith("<$tagName>")
-                            ) {
-                                currentParagraph.setLength(currentParagraph.length - "<$tagName>".length)
-                            } else if (currentParagraph.isNotEmpty()) {
+                            if (currentParagraph.isNotEmpty()) {
                                 currentParagraph.append("</$tagName>")
-                                flushParagraphWithFormatting(currentParagraph, contentList)
+                                if (!insideHeading) {
+                                    flushParagraphWithFormatting(currentParagraph, contentList)
+                                }
                             }
+                            insideHeading = false
+                            spaceAddedInHeading = false
                         }
 
-                        "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "tr" -> {
-                            flushParagraphWithFormatting(currentParagraph, contentList)
+                        "p", "div", "ul", "ol", "li", "table", "blockquote", "hr", "tr",
+                        "figure", "figcaption", "details", "summary", "main", "header",
+                        "footer", "nav", "aside", "article", "section" -> {
+                            if (!insideHeading) {
+                                flushParagraphWithFormatting(currentParagraph, contentList)
+                            }
                         }
 
                         "td", "th" -> {
@@ -734,13 +746,15 @@ class DriveEPUBImportWorker(
                             }
                         }
 
-                        "tbody", "thead", "tfoot" -> {}
+                        else -> {}
                     }
                 }
             }
         })
         if (!hitEndAnchor) {
-            flushParagraphWithFormatting(currentParagraph, contentList)
+            if (!insideHeading) {
+                flushParagraphWithFormatting(currentParagraph, contentList)
+            }
         }
         return Pair(contentList, imagePaths)
     }
