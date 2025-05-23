@@ -144,6 +144,40 @@ fun SettingScreen(
             )
         }
         HorizontalDivider(thickness = 1.dp)
+        if(settingState.unlockSpecialCodeStatus) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        onAction(SettingAction.UpdateEnableSpecialArt(!settingState.enableSpecialArt))
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_favourite_music),
+                    contentDescription = "enableSpecialArt"
+                )
+                Text(
+                    text = "Enable special Art",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Switch(
+                    checked = settingState.enableSpecialArt,
+                    onCheckedChange = {
+                        onAction(SettingAction.UpdateEnableSpecialArt(it))
+                    },
+                )
+            }
+            HorizontalDivider(thickness = 1.dp)
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()

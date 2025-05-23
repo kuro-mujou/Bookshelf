@@ -44,6 +44,7 @@ object PreferencesKeys {
     val IMAGE_PADDING_STATE = booleanPreferencesKey("IMAGE_PADDING_STATE")
     val BOOKMARK_STYLE = stringPreferencesKey("BOOKMARK_STYLE")
     val UNLOCK_SPECIAL_CODE_STATUS = booleanPreferencesKey("UNLOCK_SPECIAL_CODE_STATUS")
+    val ENABLE_SPECIAL_ART = booleanPreferencesKey("ENABLE_SPECIAL_ART")
 }
 
 class DataStoreManager(val context: Context) {
@@ -127,6 +128,9 @@ class DataStoreManager(val context: Context) {
     }
     val unlockSpecialCodeStatus: Flow<Boolean> = dataStore.data.map { preferences ->
         preferences[PreferencesKeys.UNLOCK_SPECIAL_CODE_STATUS] == true
+    }
+    val enableSpecialArt: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.ENABLE_SPECIAL_ART] == true
     }
 
     suspend fun setKeepScreenOn(value: Boolean) {
@@ -276,6 +280,12 @@ class DataStoreManager(val context: Context) {
     suspend fun setUnlockSpecialCodeStatus(value: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.UNLOCK_SPECIAL_CODE_STATUS] = value
+        }
+    }
+
+    suspend fun setEnableSpecialArt(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ENABLE_SPECIAL_ART] = value
         }
     }
 }

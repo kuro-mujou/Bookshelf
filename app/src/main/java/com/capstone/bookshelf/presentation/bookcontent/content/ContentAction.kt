@@ -54,4 +54,5 @@ sealed interface ContentAction {
 
     data class GetChapterContent(val index: Int) : ContentAction
     data class UpdateUnlockSpecialCodeStatus(val status: Boolean) : ContentAction
+    data class UpdateEnableSpecialArt(val enable: Boolean) : ContentAction
 }

@@ -31,4 +31,5 @@ sealed interface SettingAction {
     data object DeleteCategory : SettingAction
     data object ResetChipState : SettingAction
     data object OpenSpecialCodeSuccess : SettingAction
+    data class UpdateEnableSpecialArt(val enable: Boolean) : SettingAction
 }

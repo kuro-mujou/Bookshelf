@@ -184,6 +184,9 @@ fun BottomBarManager(
                 viewModel.onContentAction(ContentAction.UpdateKeepScreenOn(it))
                 onSwitchChange(it)
             },
+            onEnableSpecialArtChange = {
+                viewModel.onContentAction(ContentAction.UpdateEnableSpecialArt(it))
+            },
             onBackgroundMusicSetting = {
                 openBackgroundMusicMenu = true
             },

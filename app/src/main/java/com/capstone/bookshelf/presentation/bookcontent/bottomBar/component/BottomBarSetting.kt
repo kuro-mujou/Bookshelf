@@ -61,6 +61,7 @@ fun BottomBarSetting(
     dataStoreManager: DataStoreManager,
     tts: TextToSpeech,
     onKeepScreenOnChange: (Boolean) -> Unit,
+    onEnableSpecialArtChange: (Boolean) -> Unit,
     onBackgroundMusicSetting: () -> Unit,
     onBookmarkThemeSetting: () -> Unit,
 ) {
@@ -134,7 +135,10 @@ fun BottomBarSetting(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
+                    .height(50.dp)
+                    .clickable {
+                        onKeepScreenOnChange(!contentState.keepScreenOn)
+                    },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -144,7 +148,7 @@ fun BottomBarSetting(
                         .size(24.dp),
                     imageVector = ImageVector.vectorResource(id = R.drawable.ic_keep_screen_on),
                     tint = colorPaletteState.textColor,
-                    contentDescription = "background music"
+                    contentDescription = "Keep Screen On"
                 )
                 Text(
                     text = "Keep Screen On",
@@ -171,6 +175,51 @@ fun BottomBarSetting(
                 )
             }
             HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
+            if(contentState.unlockSpecialCodeStatus) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .clickable {
+                            onEnableSpecialArtChange(!contentState.enableSpecialArt)
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Icon(
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp)
+                            .size(24.dp),
+                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_favourite_music),
+                        tint = colorPaletteState.textColor,
+                        contentDescription = "enable special art"
+                    )
+                    Text(
+                        text = "Enable special Art",
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            color = colorPaletteState.textColor,
+                            fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex]
+                        )
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = contentState.enableSpecialArt,
+                        onCheckedChange = {
+                            onEnableSpecialArtChange(it)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = colorPaletteState.textColor,
+                            checkedTrackColor = colorPaletteState.textColor.copy(0.5f),
+                            checkedBorderColor = colorPaletteState.textColor,
+                            uncheckedThumbColor = colorPaletteState.textColor,
+                            uncheckedTrackColor = colorPaletteState.textColor.copy(0.5f),
+                            uncheckedBorderColor = colorPaletteState.textColor,
+                        )
+                    )
+                }
+                HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

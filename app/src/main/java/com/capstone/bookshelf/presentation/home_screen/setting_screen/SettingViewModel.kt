@@ -187,6 +187,12 @@ class SettingViewModel(
                     dataStoreManager.setUnlockSpecialCodeStatus(true)
                 }
             }
+
+            is SettingAction.UpdateEnableSpecialArt -> {
+                viewModelScope.launch {
+                    dataStoreManager.setEnableSpecialArt(action.enable)
+                }
+            }
         }
     }
 
@@ -314,6 +320,20 @@ class SettingViewModel(
             bookRepository.getBookCategory().collectLatest { categories ->
                 _state.update {
                     it.copy(bookCategories = categories)
+                }
+            }
+        }
+        viewModelScope.launch {
+            dataStoreManager.unlockSpecialCodeStatus.collectLatest {status->
+                _state.update {
+                    it.copy(unlockSpecialCodeStatus = status)
+                }
+            }
+        }
+        viewModelScope.launch {
+            dataStoreManager.enableSpecialArt.collectLatest {enable->
+                _state.update {
+                    it.copy(enableSpecialArt = enable)
                 }
             }
         }

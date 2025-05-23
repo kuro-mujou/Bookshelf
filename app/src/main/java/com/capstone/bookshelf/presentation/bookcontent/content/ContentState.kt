@@ -79,4 +79,5 @@ data class ContentState(
     val keepScreenOn: Boolean = false,
     val selectedBookmarkStyle: BookmarkStyle = BookmarkStyle.WAVE_WITH_BIRDS,
     val unlockSpecialCodeStatus: Boolean = false,
+    val enableSpecialArt: Boolean = false,
 )

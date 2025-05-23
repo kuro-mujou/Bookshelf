@@ -23,5 +23,7 @@ data class SettingState(
     val delayResumeMode: Int = 1000,
     val enableBackgroundMusic : Boolean = false,
     val selectedBookmarkStyle: BookmarkStyle = BookmarkStyle.WAVE_WITH_BIRDS,
-    val bookCategories: List<Category> = emptyList()
+    val bookCategories: List<Category> = emptyList(),
+    val unlockSpecialCodeStatus: Boolean = false,
+    val enableSpecialArt: Boolean = false,
 )

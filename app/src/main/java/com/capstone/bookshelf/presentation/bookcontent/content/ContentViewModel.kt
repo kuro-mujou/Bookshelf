@@ -108,6 +108,13 @@ class ContentViewModel(
                     }
                 }
         }
+        viewModelScope.launch {
+            dataStoreManager.enableSpecialArt.collectLatest { enable->
+                _state.update {
+                    it.copy(enableSpecialArt = enable)
+                }
+            }
+        }
     }
 
     fun onContentAction(action: ContentAction) {
@@ -556,6 +563,12 @@ class ContentViewModel(
             is ContentAction.UpdateUnlockSpecialCodeStatus -> {
                 _state.update {
                     it.copy( unlockSpecialCodeStatus = action.status )
+                }
+            }
+
+            is ContentAction.UpdateEnableSpecialArt -> {
+                viewModelScope.launch {
+                    dataStoreManager.setEnableSpecialArt(action.enable)
                 }
             }
         }

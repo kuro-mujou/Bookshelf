@@ -122,7 +122,7 @@ fun ContentScreen(
             ),
         color = colorPaletteState.backgroundColor
     ) {
-        if (contentState.unlockSpecialCodeStatus){
+        if (contentState.unlockSpecialCodeStatus && contentState.enableSpecialArt){
             SpecialArt(
                 baseColor = colorPaletteState.specialArtColor,
                 backgroundColor = colorPaletteState.backgroundColor,
