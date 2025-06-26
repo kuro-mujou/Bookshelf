@@ -11,14 +11,14 @@ plugins {
 
 android {
     namespace = "com.capstone.bookshelf"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.capstone.bookshelf"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 13
-        versionName = "2.0.7"
+        targetSdk = 36
+        versionCode = 14
+        versionName = "1.0.14"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
