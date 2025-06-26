@@ -606,27 +606,29 @@ class EPUBImportWorker(
         val match =
             publication.resources.firstOrNull { it.href.toString().endsWith(imageElementHref) }
         var imagePath = "error"
-        publication.get(match!!)?.buffered()?.use { buffering ->
-            buffering.read().onSuccess { byteArray ->
-                byteArray.inputStream().use {
-                    val bitmap = decodeSampledBitmapFromStream(
-                        it,
-                        MAX_BITMAP_DIMENSION,
-                        MAX_BITMAP_DIMENSION
-                    )
-                    if (bitmap != null) {
-                        imagePath = saveBitmapToPrivateStorage(
-                            context = context,
-                            bitmap = bitmap,
-                            compressType = Bitmap.CompressFormat.JPEG,
-                            quality = 80,
-                            filenameWithoutExtension = "image_${finalBookId}_${tocIndex}_${paragraphIndex}"
+        match?.let{
+            publication.get(it)?.buffered()?.use { buffering ->
+                buffering.read().onSuccess { byteArray ->
+                    byteArray.inputStream().use {
+                        val bitmap = decodeSampledBitmapFromStream(
+                            it,
+                            MAX_BITMAP_DIMENSION,
+                            MAX_BITMAP_DIMENSION
                         )
-                        bitmap.recycle()
+                        if (bitmap != null) {
+                            imagePath = saveBitmapToPrivateStorage(
+                                context = context,
+                                bitmap = bitmap,
+                                compressType = Bitmap.CompressFormat.JPEG,
+                                quality = 80,
+                                filenameWithoutExtension = "image_${finalBookId}_${tocIndex}_${paragraphIndex}"
+                            )
+                            bitmap.recycle()
+                        }
                     }
                 }
             }
-        }
+        } ?: return imagePath
         return imagePath
     }
 
