@@ -6,12 +6,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
@@ -25,6 +33,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
@@ -61,6 +70,22 @@ fun BottomBarDefault(
                 } else {
                     Modifier.background(colorPaletteState.containerColor)
                 }
+            )
+            .padding(
+                PaddingValues(
+                    start = WindowInsets.safeContent
+                        .only(WindowInsetsSides.Start)
+                        .asPaddingValues()
+                        .calculateStartPadding(LayoutDirection.Ltr),
+                    end = WindowInsets.safeContent
+                        .only(WindowInsetsSides.End)
+                        .asPaddingValues()
+                        .calculateEndPadding(LayoutDirection.Ltr),
+                    bottom = WindowInsets.navigationBars
+                        .only(WindowInsetsSides.Bottom)
+                        .asPaddingValues()
+                        .calculateBottomPadding()
+                )
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -87,7 +112,6 @@ fun BottomBarDefault(
         Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier = Modifier
-                .navigationBarsPadding()
                 .fillMaxWidth()
                 .wrapContentHeight(),
             horizontalArrangement = Arrangement.SpaceEvenly

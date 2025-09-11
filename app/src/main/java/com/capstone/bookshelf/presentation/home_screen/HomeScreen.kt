@@ -46,6 +46,7 @@ import org.koin.androidx.compose.koinViewModel
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun HomeScreen(
+//    windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
     mainNavController: NavHostController,
 ) {
     val bottomNavController = rememberNavController()
@@ -70,7 +71,7 @@ fun HomeScreen(
     val fabItems = listOf(
         MiniFabItems(
             icon = R.drawable.ic_add_epub,
-            title = "Import EPUB/CBZ",
+            title = "Import EPUB",
             tint = if (isSystemInDarkTheme())
                 Color(255, 250, 160)
             else
@@ -78,11 +79,20 @@ fun HomeScreen(
             onClick = {
                 specialIntent = "null"
                 fabExpanded = false
-                importBookLauncher.launch(
-                    arrayOf(
-                        "application/epub+zip", "application/vnd.comicbook+zip"
-                    )
-                )
+                importBookLauncher.launch(arrayOf("application/epub+zip"))
+            }
+        ),
+        MiniFabItems(
+            icon = R.drawable.ic_add_epub,
+            title = "Import CBZ",
+            tint = if (isSystemInDarkTheme())
+                Color(255, 250, 160)
+            else
+                Color(131, 105, 83),
+            onClick = {
+                specialIntent = "null"
+                fabExpanded = false
+                importBookLauncher.launch(arrayOf("application/vnd.comicbook+zip", "application/octet-stream"))
             }
         ),
         MiniFabItems(

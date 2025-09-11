@@ -5,10 +5,19 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -16,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.R
 import com.capstone.bookshelf.presentation.bookcontent.component.colorpicker.ColorPalette
@@ -58,11 +68,25 @@ fun TopBar(
                     } else {
                         Modifier.background(colorPaletteState.containerColor)
                     }
+                )
+                .padding(
+                    PaddingValues(
+                        start = WindowInsets.safeContent
+                            .only(WindowInsetsSides.Start)
+                            .asPaddingValues()
+                            .calculateStartPadding(LayoutDirection.Ltr),
+                        top = WindowInsets.statusBars
+                            .only(WindowInsetsSides.Top)
+                            .asPaddingValues()
+                            .calculateTopPadding(),
+                        end = WindowInsets.safeContent
+                            .only(WindowInsetsSides.End)
+                            .asPaddingValues()
+                            .calculateEndPadding(LayoutDirection.Ltr),
+                    )
                 ),
         ) {
             IconButton(
-                modifier = Modifier
-                    .statusBarsPadding(),
                 onClick = {
                     onBackIconClick()
                 }
@@ -74,8 +98,6 @@ fun TopBar(
                 )
             }
             IconButton(
-                modifier = Modifier
-                    .statusBarsPadding(),
                 onClick = {
                     onMenuIconClick()
                 }
@@ -88,8 +110,6 @@ fun TopBar(
             }
             Spacer(modifier = Modifier.weight(1f))
             IconButton(
-                modifier = Modifier
-                    .statusBarsPadding(),
                 onClick = {
                     onBookmarkIconClick()
                 }

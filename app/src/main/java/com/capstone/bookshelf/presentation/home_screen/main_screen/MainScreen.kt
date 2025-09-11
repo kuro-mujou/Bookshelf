@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainScreen(
     mainViewModel: MainViewModel,
+//    windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfo().windowSizeClass,
     onClick: (String) -> Unit,
     onDoubleClick: (String) -> Unit,
     navigateToBookList: () -> Unit

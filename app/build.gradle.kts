@@ -46,6 +46,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
+        freeCompilerArgs = listOf("-XXLanguage:+PropertyParamAnnotationDefaultTargetMode")
     }
     buildFeatures {
         compose = true
@@ -79,6 +80,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.animation)
+    implementation(libs.androidx.compose.material.icons.core)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     //data store
     implementation(libs.androidx.datastore.preferences)

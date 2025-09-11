@@ -14,11 +14,18 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -54,6 +61,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.capstone.bookshelf.domain.wrapper.Chapter
@@ -553,6 +561,14 @@ fun ContentScreen(
                     Text(
                         modifier = Modifier
                             .statusBarsPadding()
+                            .padding(
+                                PaddingValues(
+                                    start = WindowInsets.safeContent
+                                        .only(WindowInsetsSides.Start)
+                                        .asPaddingValues()
+                                        .calculateStartPadding(LayoutDirection.Ltr),
+                                )
+                            )
                             .padding(start = 4.dp, end = 4.dp)
                             .weight(1f),
                         text = header,
@@ -566,6 +582,14 @@ fun ContentScreen(
                     Text(
                         modifier = Modifier
                             .statusBarsPadding()
+                            .padding(
+                                PaddingValues(
+                                    end = WindowInsets.safeContent
+                                        .only(WindowInsetsSides.End)
+                                        .asPaddingValues()
+                                        .calculateEndPadding(LayoutDirection.Ltr),
+                                )
+                            )
                             .padding(start = 4.dp, end = 4.dp)
                             .wrapContentWidth(),
                         text = "${pagerState.currentPage + 1} / ${contentState.book?.totalChapter}",
@@ -627,6 +651,9 @@ fun ContentScreen(
                             )
                             viewModel.onContentAction(ContentAction.UpdateScreenHeight(coordinates.size.height))
                         },
+                    contentPadding = WindowInsets.safeContent
+                        .only(WindowInsetsSides.Start + WindowInsetsSides.End)
+                        .asPaddingValues(),
                     state = listState,
                 ) {
                     chapterContents[page]?.let {
@@ -655,8 +682,18 @@ fun ContentScreen(
                 ) {
                     Text(
                         modifier = Modifier
-                            .navigationBarsPadding()
-                            .padding(start = 4.dp),
+                            .padding(
+                                PaddingValues(
+                                    start = WindowInsets.safeContent
+                                        .only(WindowInsetsSides.Start)
+                                        .asPaddingValues()
+                                        .calculateStartPadding(LayoutDirection.Ltr),
+                                    bottom = WindowInsets.safeContent
+                                        .only(WindowInsetsSides.Bottom)
+                                        .asPaddingValues()
+                                        .calculateBottomPadding()
+                                )
+                            ),
                         text = "${contentState.lastVisibleItemIndex + 1} / ${chapterContents[page]?.size}",
                         style = TextStyle(
                             color = colorPaletteState.textColor,

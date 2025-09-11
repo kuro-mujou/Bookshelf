@@ -9,12 +9,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyListState
@@ -49,6 +55,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
@@ -165,11 +172,22 @@ fun DrawerScreen(
                                 Modifier.background(colorPaletteState.containerColor)
                             }
                         }
+                    )
+                    .padding(
+                        PaddingValues(
+                            start = WindowInsets.safeContent
+                                .only(WindowInsetsSides.Start)
+                                .asPaddingValues()
+                                .calculateStartPadding(LayoutDirection.Ltr),
+                            top = WindowInsets.safeContent
+                                .only(WindowInsetsSides.Top)
+                                .asPaddingValues()
+                                .calculateTopPadding()
+                        )
                     ),
             ) {
                 Row(
                     modifier = Modifier
-                        .statusBarsPadding()
                         .fillMaxWidth()
                         .wrapContentHeight(),
                 ) {
