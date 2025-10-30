@@ -128,9 +128,8 @@ fun BookContentScreenRoot(
         }
     )
     LaunchedEffect(Unit) {
-        if (contentState.book == null) {
-            viewModel.onContentAction(ContentAction.LoadBook)
-        }
+        viewModel.onContentAction(ContentAction.LoadBook)
+        yield()
         colorPaletteViewModel.updateBackgroundColor(Color(dataStoreManager.backgroundColor.first()))
         colorPaletteViewModel.updateTextColor(Color(dataStoreManager.textColor.first()))
         colorPaletteViewModel.updateSelectedColorSet(dataStoreManager.selectedColorSet.first())
@@ -252,6 +251,7 @@ fun BookContentScreenRoot(
         }
     ) {
         LaunchedEffect(contentState.book) {
+            yield()
             if (contentState.book != null) {
                 viewModel.onContentAction(ContentAction.UpdateCurrentChapterIndex(contentState.book?.currentChapter!!))
                 if (contentState.book?.isEditable == false) {
