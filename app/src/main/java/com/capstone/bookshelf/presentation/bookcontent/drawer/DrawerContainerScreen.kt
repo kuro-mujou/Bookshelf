@@ -36,6 +36,7 @@ import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -72,6 +73,7 @@ import com.capstone.bookshelf.presentation.bookcontent.drawer.component.note.Not
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContents
 import com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc.TableOfContentsEditable
 import com.capstone.bookshelf.util.DataStoreManager
+import com.capstone.bookshelf.util.DeviceConfiguration
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -151,6 +153,20 @@ fun DrawerScreen(
     LaunchedEffect(drawerState.isClosed) {
         selectedTabIndex = 0
     }
+    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+    val deviceConfiguration = DeviceConfiguration.fromWindowSizeClass(windowSizeClass)
+    val drawerWidth = when (deviceConfiguration) {
+        DeviceConfiguration.PHONE_PORTRAIT -> 300.dp
+        DeviceConfiguration.PHONE_LANDSCAPE -> 360.dp
+        DeviceConfiguration.TABLET_PORTRAIT -> 360.dp
+        DeviceConfiguration.TABLET_LANDSCAPE -> 480.dp
+    }
+    val imageWidth = when (deviceConfiguration) {
+        DeviceConfiguration.PHONE_PORTRAIT -> 100.dp
+        DeviceConfiguration.PHONE_LANDSCAPE -> 70.dp
+        DeviceConfiguration.TABLET_PORTRAIT -> 120.dp
+        DeviceConfiguration.TABLET_LANDSCAPE -> 160.dp
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -158,7 +174,7 @@ fun DrawerScreen(
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(300.dp)
+                    .width(drawerWidth)
                     .then(
                         if (contentState.book?.isEditable == true) {
                             Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
@@ -197,7 +213,7 @@ fun DrawerScreen(
                         contentScale = ContentScale.FillWidth,
                         modifier = Modifier
                             .padding(start = 8.dp)
-                            .width(100.dp)
+                            .width(imageWidth)
                             .clip(RoundedCornerShape(8.dp))
                             .then(
                                 if (contentState.book?.isEditable == true) {

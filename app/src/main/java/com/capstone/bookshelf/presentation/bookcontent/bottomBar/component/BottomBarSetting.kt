@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -197,6 +198,7 @@ fun BottomBarSetting(
                         uncheckedBorderColor = colorPaletteState.textColor,
                     )
                 )
+                Spacer(modifier = Modifier.width(8.dp))
             }
             HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
             if(contentState.unlockSpecialCodeStatus) {
@@ -241,6 +243,7 @@ fun BottomBarSetting(
                             uncheckedBorderColor = colorPaletteState.textColor,
                         )
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
                 HorizontalDivider(thickness = 1.dp, color = colorPaletteState.textColor.copy(0.8f))
             }

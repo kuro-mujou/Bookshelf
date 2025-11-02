@@ -46,7 +46,6 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
-        freeCompilerArgs = listOf("-XXLanguage:+PropertyParamAnnotationDefaultTargetMode")
     }
     buildFeatures {
         compose = true
@@ -55,7 +54,6 @@ android {
     composeCompiler {
         featureFlags = setOf(
             ComposeFeatureFlag.IntrinsicRemember.disabled(),
-            ComposeFeatureFlag.OptimizeNonSkippingGroups,
             ComposeFeatureFlag.StrongSkipping.disabled()
         )
     }
@@ -145,6 +143,8 @@ dependencies {
     implementation(libs.readium.navigator)
     implementation(libs.readium.opds)
     implementation(libs.readium.lcp)
+    //compose-adaptive
+    implementation(libs.compose.adaptive)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

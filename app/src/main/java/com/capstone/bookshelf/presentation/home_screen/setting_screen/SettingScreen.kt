@@ -6,11 +6,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -31,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.capstone.bookshelf.R
@@ -98,7 +107,17 @@ fun SettingScreen(
     }
     Column(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .padding(
+                top = WindowInsets.safeContent
+                    .only(WindowInsetsSides.Top)
+                    .asPaddingValues()
+                    .calculateTopPadding(),
+                end = WindowInsets.safeContent
+                    .only(WindowInsetsSides.End)
+                    .asPaddingValues()
+                    .calculateRightPadding(LayoutDirection.Ltr)
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
     ) {
@@ -112,45 +131,16 @@ fun SettingScreen(
             )
         )
         HorizontalDivider(thickness = 2.dp)
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .clickable {
-                    onAction(SettingAction.KeepScreenOn(!settingState.keepScreenOn))
-                },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .verticalScroll(rememberScrollState())
         ) {
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(24.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_keep_screen_on),
-                contentDescription = "keep screen on"
-            )
-            Text(
-                text = "Keep Screen On",
-                style = TextStyle(
-                    fontSize = 16.sp,
-                )
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Switch(
-                checked = settingState.keepScreenOn,
-                onCheckedChange = {
-                    onAction(SettingAction.KeepScreenOn(it))
-                },
-            )
-        }
-        HorizontalDivider(thickness = 1.dp)
-        if(settingState.unlockSpecialCodeStatus) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
                     .clickable {
-                        onAction(SettingAction.UpdateEnableSpecialArt(!settingState.enableSpecialArt))
+                        onAction(SettingAction.KeepScreenOn(!settingState.keepScreenOn))
                     },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -159,218 +149,254 @@ fun SettingScreen(
                     modifier = Modifier
                         .padding(start = 8.dp, end = 8.dp)
                         .size(24.dp),
-                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_favourite_music),
-                    contentDescription = "enableSpecialArt"
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_keep_screen_on),
+                    contentDescription = "keep screen on"
                 )
                 Text(
-                    text = "Enable special Art",
+                    text = "Keep Screen On",
                     style = TextStyle(
                         fontSize = 16.sp,
                     )
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Switch(
-                    checked = settingState.enableSpecialArt,
+                    checked = settingState.keepScreenOn,
                     onCheckedChange = {
-                        onAction(SettingAction.UpdateEnableSpecialArt(it))
+                        onAction(SettingAction.KeepScreenOn(it))
                     },
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            HorizontalDivider(thickness = 1.dp)
+            if (settingState.unlockSpecialCodeStatus) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .clickable {
+                            onAction(SettingAction.UpdateEnableSpecialArt(!settingState.enableSpecialArt))
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Icon(
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 8.dp)
+                            .size(24.dp),
+                        imageVector = ImageVector.vectorResource(id = R.drawable.ic_favourite_music),
+                        contentDescription = "enableSpecialArt"
+                    )
+                    Text(
+                        text = "Enable special Art",
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                        )
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = settingState.enableSpecialArt,
+                        onCheckedChange = {
+                            onAction(SettingAction.UpdateEnableSpecialArt(it))
+                        },
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                HorizontalDivider(thickness = 1.dp)
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        openBackgroundMusicMenu = true
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_music_background),
+                    contentDescription = "background music"
+                )
+                Text(
+                    text = "Background Music",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    contentDescription = null
                 )
             }
             HorizontalDivider(thickness = 1.dp)
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .clickable {
-                    openBackgroundMusicMenu = true
-                },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
+            Row(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(24.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_music_background),
-                contentDescription = "background music"
-            )
-            Text(
-                text = "Background Music",
-                style = TextStyle(
-                    fontSize = 16.sp,
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        openBookmarkThemeMenu = true
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_tag),
+                    contentDescription = "Bookmark theme"
                 )
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(30.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = null
-            )
-        }
-        HorizontalDivider(thickness = 1.dp)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .clickable {
-                    openBookmarkThemeMenu = true
-                },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(24.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_tag),
-                contentDescription = "Bookmark theme"
-            )
-            Text(
-                text = "Bookmark theme",
-                style = TextStyle(
-                    fontSize = 16.sp,
+                Text(
+                    text = "Bookmark theme",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                    )
                 )
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(30.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = null
-            )
-        }
-        HorizontalDivider(thickness = 1.dp)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .clickable {
-                    onAction(SettingAction.OpenTTSVoiceMenu(true))
-                },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(24.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_headphones),
-                contentDescription = "text to speech"
-            )
-            Text(
-                text = "Text to Speech",
-                style = TextStyle(
-                    fontSize = 16.sp,
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    contentDescription = null
                 )
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
+            }
+            HorizontalDivider(thickness = 1.dp)
+            Row(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(30.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = null
-            )
-        }
-        HorizontalDivider(thickness = 1.dp)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .clickable {
-                    onAction(SettingAction.OpenAutoScrollMenu(true))
-                },
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(24.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_scroll),
-                contentDescription = "auto scroll up"
-            )
-            Text(
-                text = "Auto Scroll Up",
-                style = TextStyle(
-                    fontSize = 16.sp,
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        onAction(SettingAction.OpenTTSVoiceMenu(true))
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_headphones),
+                    contentDescription = "text to speech"
                 )
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(30.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = null
-            )
-        }
-        HorizontalDivider(thickness = 1.dp)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .clickable {
-                    openCategoryMenu = true
-                },
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(24.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_grid_view),
-                contentDescription = "book category"
-            )
-            Text(
-                text = "Book Category",
-                style = TextStyle(
-                    fontSize = 16.sp,
+                Text(
+                    text = "Text to Speech",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                    )
                 )
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(30.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = null
-            )
-        }
-        HorizontalDivider(thickness = 1.dp)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .clickable {
-                    openSpecialCodeDialog = true
-                },
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(24.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_favourite_music),
-                contentDescription = "special code"
-            )
-            Text(
-                text = "Coupon Code",
-                style = TextStyle(
-                    fontSize = 16.sp,
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    contentDescription = null
                 )
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
+            }
+            HorizontalDivider(thickness = 1.dp)
+            Row(
                 modifier = Modifier
-                    .padding(start = 8.dp, end = 8.dp)
-                    .size(30.dp),
-                imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
-                contentDescription = null
-            )
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        onAction(SettingAction.OpenAutoScrollMenu(true))
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_scroll),
+                    contentDescription = "auto scroll up"
+                )
+                Text(
+                    text = "Auto Scroll Up",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    contentDescription = null
+                )
+            }
+            HorizontalDivider(thickness = 1.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        openCategoryMenu = true
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_grid_view),
+                    contentDescription = "book category"
+                )
+                Text(
+                    text = "Book Category",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    contentDescription = null
+                )
+            }
+            HorizontalDivider(thickness = 1.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clickable {
+                        openSpecialCodeDialog = true
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(24.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_favourite_music),
+                    contentDescription = "special code"
+                )
+                Text(
+                    text = "Coupon Code",
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                    )
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp)
+                        .size(30.dp),
+                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_right),
+                    contentDescription = null
+                )
+            }
         }
     }
     if (openBackgroundMusicMenu) {

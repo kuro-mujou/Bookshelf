@@ -6,11 +6,11 @@ import androidx.room.TypeConverters
 import com.capstone.bookshelf.data.database.StringListTypeConverter
 
 @Entity(tableName = "books")
+@TypeConverters(StringListTypeConverter::class)
 data class BookEntity(
     @PrimaryKey(autoGenerate = false) val bookId: String,
     val title: String,
     val coverImagePath: String,
-    @TypeConverters(StringListTypeConverter::class)
     val authors: List<String>,
     val description: String?,
     val totalChapter: Int,

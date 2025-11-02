@@ -18,9 +18,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -85,6 +90,13 @@ fun MusicMenu(
     var volumeSliderValue by remember { mutableFloatStateOf(state.playerVolume) }
     Surface {
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    WindowInsets.safeContent
+                        .only(WindowInsetsSides.Horizontal)
+                        .asPaddingValues()
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -92,7 +104,9 @@ fun MusicMenu(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .align(Alignment.Center),
                     text = "MUSIC MENU",
                     style = TextStyle(
                         fontSize = 20.sp,

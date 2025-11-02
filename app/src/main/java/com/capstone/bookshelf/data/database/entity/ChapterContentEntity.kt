@@ -22,11 +22,11 @@ import com.capstone.bookshelf.data.database.StringListTypeConverter
         ),
     ]
 )
+@TypeConverters(StringListTypeConverter::class)
 data class ChapterContentEntity(
     @PrimaryKey(autoGenerate = true) val chapterContentId: Int = 0,
     val tocId: Int,
     val bookId: String,
     val chapterTitle: String,
-    @TypeConverters(StringListTypeConverter::class)
     val content: List<String>,
 )

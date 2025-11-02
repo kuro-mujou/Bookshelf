@@ -20,11 +20,13 @@ import kotlin.math.absoluteValue
 
 @Composable
 fun PagerIndicator(
+    modifier: Modifier = Modifier,
     pagerState: PagerState,
     activeColor: Color = MaterialTheme.colorScheme.primary,
     inactiveColor: Color = activeColor.copy(alpha = 0.3f),
 ) {
     Row(
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

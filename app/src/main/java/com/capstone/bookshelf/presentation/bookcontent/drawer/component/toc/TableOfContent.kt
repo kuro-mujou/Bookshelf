@@ -3,13 +3,16 @@ package com.capstone.bookshelf.presentation.bookcontent.drawer.component.toc
 import android.annotation.SuppressLint
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -25,7 +28,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -93,40 +96,12 @@ fun TableOfContents(
             focusManager.clearFocus()
         }
     }
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = Color.Transparent,
-        floatingActionButton = {
-            if (showButton) {
-                IconButton(
-                    onClick = {
-                        scope.launch {
-                            drawerLazyColumnState.animateScrollToItem(contentState.currentChapterIndex)
-                        }
-                    },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = colorPaletteState.textColor,
-                    )
-                ) {
-                    if (contentState.currentChapterIndex < firstItemIndex)
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_up),
-                            modifier = Modifier.size(16.dp),
-                            contentDescription = null,
-                            tint = colorPaletteState.backgroundColor,
-                        )
-                    else
-                        Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_down),
-                            modifier = Modifier.size(16.dp),
-                            contentDescription = null,
-                            tint = colorPaletteState.backgroundColor,
-                        )
-                }
-            }
-        }
+    Box(
+        Modifier.fillMaxSize()
     ) {
-        Column {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+        ) {
             OutlinedTextField(
                 value = searchInput,
                 onValueChange = { newValue ->
@@ -142,7 +117,7 @@ fun TableOfContents(
                     Text(
                         text = "Enter a chapter number",
                         style = TextStyle(
-                            color =  colorPaletteState.textColor,
+                            color = colorPaletteState.textColor,
                             fontFamily = contentState.fontFamilies[contentState.selectedFontFamilyIndex],
                         )
                     )
@@ -222,11 +197,15 @@ fun TableOfContents(
                             .wrapContentHeight()
                             .clickable(
                                 onClick = {
-                                    onTocItemClick(drawerContainerState.tableOfContents.indexOf(tocItem))
+                                    onTocItemClick(
+                                        drawerContainerState.tableOfContents.indexOf(
+                                            tocItem
+                                        )
+                                    )
                                 },
                             )
                             .then(
-                                if(drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex)
+                                if (drawerContainerState.tableOfContents.indexOf(tocItem) == targetSearchIndex)
                                     Modifier.border(
                                         width = 1.dp,
                                         color = colorPaletteState.textColor,
@@ -255,22 +234,57 @@ fun TableOfContents(
                     )
                 }
             }
+            LaunchedEffect(drawerLazyColumnState) {
+                snapshotFlow { drawerLazyColumnState.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
+                    .collect { index ->
+                        firstItemIndex = index ?: 0
+                    }
+            }
+            LaunchedEffect(drawerLazyColumnState) {
+                snapshotFlow { drawerLazyColumnState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+                    .collect { index ->
+                        lastItemIndex = index ?: 0
+                    }
+            }
+            LaunchedEffect(firstItemIndex, lastItemIndex) {
+                showButton =
+                    contentState.currentChapterIndex !in firstItemIndex..lastItemIndex
+            }
         }
-    }
-    LaunchedEffect(drawerLazyColumnState) {
-        snapshotFlow { drawerLazyColumnState.layoutInfo.visibleItemsInfo.firstOrNull()?.index }
-            .collect { index ->
-                firstItemIndex = index ?: 0
+        if (showButton) {
+            IconButton(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(
+                        bottom = 4.dp + WindowInsets.navigationBars
+                            .only(WindowInsetsSides.Bottom)
+                            .asPaddingValues()
+                            .calculateBottomPadding(),
+                        end = 4.dp),
+                onClick = {
+                    scope.launch {
+                        drawerLazyColumnState.animateScrollToItem(contentState.currentChapterIndex)
+                    }
+                },
+                colors = IconButtonDefaults.iconButtonColors(
+                    containerColor = colorPaletteState.textColor,
+                )
+            ) {
+                if (contentState.currentChapterIndex < firstItemIndex)
+                    Icon(
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_up),
+                        modifier = Modifier.size(16.dp),
+                        contentDescription = null,
+                        tint = colorPaletteState.backgroundColor,
+                    )
+                else
+                    Icon(
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_down),
+                        modifier = Modifier.size(16.dp),
+                        contentDescription = null,
+                        tint = colorPaletteState.backgroundColor,
+                    )
             }
-    }
-    LaunchedEffect(drawerLazyColumnState) {
-        snapshotFlow { drawerLazyColumnState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .collect { index ->
-                lastItemIndex = index ?: 0
-            }
-    }
-    LaunchedEffect(firstItemIndex, lastItemIndex) {
-        showButton =
-            contentState.currentChapterIndex < firstItemIndex || contentState.currentChapterIndex > lastItemIndex
+        }
     }
 }

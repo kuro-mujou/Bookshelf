@@ -5,11 +5,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -73,15 +72,20 @@ fun RecentBookCard(
                 this.clip = true
             }
             .fillMaxWidth()
-            .aspectRatio(0.65f)
+            .wrapContentHeight()
     ) {
         Card(
             modifier = Modifier
-                .fillMaxSize(),
+                .fillMaxWidth()
+                .wrapContentHeight(),
             shape = cardShape,
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            ) {
                 AsyncImage(
                     model = if (book.coverImagePath == "error") {
                         R.mipmap.book_cover_not_available
@@ -89,9 +93,10 @@ fun RecentBookCard(
                         book.coverImagePath
                     },
                     contentDescription = book.title,
-                    contentScale = ContentScale.Crop,
+                    contentScale = ContentScale.FillWidth,
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
                 )
                 Box(
                     modifier = Modifier

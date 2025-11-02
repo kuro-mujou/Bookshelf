@@ -120,13 +120,6 @@ fun BookContentScreenRoot(
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    BackHandler(
-        onBack = {
-            if (contentState.book?.isEditable == true) {
-                onBackClick(true)
-            }
-        }
-    )
     LaunchedEffect(Unit) {
         viewModel.onContentAction(ContentAction.LoadBook)
         yield()
@@ -334,6 +327,11 @@ fun BookContentScreenRoot(
             }
         }
         if (contentState.book?.isEditable == true) {
+            BackHandler(
+                onBack = {
+                    onBackClick(true)
+                }
+            )
             BookWriterEdit(
                 contentState = contentState,
                 onNavigateBack = {
@@ -368,11 +366,19 @@ fun BookContentScreenRoot(
                     pageCount = { it.totalChapter }
                 )
             }
-            DisposableEffect(contentState.book, colorPaletteState.backgroundColor, isSystemLight) {
-                val window = (context as? Activity)?.window
-                if (window == null) {
-                    return@DisposableEffect onDispose {}
+            BackHandler(
+                onBack = {
+                    if (bottomBarState.visibility){
+                        bottomBarViewModel.onAction(BottomBarAction.UpdateVisibility(false))
+                        topBarViewModel.onAction(TopBarAction.UpdateVisibility(false))
+                    }
+                    if (drawerState.isOpen){
+                        drawerContainerViewModel.onAction(DrawerContainerAction.UpdateDrawerState(false))
+                    }
                 }
+            )
+            DisposableEffect(contentState.book, colorPaletteState.backgroundColor, isSystemLight) {
+                val window = (context as? Activity)?.window ?: return@DisposableEffect onDispose {}
                 val insetsController = WindowCompat.getInsetsController(window, view)
                 insetsController.isAppearanceLightStatusBars =
                     !colorPaletteState.backgroundColor.isDark()

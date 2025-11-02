@@ -12,15 +12,19 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.safeContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -29,7 +33,9 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,12 +43,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun ExpandableFab(
-    paddingForFab: PaddingValues,
     items: List<MiniFabItems>,
     expanded: Boolean,
     onToggle: () -> Unit,
@@ -78,14 +85,24 @@ fun ExpandableFab(
                 enter = fadeIn() + slideInVertically(initialOffsetY = { it }) + expandVertically(),
                 exit = fadeOut() + slideOutVertically(targetOffsetY = { it }) + shrinkVertically()
             ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(bottom = 4.dp, end = 16.dp),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    items(items, key = { it.title }) { item ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        MiniFabItemsUi(item)
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    FlowRow(
+                        modifier = Modifier
+                            .padding(
+                                bottom = 4.dp,
+                                start = 16.dp + WindowInsets.safeContent
+                                    .only(WindowInsetsSides.Start)
+                                    .asPaddingValues()
+                                    .calculateStartPadding(LayoutDirection.Rtl)
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items.forEach { fabItems ->
+                            key(fabItems.title) {
+                                MiniFabItemsUi(item = fabItems)
+                            }
+                        }
                     }
                 }
             }
@@ -101,7 +118,14 @@ fun ExpandableFab(
                 onClick = onToggle,
                 elevation = FloatingActionButtonDefaults.elevation(0.dp),
                 modifier = Modifier
-                    .padding(bottom = 16.dp + paddingForFab.calculateBottomPadding(), end = 16.dp, top = 4.dp)
+                    .padding(
+                        top = 4.dp,
+                        end = 16.dp + WindowInsets.safeContent
+                            .only(WindowInsetsSides.End)
+                            .asPaddingValues()
+                            .calculateEndPadding(LayoutDirection.Ltr),
+                        bottom = 16.dp
+                    )
                     .alpha(alpha)
             ) {
                 Icon(
