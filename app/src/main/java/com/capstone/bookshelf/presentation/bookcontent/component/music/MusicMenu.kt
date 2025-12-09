@@ -49,6 +49,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -71,6 +72,7 @@ import com.capstone.bookshelf.presentation.bookcontent.content.ContentState
 import com.capstone.bookshelf.presentation.bookcontent.content.ContentViewModel
 import com.capstone.bookshelf.util.DataStoreManager
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import kotlin.math.roundToInt
 
@@ -266,18 +268,8 @@ fun MusicItemView(
     onDelete: (MusicItem) -> Unit
 ) {
     val isSelected by rememberUpdatedState(music.isSelected)
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { newValue ->
-            if (newValue == SwipeToDismissBoxValue.StartToEnd) {
-                if (isSelected) {
-                    return@rememberSwipeToDismissBoxState false
-                }
-                onDelete(music)
-                return@rememberSwipeToDismissBoxState true
-            }
-            false
-        }
-    )
+    val dismissState = rememberSwipeToDismissBoxState()
+    val scope = rememberCoroutineScope()
     SwipeToDismissBox(
         state = dismissState,
         modifier = Modifier
@@ -301,6 +293,15 @@ fun MusicItemView(
             }
         },
         enableDismissFromEndToStart = false,
+        onDismiss = {
+            if (!isSelected) {
+                onDelete(music)
+            } else {
+                scope.launch {
+                    dismissState.reset()
+                }
+            }
+        },
         content = {
             val infiniteTransition = rememberInfiniteTransition()
             val rotation by infiniteTransition.animateFloat(

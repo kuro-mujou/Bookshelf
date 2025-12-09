@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -17,8 +15,8 @@ android {
         applicationId = "com.capstone.bookshelf"
         minSdk = 26
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.0.18"
+        versionCode = 20
+        versionName = "1.0.20"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -50,12 +48,6 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
-    }
-    composeCompiler {
-        featureFlags = setOf(
-            ComposeFeatureFlag.IntrinsicRemember.disabled(),
-            ComposeFeatureFlag.StrongSkipping.disabled()
-        )
     }
     packaging {
         resources {

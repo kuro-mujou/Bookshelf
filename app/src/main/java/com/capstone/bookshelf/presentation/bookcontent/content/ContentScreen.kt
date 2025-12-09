@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -688,7 +689,7 @@ fun ContentScreen(
                                         .only(WindowInsetsSides.Start)
                                         .asPaddingValues()
                                         .calculateStartPadding(LayoutDirection.Ltr),
-                                    bottom = WindowInsets.safeContent
+                                    bottom = WindowInsets.systemBars
                                         .only(WindowInsetsSides.Bottom)
                                         .asPaddingValues()
                                         .calculateBottomPadding()

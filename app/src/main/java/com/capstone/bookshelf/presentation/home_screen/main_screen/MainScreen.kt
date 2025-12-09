@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +57,6 @@ fun MainScreen(
 ) {
     val state by mainViewModel.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val density = LocalDensity.current
     val realItemCount = state.recentBooks.size
     val pagerStateHorizontal = rememberPagerState(
         initialPage = 1,
@@ -145,7 +143,8 @@ fun MainScreen(
                 DeviceConfiguration.PHONE_LANDSCAPE,
                 DeviceConfiguration.TABLET_LANDSCAPE -> {
                     LaunchedEffect(Unit) {
-                        pagerStateHorizontal.animateScrollToPage(1)
+                        if (realItemCount > 1)
+                            pagerStateHorizontal.animateScrollToPage(1)
                     }
                     HorizontalPager(
                         state = pagerStateHorizontal,
@@ -154,6 +153,7 @@ fun MainScreen(
                             .weight(1f),
                         pageSize = customPageSize,
                         snapPosition = SnapPosition.Center,
+                        userScrollEnabled = realItemCount > 1,
                     ) { pageIndex ->
                         if (pageIndex == 0 || pageIndex == realItemCount + 1) {
                             Box(modifier = Modifier.fillMaxWidth().aspectRatio(0.65f))

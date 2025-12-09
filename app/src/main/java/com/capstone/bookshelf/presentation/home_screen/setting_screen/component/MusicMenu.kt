@@ -47,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,6 +68,7 @@ import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicList
 import com.capstone.bookshelf.presentation.bookcontent.component.music.MusicViewModel
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingAction
 import com.capstone.bookshelf.presentation.home_screen.setting_screen.SettingState
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import kotlin.math.roundToInt
 
@@ -221,18 +223,8 @@ fun MusicItemView(
     onDelete: (MusicItem) -> Unit
 ) {
     val isSelected by rememberUpdatedState(music.isSelected)
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { newValue ->
-            if (newValue == SwipeToDismissBoxValue.StartToEnd) {
-                if (isSelected) {
-                    return@rememberSwipeToDismissBoxState false
-                }
-                onDelete(music)
-                return@rememberSwipeToDismissBoxState true
-            }
-            false
-        }
-    )
+    val dismissState = rememberSwipeToDismissBoxState()
+    val scope = rememberCoroutineScope()
     SwipeToDismissBox(
         state = dismissState,
         modifier = Modifier
@@ -256,6 +248,15 @@ fun MusicItemView(
             }
         },
         enableDismissFromEndToStart = false,
+        onDismiss = {
+            if (!isSelected) {
+                onDelete(music)
+            } else {
+                scope.launch {
+                    dismissState.reset()
+                }
+            }
+        },
         content = {
             val infiniteTransition = rememberInfiniteTransition()
             val rotation by infiniteTransition.animateFloat(
